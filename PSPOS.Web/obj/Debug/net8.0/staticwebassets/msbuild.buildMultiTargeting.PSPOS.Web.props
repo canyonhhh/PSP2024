@@ -1,0 +1,3 @@
+﻿<Project>
+  <Import Project="../build/PSPOS.Web.props" />
+</Project>
