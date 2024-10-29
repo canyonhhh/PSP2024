@@ -7,5 +7,5 @@ namespace Projects;
 [global::System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, ProjectPath = {ProjectPath}")]
 public class PSPOS_ApiService : global::Aspire.Hosting.IProjectMetadata
 {
-    public string ProjectPath => """/home/joris/doc/uni/psp/PSPOS/PSPOS.ApiService/PSPOS.ApiService.csproj""";
+    public string ProjectPath => """/home/joris/doc/uni/psp/PSP2024/PSPOS.ApiService/PSPOS.ApiService.csproj""";
 }

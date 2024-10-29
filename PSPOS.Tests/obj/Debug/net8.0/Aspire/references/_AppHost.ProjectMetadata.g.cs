@@ -8,5 +8,5 @@ namespace Projects;
 public class PSPOS_Tests
 {
     private PSPOS_Tests() { }
-    public static string ProjectPath => """/home/joris/doc/uni/psp/PSPOS/PSPOS.Tests""";
+    public static string ProjectPath => """/home/joris/doc/uni/psp/PSP2024/PSPOS.Tests""";
 }

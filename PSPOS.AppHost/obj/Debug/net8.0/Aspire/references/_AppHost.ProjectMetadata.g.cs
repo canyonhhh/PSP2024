@@ -8,5 +8,5 @@ namespace Projects;
 public class PSPOS_AppHost
 {
     private PSPOS_AppHost() { }
-    public static string ProjectPath => """/home/joris/doc/uni/psp/PSPOS/PSPOS.AppHost""";
+    public static string ProjectPath => """/home/joris/doc/uni/psp/PSP2024/PSPOS.AppHost""";
 }

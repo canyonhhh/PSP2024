@@ -17,13 +17,13 @@ using System.Reflection;
     "ls/ext/")]
 [assembly: System.Reflection.AssemblyMetadata("dcpbinpath", "/home/joris/.cache/NuGetPackages/aspire.hosting.orchestration.linux-x64/8.2.2/too" +
     "ls/ext/bin/")]
-[assembly: System.Reflection.AssemblyMetadata("apphostprojectpath", "/home/joris/doc/uni/psp/PSPOS/PSPOS.AppHost")]
+[assembly: System.Reflection.AssemblyMetadata("apphostprojectpath", "/home/joris/doc/uni/psp/PSP2024/PSPOS.AppHost")]
 [assembly: System.Reflection.AssemblyMetadata("aspiredashboardpath", "/home/joris/.cache/NuGetPackages/aspire.dashboard.sdk.linux-x64/8.2.2/tools/Aspir" +
     "e.Dashboard")]
 [assembly: System.Reflection.AssemblyCompanyAttribute("PSPOS.AppHost")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+90fc2012cf7bf63f929366ee2d3ff67de444cc27")]
 [assembly: System.Reflection.AssemblyProductAttribute("PSPOS.AppHost")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PSPOS.AppHost")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

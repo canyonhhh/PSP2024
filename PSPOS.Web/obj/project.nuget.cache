@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "ijg9iBpUcjc=",
+  "dgSpecHash": "jNoyvRI//V3n5DcqoToaB6jJ/94Ayj8EMFxoPmUetqf0UlGVCrHijx5DH6G6FHjzWv1uDv8mHE+kMwoDAFzbNQ==",
   "success": true,
-  "projectFilePath": "/home/joris/doc/uni/psp/PSPOS/PSPOS.Web/PSPOS.Web.csproj",
+  "projectFilePath": "/home/joris/doc/uni/psp/PSP2024/PSPOS.Web/PSPOS.Web.csproj",
   "expectedPackageFiles": [
     "/home/joris/.cache/NuGetPackages/aspire.stackexchange.redis/8.2.2/aspire.stackexchange.redis.8.2.2.nupkg.sha512",
     "/home/joris/.cache/NuGetPackages/aspire.stackexchange.redis.outputcaching/8.2.2/aspire.stackexchange.redis.outputcaching.8.2.2.nupkg.sha512",

@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "yqi/BcY9ydy5E4HKKl8DDdmT5RdzYiEU29HJj4+Anxg=",
+  "Hash": "nxPHMC5Xqo87VSV7qFcIkGU7weI4h0IX5Nh1QDgHgi8=",
   "Source": "PSPOS.Web",
   "BasePath": "_content/PSPOS.Web",
   "Mode": "Default",
@@ -10,17 +10,17 @@
     {
       "Name": "PSPOS.Web/wwwroot",
       "Source": "PSPOS.Web",
-      "ContentRoot": "/home/joris/doc/uni/psp/PSPOS/PSPOS.Web/wwwroot/",
+      "ContentRoot": "/home/joris/doc/uni/psp/PSP2024/PSPOS.Web/wwwroot/",
       "BasePath": "_content/PSPOS.Web",
       "Pattern": "**"
     }
   ],
   "Assets": [
     {
-      "Identity": "/home/joris/doc/uni/psp/PSPOS/PSPOS.Web/obj/Debug/net8.0/scopedcss/bundle/PSPOS.Web.styles.css",
+      "Identity": "/home/joris/doc/uni/psp/PSP2024/PSPOS.Web/obj/Debug/net8.0/scopedcss/bundle/PSPOS.Web.styles.css",
       "SourceId": "PSPOS.Web",
       "SourceType": "Computed",
-      "ContentRoot": "/home/joris/doc/uni/psp/PSPOS/PSPOS.Web/obj/Debug/net8.0/scopedcss/bundle/",
+      "ContentRoot": "/home/joris/doc/uni/psp/PSP2024/PSPOS.Web/obj/Debug/net8.0/scopedcss/bundle/",
       "BasePath": "_content/PSPOS.Web",
       "RelativePath": "PSPOS.Web.styles.css",
       "AssetKind": "All",
@@ -33,13 +33,13 @@
       "AssetTraitValue": "ApplicationBundle",
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
-      "OriginalItemSpec": "/home/joris/doc/uni/psp/PSPOS/PSPOS.Web/obj/Debug/net8.0/scopedcss/bundle/PSPOS.Web.styles.css"
+      "OriginalItemSpec": "/home/joris/doc/uni/psp/PSP2024/PSPOS.Web/obj/Debug/net8.0/scopedcss/bundle/PSPOS.Web.styles.css"
     },
     {
-      "Identity": "/home/joris/doc/uni/psp/PSPOS/PSPOS.Web/obj/Debug/net8.0/scopedcss/projectbundle/PSPOS.Web.bundle.scp.css",
+      "Identity": "/home/joris/doc/uni/psp/PSP2024/PSPOS.Web/obj/Debug/net8.0/scopedcss/projectbundle/PSPOS.Web.bundle.scp.css",
       "SourceId": "PSPOS.Web",
       "SourceType": "Computed",
-      "ContentRoot": "/home/joris/doc/uni/psp/PSPOS/PSPOS.Web/obj/Debug/net8.0/scopedcss/projectbundle/",
+      "ContentRoot": "/home/joris/doc/uni/psp/PSP2024/PSPOS.Web/obj/Debug/net8.0/scopedcss/projectbundle/",
       "BasePath": "_content/PSPOS.Web",
       "RelativePath": "PSPOS.Web.bundle.scp.css",
       "AssetKind": "All",
@@ -52,13 +52,13 @@
       "AssetTraitValue": "ProjectBundle",
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
-      "OriginalItemSpec": "/home/joris/doc/uni/psp/PSPOS/PSPOS.Web/obj/Debug/net8.0/scopedcss/projectbundle/PSPOS.Web.bundle.scp.css"
+      "OriginalItemSpec": "/home/joris/doc/uni/psp/PSP2024/PSPOS.Web/obj/Debug/net8.0/scopedcss/projectbundle/PSPOS.Web.bundle.scp.css"
     },
     {
-      "Identity": "/home/joris/doc/uni/psp/PSPOS/PSPOS.Web/wwwroot/app.css",
+      "Identity": "/home/joris/doc/uni/psp/PSP2024/PSPOS.Web/wwwroot/app.css",
       "SourceId": "PSPOS.Web",
       "SourceType": "Discovered",
-      "ContentRoot": "/home/joris/doc/uni/psp/PSPOS/PSPOS.Web/wwwroot/",
+      "ContentRoot": "/home/joris/doc/uni/psp/PSP2024/PSPOS.Web/wwwroot/",
       "BasePath": "_content/PSPOS.Web",
       "RelativePath": "app.css",
       "AssetKind": "All",
@@ -74,10 +74,10 @@
       "OriginalItemSpec": "wwwroot/app.css"
     },
     {
-      "Identity": "/home/joris/doc/uni/psp/PSPOS/PSPOS.Web/wwwroot/bootstrap/bootstrap.min.css",
+      "Identity": "/home/joris/doc/uni/psp/PSP2024/PSPOS.Web/wwwroot/bootstrap/bootstrap.min.css",
       "SourceId": "PSPOS.Web",
       "SourceType": "Discovered",
-      "ContentRoot": "/home/joris/doc/uni/psp/PSPOS/PSPOS.Web/wwwroot/",
+      "ContentRoot": "/home/joris/doc/uni/psp/PSP2024/PSPOS.Web/wwwroot/",
       "BasePath": "_content/PSPOS.Web",
       "RelativePath": "bootstrap/bootstrap.min.css",
       "AssetKind": "All",
@@ -93,10 +93,10 @@
       "OriginalItemSpec": "wwwroot/bootstrap/bootstrap.min.css"
     },
     {
-      "Identity": "/home/joris/doc/uni/psp/PSPOS/PSPOS.Web/wwwroot/bootstrap/bootstrap.min.css.map",
+      "Identity": "/home/joris/doc/uni/psp/PSP2024/PSPOS.Web/wwwroot/bootstrap/bootstrap.min.css.map",
       "SourceId": "PSPOS.Web",
       "SourceType": "Discovered",
-      "ContentRoot": "/home/joris/doc/uni/psp/PSPOS/PSPOS.Web/wwwroot/",
+      "ContentRoot": "/home/joris/doc/uni/psp/PSP2024/PSPOS.Web/wwwroot/",
       "BasePath": "_content/PSPOS.Web",
       "RelativePath": "bootstrap/bootstrap.min.css.map",
       "AssetKind": "All",
@@ -112,10 +112,10 @@
       "OriginalItemSpec": "wwwroot/bootstrap/bootstrap.min.css.map"
     },
     {
-      "Identity": "/home/joris/doc/uni/psp/PSPOS/PSPOS.Web/wwwroot/favicon.png",
+      "Identity": "/home/joris/doc/uni/psp/PSP2024/PSPOS.Web/wwwroot/favicon.png",
       "SourceId": "PSPOS.Web",
       "SourceType": "Discovered",
-      "ContentRoot": "/home/joris/doc/uni/psp/PSPOS/PSPOS.Web/wwwroot/",
+      "ContentRoot": "/home/joris/doc/uni/psp/PSP2024/PSPOS.Web/wwwroot/",
       "BasePath": "_content/PSPOS.Web",
       "RelativePath": "favicon.png",
       "AssetKind": "All",

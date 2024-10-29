@@ -2212,11 +2212,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/home/joris/doc/uni/psp/PSPOS/PSPOS.ApiService/PSPOS.ApiService.csproj",
+      "projectUniqueName": "/home/joris/doc/uni/psp/PSP2024/PSPOS.ApiService/PSPOS.ApiService.csproj",
       "projectName": "PSPOS.ApiService",
-      "projectPath": "/home/joris/doc/uni/psp/PSPOS/PSPOS.ApiService/PSPOS.ApiService.csproj",
+      "projectPath": "/home/joris/doc/uni/psp/PSP2024/PSPOS.ApiService/PSPOS.ApiService.csproj",
       "packagesPath": "/home/joris/.cache/NuGetPackages",
-      "outputPath": "/home/joris/doc/uni/psp/PSPOS/PSPOS.ApiService/obj/",
+      "outputPath": "/home/joris/doc/uni/psp/PSP2024/PSPOS.ApiService/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "/home/joris/.nuget/NuGet/NuGet.Config"
@@ -2231,8 +2231,8 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "projectReferences": {
-            "/home/joris/doc/uni/psp/PSPOS/PSPOS.ServiceDefaults/PSPOS.ServiceDefaults.csproj": {
-              "projectPath": "/home/joris/doc/uni/psp/PSPOS/PSPOS.ServiceDefaults/PSPOS.ServiceDefaults.csproj"
+            "/home/joris/doc/uni/psp/PSP2024/PSPOS.ServiceDefaults/PSPOS.ServiceDefaults.csproj": {
+              "projectPath": "/home/joris/doc/uni/psp/PSP2024/PSPOS.ServiceDefaults/PSPOS.ServiceDefaults.csproj"
             }
           }
         }

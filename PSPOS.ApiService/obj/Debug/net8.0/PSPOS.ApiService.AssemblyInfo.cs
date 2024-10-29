@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PSPOS.ApiService")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+90fc2012cf7bf63f929366ee2d3ff67de444cc27")]
 [assembly: System.Reflection.AssemblyProductAttribute("PSPOS.ApiService")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PSPOS.ApiService")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

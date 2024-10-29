@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "hS+AJaEesS0=",
+  "dgSpecHash": "M6fVVJhI0sDEpZVsD1xYwXbbqOL++4l/bdWtioHzn83OGnh128Z4VsIsZr4M9Dd5CVnD30qw4Zf63YcxdrY5qA==",
   "success": true,
-  "projectFilePath": "/home/joris/doc/uni/psp/PSPOS/PSPOS.ServiceDefaults/PSPOS.ServiceDefaults.csproj",
+  "projectFilePath": "/home/joris/doc/uni/psp/PSP2024/PSPOS.ServiceDefaults/PSPOS.ServiceDefaults.csproj",
   "expectedPackageFiles": [
     "/home/joris/.cache/NuGetPackages/google.protobuf/3.22.5/google.protobuf.3.22.5.nupkg.sha512",
     "/home/joris/.cache/NuGetPackages/grpc.core.api/2.52.0/grpc.core.api.2.52.0.nupkg.sha512",

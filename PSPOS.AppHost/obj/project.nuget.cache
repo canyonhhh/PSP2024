@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "BqRgw/9TEEo=",
+  "dgSpecHash": "NsDzP03tPMyZ4L3DVLlHBWOL4SZ42b9YHLzimIVBXwhMu+CL4DbDWd1WBb4lbeiT4cm3pfBtrf2g7ajxxdOUIw==",
   "success": true,
-  "projectFilePath": "/home/joris/doc/uni/psp/PSPOS/PSPOS.AppHost/PSPOS.AppHost.csproj",
+  "projectFilePath": "/home/joris/doc/uni/psp/PSP2024/PSPOS.AppHost/PSPOS.AppHost.csproj",
   "expectedPackageFiles": [
     "/home/joris/.cache/NuGetPackages/aspire.dashboard.sdk.linux-x64/8.2.2/aspire.dashboard.sdk.linux-x64.8.2.2.nupkg.sha512",
     "/home/joris/.cache/NuGetPackages/aspire.hosting/8.2.2/aspire.hosting.8.2.2.nupkg.sha512",

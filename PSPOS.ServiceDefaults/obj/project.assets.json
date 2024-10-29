@@ -2191,11 +2191,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/home/joris/doc/uni/psp/PSPOS/PSPOS.ServiceDefaults/PSPOS.ServiceDefaults.csproj",
+      "projectUniqueName": "/home/joris/doc/uni/psp/PSP2024/PSPOS.ServiceDefaults/PSPOS.ServiceDefaults.csproj",
       "projectName": "PSPOS.ServiceDefaults",
-      "projectPath": "/home/joris/doc/uni/psp/PSPOS/PSPOS.ServiceDefaults/PSPOS.ServiceDefaults.csproj",
+      "projectPath": "/home/joris/doc/uni/psp/PSP2024/PSPOS.ServiceDefaults/PSPOS.ServiceDefaults.csproj",
       "packagesPath": "/home/joris/.cache/NuGetPackages",
-      "outputPath": "/home/joris/doc/uni/psp/PSPOS/PSPOS.ServiceDefaults/obj/",
+      "outputPath": "/home/joris/doc/uni/psp/PSP2024/PSPOS.ServiceDefaults/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "/home/joris/.nuget/NuGet/NuGet.Config"

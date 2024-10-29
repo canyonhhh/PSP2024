@@ -2769,11 +2769,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/home/joris/doc/uni/psp/PSPOS/PSPOS.AppHost/PSPOS.AppHost.csproj",
+      "projectUniqueName": "/home/joris/doc/uni/psp/PSP2024/PSPOS.AppHost/PSPOS.AppHost.csproj",
       "projectName": "PSPOS.AppHost",
-      "projectPath": "/home/joris/doc/uni/psp/PSPOS/PSPOS.AppHost/PSPOS.AppHost.csproj",
+      "projectPath": "/home/joris/doc/uni/psp/PSP2024/PSPOS.AppHost/PSPOS.AppHost.csproj",
       "packagesPath": "/home/joris/.cache/NuGetPackages",
-      "outputPath": "/home/joris/doc/uni/psp/PSPOS/PSPOS.AppHost/obj/",
+      "outputPath": "/home/joris/doc/uni/psp/PSP2024/PSPOS.AppHost/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "/home/joris/.nuget/NuGet/NuGet.Config"

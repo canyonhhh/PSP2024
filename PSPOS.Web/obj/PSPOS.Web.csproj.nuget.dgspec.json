@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "/home/joris/doc/uni/psp/PSPOS/PSPOS.Web/PSPOS.Web.csproj": {}
+    "/home/joris/doc/uni/psp/PSP2024/PSPOS.Web/PSPOS.Web.csproj": {}
   },
   "projects": {
-    "/home/joris/doc/uni/psp/PSPOS/PSPOS.ServiceDefaults/PSPOS.ServiceDefaults.csproj": {
+    "/home/joris/doc/uni/psp/PSP2024/PSPOS.ServiceDefaults/PSPOS.ServiceDefaults.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/home/joris/doc/uni/psp/PSPOS/PSPOS.ServiceDefaults/PSPOS.ServiceDefaults.csproj",
+        "projectUniqueName": "/home/joris/doc/uni/psp/PSP2024/PSPOS.ServiceDefaults/PSPOS.ServiceDefaults.csproj",
         "projectName": "PSPOS.ServiceDefaults",
-        "projectPath": "/home/joris/doc/uni/psp/PSPOS/PSPOS.ServiceDefaults/PSPOS.ServiceDefaults.csproj",
+        "projectPath": "/home/joris/doc/uni/psp/PSP2024/PSPOS.ServiceDefaults/PSPOS.ServiceDefaults.csproj",
         "packagesPath": "/home/joris/.cache/NuGetPackages",
-        "outputPath": "/home/joris/doc/uni/psp/PSPOS/PSPOS.ServiceDefaults/obj/",
+        "outputPath": "/home/joris/doc/uni/psp/PSP2024/PSPOS.ServiceDefaults/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "/home/joris/.nuget/NuGet/NuGet.Config"
@@ -96,14 +96,14 @@
         }
       }
     },
-    "/home/joris/doc/uni/psp/PSPOS/PSPOS.Web/PSPOS.Web.csproj": {
+    "/home/joris/doc/uni/psp/PSP2024/PSPOS.Web/PSPOS.Web.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/home/joris/doc/uni/psp/PSPOS/PSPOS.Web/PSPOS.Web.csproj",
+        "projectUniqueName": "/home/joris/doc/uni/psp/PSP2024/PSPOS.Web/PSPOS.Web.csproj",
         "projectName": "PSPOS.Web",
-        "projectPath": "/home/joris/doc/uni/psp/PSPOS/PSPOS.Web/PSPOS.Web.csproj",
+        "projectPath": "/home/joris/doc/uni/psp/PSP2024/PSPOS.Web/PSPOS.Web.csproj",
         "packagesPath": "/home/joris/.cache/NuGetPackages",
-        "outputPath": "/home/joris/doc/uni/psp/PSPOS/PSPOS.Web/obj/",
+        "outputPath": "/home/joris/doc/uni/psp/PSP2024/PSPOS.Web/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "/home/joris/.nuget/NuGet/NuGet.Config"
@@ -118,8 +118,8 @@
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {
-              "/home/joris/doc/uni/psp/PSPOS/PSPOS.ServiceDefaults/PSPOS.ServiceDefaults.csproj": {
-                "projectPath": "/home/joris/doc/uni/psp/PSPOS/PSPOS.ServiceDefaults/PSPOS.ServiceDefaults.csproj"
+              "/home/joris/doc/uni/psp/PSP2024/PSPOS.ServiceDefaults/PSPOS.ServiceDefaults.csproj": {
+                "projectPath": "/home/joris/doc/uni/psp/PSP2024/PSPOS.ServiceDefaults/PSPOS.ServiceDefaults.csproj"
               }
             }
           }
