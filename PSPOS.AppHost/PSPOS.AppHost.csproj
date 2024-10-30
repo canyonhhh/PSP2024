@@ -10,13 +10,14 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\PSPOS.ApiService\PSPOS.ApiService.csproj"/>
-        <ProjectReference Include="..\PSPOS.Web\PSPOS.Web.csproj"/>
+        <ProjectReference Include="..\PSPOS.ApiService\PSPOS.ApiService.csproj" />
+        <ProjectReference Include="..\PSPOS.Web\PSPOS.Web.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Aspire.Hosting.AppHost" Version="8.2.2"/>
-        <PackageReference Include="Aspire.Hosting.Redis" Version="8.2.2"/>
+        <PackageReference Include="Aspire.Hosting.AppHost" Version="8.2.2" />
+        <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="8.2.2" />
+        <PackageReference Include="Aspire.Hosting.Redis" Version="8.2.2" />
     </ItemGroup>
 
 </Project>
