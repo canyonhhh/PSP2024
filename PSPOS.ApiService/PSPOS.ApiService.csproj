@@ -7,7 +7,13 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\PSPOS.ServiceDefaults\PSPOS.ServiceDefaults.csproj"/>
+        <ProjectReference Include="..\PSPOS.ServiceDefaults\PSPOS.ServiceDefaults.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" Version="8.2.2" />
+      <PackageReference Include="Aspire.Npgsql" Version="8.2.2" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.0-rc.2.24474.1" />
     </ItemGroup>
 
 </Project>

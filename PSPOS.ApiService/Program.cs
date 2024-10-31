@@ -1,7 +1,16 @@
+using Microsoft.EntityFrameworkCore;
+using Npgsql;
+using PSPOS.ServiceDefaults.Models;
+
 var builder = WebApplication.CreateBuilder(args);
+
+
+builder.AddSqlServerDbContext<DbContext>("postgresdb");
 
 // Add service defaults & Aspire components.
 builder.AddServiceDefaults();
+
+builder.AddNpgsqlDataSource(connectionName: "postgresdb");
 
 // Add services to the container.
 builder.Services.AddProblemDetails();
