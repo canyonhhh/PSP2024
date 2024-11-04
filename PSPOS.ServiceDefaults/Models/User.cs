@@ -1,13 +1,21 @@
 namespace PSPOS.ServiceDefaults.Models;
 
-public class User(string firstName, string lastName, string email, string phone, UserRole role, Guid businessId)
-    : BaseClass
+public class User : BaseClass
 {
-    public string FirstName { get; set; } = firstName;
-    public string LastName { get; set; } = lastName;
-    public string Email { get; set; } = email;
-    public string Phone { get; set; } = phone;
-    public UserRole Role { get; set; } = role;
+    public User(string firstName, string lastName, string email, string phone, UserRole role, Guid businessId)
+    {
+        FirstName = firstName;
+        LastName = lastName;
+        Email = email;
+        Phone = phone;
+        Role = role;
+        BusinessId = businessId;
+    }
 
-    public Guid BusinessId { get; set; } = businessId;
+    public string FirstName { get; set; }
+    public string LastName { get; set; }
+    public string Email { get; set; }
+    public string Phone { get; set; }
+    public UserRole Role { get; set; }
+    public Guid BusinessId { get; set; }
 }

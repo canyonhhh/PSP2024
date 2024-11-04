@@ -1,11 +1,19 @@
 namespace PSPOS.ServiceDefaults.Models;
 
-public class Address(string street, string city, string? state, string? postalCode, string country)
-    : BaseClass
+public class Address : BaseClass
 {
-    string Street { get; set; } = street;
-    string City { get; set; } = city;
-    string? State { get; set; } = state;
-    string? PostalCode { get; set; } = postalCode;
-    string Country { get; set; } = country;
+    public Address(string street, string city, string? state, string? postalCode, string country)
+    {
+        Street = street;
+        City = city;
+        State = state;
+        PostalCode = postalCode;
+        Country = country;
+    }
+    
+    public string Street { get; set; }
+    public string City { get; set; }
+    public string? State { get; set; }
+    public string? PostalCode { get; set; }
+    public string Country { get; set; }
 }
