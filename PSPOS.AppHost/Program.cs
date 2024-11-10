@@ -3,7 +3,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 var cache = builder.AddRedis("cache");
 
 var postgres = builder.AddPostgres("postgres")
-                      .WithDataVolume(isReadOnly: false).WithPgAdmin();
+                      .WithDataVolume(isReadOnly: false).WithPgWeb();
 
 var postgresdb = postgres.AddDatabase("postgresdb");
 
