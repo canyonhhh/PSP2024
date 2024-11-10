@@ -46,10 +46,16 @@ $ git clone https://github.com/canyonhhh/PSP2024
 2. Change directory to the project host:
 
 ```bash
-$ cd Shopipy.AppHost 
+$ cd PSPOS.AppHost 
 ```
 
-3. Run the application:
+3. Run the application (with hot-reload enabled):
+
+```bash
+$ dotnet watch -lp https
+```
+
+4. Run the application (without hot-reload):
 
 ```bash
 $ dotnet run -lp https

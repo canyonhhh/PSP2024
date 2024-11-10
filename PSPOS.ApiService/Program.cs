@@ -1,13 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 using PSPOS.ApiService.Data;
 using Microsoft.OpenApi.Models;
-using PSPOS.ApiService.Controllers;
+using PSPOS.ApiService.Repositories;
+using PSPOS.ApiService.Repositories.Interfaces;
 using PSPOS.ApiService.Services;
+using PSPOS.ApiService.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("postgresdb")));
+builder.AddNpgsqlDbContext<AppDbContext>(connectionName: "postgresdb");
 
 // Add service defaults & Aspire components.
 builder.AddServiceDefaults();
@@ -16,8 +17,10 @@ builder.AddServiceDefaults();
 builder.Services.AddProblemDetails();
 
 // TODO Later move this to a separate extension method
-builder.Services.AddScoped<UserRepository>();
-builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IUserService, UserService>();
+
+builder.Services.AddControllers();
 
 // Add Swagger services
 builder.Services.AddEndpointsApiExplorer();
@@ -28,14 +31,14 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-app.UseExceptionHandler();
-
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+// Configure the HTTP request pipeline.
+app.UseExceptionHandler();
 
 var summaries = new[]
 {
@@ -55,9 +58,9 @@ app.MapGet("/weatherforecast", () =>
     return forecast;
 });
 
-app.MapUserEndpoints();
-
 app.MapDefaultEndpoints();
+
+app.MapControllers();
 
 app.Run();
 
