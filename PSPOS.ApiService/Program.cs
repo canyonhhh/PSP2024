@@ -20,6 +20,9 @@ builder.Services.AddProblemDetails();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 
+builder.Services.AddScoped<IBusinessRepository, BusinessRepository>();
+builder.Services.AddScoped<IBusinessService, BusinessService>();
+
 builder.Services.AddControllers();
 
 // Add Swagger services
