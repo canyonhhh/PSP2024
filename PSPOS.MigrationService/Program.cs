@@ -11,14 +11,12 @@ builder.Services.AddHostedService<ApiDbInitializer>();
 builder.AddServiceDefaults();
 
 builder.Services.AddDbContextPool<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("db1"), sqlOptions =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("postgresdb"), npgsqlOptions =>
     {
-        sqlOptions.MigrationsAssembly("PSPOS.MigrationService");
-        // Workaround for https://github.com/dotnet/aspire/issues/1023
-        sqlOptions.ExecutionStrategy(c => new RetryingSqlServerRetryingExecutionStrategy(c));
+        npgsqlOptions.MigrationsAssembly("PSPOS.MigrationService");
     }));
-builder.EnrichSqlServerDbContext<AppDbContext>(settings =>
-    // Disable Aspire default retries as we're using a custom execution strategy
+builder.EnrichNpgsqlDbContext<AppDbContext>(settings =>
+    // Disable Aspire default retries if needed
     settings.DisableRetry = true);
 
 var app = builder.Build();
