@@ -12,4 +12,5 @@ public class AppDbContext : DbContext
     public DbSet<Transaction> Transactions { get; set; }
     public DbSet<Payment> Payments { get; set; }
     public DbSet<GiftCard> GiftCards { get; set; }
+    public DbSet<Discount> Discounts { get; set; }
 }

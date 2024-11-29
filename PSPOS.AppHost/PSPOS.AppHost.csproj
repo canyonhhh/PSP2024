@@ -1,23 +1,31 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
-        <OutputType>Exe</OutputType>
-        <TargetFramework>net8.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <IsAspireHost>true</IsAspireHost>
-        <UserSecretsId>1ee9cc89-a426-4429-b8a7-9a7e8b7aa197</UserSecretsId>
-    </PropertyGroup>
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<IsAspireHost>true</IsAspireHost>
+		<UserSecretsId>1ee9cc89-a426-4429-b8a7-9a7e8b7aa197</UserSecretsId>
+	</PropertyGroup>
 
-    <ItemGroup>
-        <ProjectReference Include="..\PSPOS.ApiService\PSPOS.ApiService.csproj" />
-        <ProjectReference Include="..\PSPOS.Web\PSPOS.Web.csproj" />
-    </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\PSPOS.ApiService\PSPOS.ApiService.csproj" />
+		<ProjectReference Include="..\PSPOS.MigrationService\PSPOS.MigrationService.csproj" />
+		<ProjectReference Include="..\PSPOS.Web\PSPOS.Web.csproj" />
+	</ItemGroup>
 
-    <ItemGroup>
-        <PackageReference Include="Aspire.Hosting.AppHost" Version="8.2.2" />
-        <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="8.2.2" />
-        <PackageReference Include="Aspire.Hosting.Redis" Version="8.2.2" />
-    </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Aspire.Hosting.AppHost" Version="8.2.2" />
+		<PackageReference Include="Aspire.Hosting.PostgreSQL" Version="8.2.2" />
+		<PackageReference Include="Aspire.Hosting.Redis" Version="8.2.2" />
+		<PackageReference Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" Version="8.2.2" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Reference Include="Aspire.Hosting">
+			<HintPath>..\..\..\..\..\.cache\NuGetPackages\aspire.hosting\8.2.2\lib\net8.0\Aspire.Hosting.dll</HintPath>
+		</Reference>
+	</ItemGroup>
 
 </Project>
