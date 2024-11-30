@@ -14,9 +14,24 @@ namespace PSPOS.ApiService.Repositories
             _context = context;
         }
 
-        public async Task<IEnumerable<Business>> GetBusinessesAsync()
+        public async Task<(IEnumerable<Business>, int TotalCount)> GetBusinessesAsync(DateTime? from = null, DateTime? to = null, int page = 1, int pageSize = 10)
         {
-            return await _context.Businesses.ToListAsync();
+            var query = _context.Businesses.AsQueryable();
+
+            if (from != null)
+            {
+                query = query.Where(b => b.CreatedAt >= from);
+            }
+
+            if (to != null)
+            {
+                query = query.Where(b => b.CreatedAt <= to);
+            }
+
+            var totalCount = await query.CountAsync();
+            var businesses = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+
+            return (businesses, totalCount);
         }
 
         public async Task<Business?> GetBusinessByIdAsync(Guid businessId)

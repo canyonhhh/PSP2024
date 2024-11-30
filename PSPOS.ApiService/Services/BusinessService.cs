@@ -15,29 +15,7 @@ namespace PSPOS.ApiService.Services
 
         public async Task<(IEnumerable<Business> Businesses, int TotalCount)> GetBusinessesAsync(DateTime? from = null, DateTime? to = null, int page = 1, int pageSize = 10)
         {
-            var allBusinesses = await _businessRepository.GetBusinessesAsync();
-
-            // Filter by date range
-            if (from.HasValue)
-            {
-                allBusinesses = allBusinesses.Where(b => b.CreatedAt >= from.Value);
-            }
-
-            if (to.HasValue)
-            {
-                allBusinesses = allBusinesses.Where(b => b.CreatedAt <= to.Value);
-            }
-
-            // Calculate total count for pagination metadata
-            int totalCount = allBusinesses.Count();
-
-            // Apply paging
-            var paginatedBusinesses = allBusinesses
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToList();
-
-            return (paginatedBusinesses, totalCount);
+            return await _businessRepository.GetBusinessesAsync(from, to, page, pageSize);
         }
 
         public async Task<Business?> GetBusinessByIdAsync(Guid businessId)
