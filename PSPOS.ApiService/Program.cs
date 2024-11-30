@@ -1,15 +1,11 @@
-using System;
-using System.Linq;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using PSPOS.ApiService.Data;
 using Microsoft.OpenApi.Models;
 using PSPOS.ApiService.Repositories;
 using PSPOS.ApiService.Repositories.Interfaces;
 using PSPOS.ApiService.Services;
 using PSPOS.ApiService.Services.Interfaces;
+using AuthenticationService = PSPOS.ApiService.Services.AuthenticationService;
+using IAuthenticationService = PSPOS.ApiService.Services.Interfaces.IAuthenticationService;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +23,8 @@ builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.AddScoped<IBusinessRepository, BusinessRepository>();
 builder.Services.AddScoped<IBusinessService, BusinessService>();
+
+builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 
 builder.Services.AddControllers();
 
