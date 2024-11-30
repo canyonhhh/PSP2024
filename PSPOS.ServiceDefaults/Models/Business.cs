@@ -9,4 +9,6 @@ public class Business(string name, string phone, string email, Currency defaultC
     public string Phone { get; set; } = phone;
     public string Email { get; set; } = email;
     public Currency DefaultCurrency { get; set; } = defaultCurrency;
+    public bool IsInitialized { get; set; } = false;
+    public Guid AddressId { get; set; }
 }
