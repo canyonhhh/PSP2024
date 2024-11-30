@@ -7,6 +7,9 @@ var postgres = builder.AddPostgres("postgres")
 
 var postgresdb = postgres.AddDatabase("postgresdb");
 
+var migrationService = builder.AddProject<Projects.PSPOS_MigrationService>("migration")
+    .WithReference(postgresdb);
+
 var apiService = builder.AddProject<Projects.PSPOS_ApiService>("apiservice").WithReference(postgresdb);
 
 builder.AddProject<Projects.PSPOS_Web>("webfrontend")
