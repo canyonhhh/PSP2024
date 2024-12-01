@@ -2,14 +2,14 @@ namespace PSPOS.ServiceDefaults.Models;
 
 public class Payment : BaseClass
 {
-    public Payment(PaymentMethod method, decimal amount, Currency paymentCurrency, Guid externalPaymentId, Guid transactionId, Guid giftCardId)
+    public Payment(PaymentMethod method, decimal amount, Currency paymentCurrency, Guid externalPaymentId, Guid transactionId, Guid giftcardId)
     {
         Method = method;
         Amount = amount;
         PaymentCurrency = paymentCurrency;
         ExternalPaymentId = externalPaymentId;
         TransactionId = transactionId;
-        GiftCardId = giftCardId;
+        GiftcardId = giftcardId;
     }
 
     public PaymentMethod Method { get; set; }
@@ -17,5 +17,5 @@ public class Payment : BaseClass
     public Currency PaymentCurrency { get; set; }
     public Guid ExternalPaymentId { get; set; }
     public Guid TransactionId { get; set; }
-    public Guid GiftCardId { get; private set; }
+    public Guid GiftcardId { get; private set; }
 }

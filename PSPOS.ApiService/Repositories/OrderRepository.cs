@@ -19,23 +19,52 @@ public class OrderRepository : IOrderRepository
         return await _context.Orders.FindAsync(id);
     }
 
-    public async Task<IEnumerable<Order>> GetAllOrdersAsync()
+    public async Task<IEnumerable<Order>> GetAllOrdersAsync(string? status, int? limit, int? skip)
     {
-        return await _context.Orders.ToListAsync();
+        var query = _context.Orders.AsQueryable();
+
+        if(status != null)
+            query = query.Where(o => o.Status == Enum.Parse<OrderStatus>(status, true)); // Catch in controller
+
+        if(skip != null)
+            query = query.Skip((int)skip);
+
+        if(limit != null)
+            query = query.Take((int)limit);
+
+        return await query.ToListAsync();
     }
 
-    public async Task AddOrderAsync(Order order)
+    public async Task<Order> AddOrderAsync(Guid businessId, string status, string currency)
     {
+        Currency currencyEnum = Enum.Parse<Currency>(currency, true); // Catch in controller
+        OrderStatus statusEnum = Enum.Parse<OrderStatus>(status, true); // Catch in controller
+
+        var order = new Order(businessId, currencyEnum, 0, statusEnum);
+
         await _context.Orders.AddAsync(order);
         await _context.SaveChangesAsync();
+        return order;
     }
 
-    public async Task DeleteOrderAsync(Guid id)
+    public async Task DeleteOrderAsync(Guid orderId)
     {
-        var order = await GetOrderByIdAsync(id);
+        var order = await GetOrderByIdAsync(orderId);
         if(order != null)
         {
+            var orderItems = _context.OrderItems.Where(oi => oi.OrderId == orderId);
+
+            // Remove related Transactions
+            var transactionIds = orderItems.Select(oi => oi.TransactionId);
+            var transactions = _context.Transactions.Where(t => transactionIds.Contains(t.Id));
+            _context.Transactions.RemoveRange(transactions);
+
+            // Remove related OrderItems
+            _context.OrderItems.RemoveRange(orderItems);
+
+            // Remove the Order itself
             _context.Orders.Remove(order);
+
             await _context.SaveChangesAsync();
         }
     }
@@ -70,9 +99,8 @@ public class OrderRepository : IOrderRepository
         return await _context.Transactions.FindAsync(id);
     }
 
-    public async Task RefundTransactionByIdAsync(Guid id)
+    public Task RefundTransactionAsync(Transaction transaction)
     {
-        var transaction = await _context.Transactions.FindAsync(id);
         throw new NotImplementedException();
     }
 
@@ -92,16 +120,18 @@ public class OrderRepository : IOrderRepository
     public async Task AddOrderItemToOrderAsync(OrderItem orderItem)
     {
         // Ensure the order exists
-        var order = await GetOrderByIdAsync(orderItem.OrderId) ?? throw new ArgumentException($"Order with ID {orderItem.OrderId} does not exist.");
+        if((await GetOrderByIdAsync(orderItem.OrderId)) == null)
+            throw new ArgumentException($"Order with ID {orderItem.OrderId} does not exist.");
 
         await _context.OrderItems.AddAsync(orderItem);
         await _context.SaveChangesAsync();
     }
 
-    public async Task UpdateOrderItemOfOrderAsync(OrderItem orderItem)
+    public async Task UpdateOrderItemAsync(OrderItem orderItem)
     {
         // Ensure the order exists
-        var order = await GetOrderByIdAsync(orderItem.OrderId) ?? throw new ArgumentException($"Order with ID {orderItem.OrderId} does not exist.");
+        if((await GetOrderByIdAsync(orderItem.OrderId)) == null)
+            throw new ArgumentException($"Order with ID {orderItem.OrderId} does not exist.");
 
         _context.OrderItems.Update(orderItem);
         await _context.SaveChangesAsync();

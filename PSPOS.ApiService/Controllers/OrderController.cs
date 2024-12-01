@@ -17,21 +17,35 @@ namespace PSPOS.ApiService.Controllers
 
         // GET: api/Order
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Order>>> GetAllOrders()
+        public async Task<ActionResult<IEnumerable<Order>>> GetAllOrders([FromQuery] string? status, [FromQuery] int? limit, [FromQuery] int? skip)
         {
-            var orders = await _orderService.GetAllOrdersAsync();
-            return Ok(orders);
+            try
+            {
+                var orders = await _orderService.GetAllOrdersAsync(status, limit, skip);
+                return Ok(orders);
+            }
+            catch(ArgumentException ex)
+            {
+                return BadRequest(new { ex.Message });
+            }
         }
 
         // POST: api/Order
         [HttpPost]
-        public async Task<ActionResult> AddOrder([FromBody] Order order)
+        public async Task<ActionResult> AddOrder([FromQuery] Guid businessId, [FromQuery] string status, [FromQuery] string currency)
         {
             if(!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            await _orderService.AddOrderAsync(order);
-            return CreatedAtAction(nameof(GetOrderById), new { id = order.Id }, order);
+            try
+            {
+                var createdOrder = await _orderService.AddOrderAsync(businessId, status, currency);
+                return CreatedAtAction(nameof(GetOrderById), new { orderId = createdOrder.Id }, null);
+            }
+            catch(ArgumentException ex)
+            {
+                return BadRequest(new { ex.Message });
+            }
         }
 
         // GET: api/Order/{orderId}
@@ -61,7 +75,16 @@ namespace PSPOS.ApiService.Controllers
         [HttpGet("{orderId}/Transaction")]
         public async Task<ActionResult<IEnumerable<Transaction>>> GetAllTransactionsOfOrder(Guid orderId)
         {
-            var transactions = await _orderService.GetAllTransactionsOfOrderAsync(orderId);
+            IEnumerable<Transaction> transactions;
+            try
+            {
+                transactions = await _orderService.GetAllTransactionsOfOrderAsync(orderId);
+            }
+            catch(ArgumentException ex)
+            {
+                return BadRequest(new { ex.Message });
+            }
+
             if(transactions == null)
                 return NotFound();
 
@@ -70,15 +93,15 @@ namespace PSPOS.ApiService.Controllers
 
         // POST: api/Order/{orderId}/Transaction
         [HttpPost("{orderId}/Transaction")]
-        public async Task<ActionResult<IEnumerable<Transaction>>> ProcessAllTransactionsOfOrder(Guid orderId)
+        public async Task<ActionResult<IEnumerable<Transaction>>> ProcessAllTransactionsOfOrder(Guid orderId, [FromQuery] IEnumerable<Guid> itemIds, [FromQuery] decimal paidByCash, [FromQuery] decimal paidByGiftcard, [FromBody] Guid giftcardId)
         {
-            // TODO Implement
+            // TODO Implement paying logic
 
             if(!ModelState.IsValid)
                 return BadRequest(ModelState);
 
             await _orderService.ProcessAllTransactionsOfOrderAsync(orderId);
-            // TODO Create a way to get success/failure confirmation
+
             throw new NotImplementedException();
         }
 
@@ -86,10 +109,9 @@ namespace PSPOS.ApiService.Controllers
         [HttpGet("{orderId}/Transaction/{transactionId}")]
         public async Task<ActionResult<Order>> GetTransactionOfOrder(Guid orderId, Guid transactionId)
         {
-            // `orderId` for making sure the order exists, I guess
             var order = await _orderService.GetOrderByIdAsync(orderId);
             if(order == null)
-                return NotFound();
+                return BadRequest();
 
             var transaction = await _orderService.GetTransactionByIdAsync(transactionId);
             if(transaction == null)
@@ -100,16 +122,20 @@ namespace PSPOS.ApiService.Controllers
 
         // POST: api/Order/{orderId}/Transaction/{transactionId}
         [HttpPost("{orderId}/Transaction/{transactionId}/refund")]
-        public async Task<ActionResult<Order>> RefundTransactionOfOrder(Guid orderId, Guid transactionId)
+        public async Task<ActionResult<Order>> RefundTransaction(Guid orderId, Guid transactionId, [FromQuery] string refundMethod, [FromQuery] decimal amount)
         {
-            // TODO Implement
+            // TODO Implement refund logic
 
             var order = await _orderService.GetOrderByIdAsync(orderId);
             if(order == null)
                 return NotFound();
 
-            await _orderService.RefundTransactionByIdAsync(transactionId);
-            // TODO Create a way to get success/failure confirmation
+            var transaction = await _orderService.GetTransactionByIdAsync(transactionId);
+            if(transaction == null)
+                return NotFound();
+
+            await _orderService.RefundTransactionAsync(transaction);
+
             throw new NotImplementedException();
         }
 
@@ -117,7 +143,16 @@ namespace PSPOS.ApiService.Controllers
         [HttpGet("{orderId}/Item")]
         public async Task<ActionResult<IEnumerable<OrderItem>>> GetAllItemsOfOrder(Guid orderId)
         {
-            var items = await _orderService.GetAllItemsOfOrderAsync(orderId);
+            IEnumerable<OrderItem> items;
+            try
+            {
+                items = await _orderService.GetAllItemsOfOrderAsync(orderId);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { ex.Message });
+            }
+
             if(items == null)
                 return NotFound();
 
@@ -135,14 +170,21 @@ namespace PSPOS.ApiService.Controllers
             if(order == null)
                 return NotFound();
 
-            await _orderService.AddOrderItemToOrderAsync(orderItem);
-            // TODO Add check whether item was added and send it
+            try
+            {
+                await _orderService.AddOrderItemToOrderAsync(orderItem);
+            }
+            catch(ArgumentException ex)
+            {
+                return BadRequest(new { ex.Message });
+            }
+
             return Ok();
         }
 
         // PUT: api/Order/{orderId}/Item
         [HttpPut("{orderId}/Item")]
-        public async Task<ActionResult> UpdateOrderItemOfOrder(Guid orderId, [FromBody] OrderItem orderItem)
+        public async Task<ActionResult> UpdateOrderItem(Guid orderId, [FromBody] OrderItem orderItem)
         {
             if(!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -151,8 +193,15 @@ namespace PSPOS.ApiService.Controllers
             if(order == null)
                 return NotFound();
 
-            await _orderService.UpdateOrderItemOfOrderAsync(orderItem);
-            // TODO Add check whether item was updated and send it
+            try
+            {
+                await _orderService.UpdateOrderItemAsync(orderItem);
+            }
+            catch(ArgumentException ex)
+            {
+                return BadRequest(new { ex.Message });
+            }
+            
             return Ok();
         }
     }

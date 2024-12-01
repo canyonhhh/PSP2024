@@ -6,18 +6,18 @@ public interface IOrderService
 {
     // '/orders'
     Task<Order?> GetOrderByIdAsync(Guid id);
-    Task<IEnumerable<Order>> GetAllOrdersAsync();
-    Task AddOrderAsync(Order order);
+    Task<IEnumerable<Order>> GetAllOrdersAsync(string? status, int? limit, int? skip);
+    Task<Order> AddOrderAsync(Guid businessId, string status, string currency);
     Task DeleteOrderAsync(Guid id);
 
     // '/orders/transactions'
     Task<IEnumerable<Transaction>> GetAllTransactionsOfOrderAsync(Guid id);
     Task ProcessAllTransactionsOfOrderAsync(Guid id);
     Task<Transaction?> GetTransactionByIdAsync(Guid id);
-    Task RefundTransactionByIdAsync(Guid id);
+    Task RefundTransactionAsync(Transaction transaction);
 
     // '/orders/items'
     Task<IEnumerable<OrderItem>> GetAllItemsOfOrderAsync(Guid id);
     Task AddOrderItemToOrderAsync(OrderItem orderItem);
-    Task UpdateOrderItemOfOrderAsync(OrderItem orderItem);
+    Task UpdateOrderItemAsync(OrderItem orderItem);
 }

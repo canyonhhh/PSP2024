@@ -18,14 +18,14 @@ public class OrderService : IOrderService
         return await _orderRepository.GetOrderByIdAsync(id);
     }
 
-    public async Task<IEnumerable<Order>> GetAllOrdersAsync()
+    public async Task<IEnumerable<Order>> GetAllOrdersAsync(string? status, int? limit, int? skip)
     {
-        return await _orderRepository.GetAllOrdersAsync();
+        return await _orderRepository.GetAllOrdersAsync(status, limit, skip);
     }
 
-    public async Task AddOrderAsync(Order order)
+    public async Task<Order> AddOrderAsync(Guid businessId, string status, string currency)
     {
-        await _orderRepository.AddOrderAsync(order);
+        return await _orderRepository.AddOrderAsync(businessId, status, currency);
     }
 
     public async Task DeleteOrderAsync(Guid id)
@@ -48,9 +48,9 @@ public class OrderService : IOrderService
         return await _orderRepository.GetTransactionByIdAsync(id);
     }
 
-    public async Task RefundTransactionByIdAsync(Guid id)
+    public async Task RefundTransactionAsync(Transaction transaction)
     {
-        await _orderRepository.RefundTransactionByIdAsync(id);
+        await _orderRepository.RefundTransactionAsync(transaction);
     }
 
     public async Task<IEnumerable<OrderItem>> GetAllItemsOfOrderAsync(Guid id)
@@ -63,8 +63,8 @@ public class OrderService : IOrderService
         await _orderRepository.AddOrderItemToOrderAsync(orderItem);
     }
 
-    public async Task UpdateOrderItemOfOrderAsync(OrderItem orderItem)
+    public async Task UpdateOrderItemAsync(OrderItem orderItem)
     {
-        await _orderRepository.UpdateOrderItemOfOrderAsync(orderItem);
+        await _orderRepository.UpdateOrderItemAsync(orderItem);
     }
 }
