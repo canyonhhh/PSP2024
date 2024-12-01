@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using PSPOS.ApiService.Data;
 using PSPOS.ApiService.Repositories.Interfaces;
 using PSPOS.ServiceDefaults.Models;
+using PSPOS.ServiceDefaults.Schemas;
 
 namespace PSPOS.ApiService.Repositories;
 
@@ -23,8 +24,13 @@ public class OrderRepository : IOrderRepository
     {
         var query = _context.Orders.AsQueryable();
 
-        if(status != null)
-            query = query.Where(o => o.Status == Enum.Parse<OrderStatus>(status, true)); // Catch in controller
+        if(!string.IsNullOrEmpty(status))
+        {
+            if(Enum.TryParse<OrderStatus>(status, true, out var parsedStatus))
+                query = query.Where(o => o.Status == parsedStatus);
+            else
+                throw new ArgumentException($"Status '{status}' does not exist."); // Catch in controller
+        }
 
         if(skip != null)
             query = query.Skip((int)skip);
@@ -35,10 +41,22 @@ public class OrderRepository : IOrderRepository
         return await query.ToListAsync();
     }
 
-    public async Task<Order> AddOrderAsync(Guid businessId, string status, string currency)
+    public async Task<Order> AddOrderAsync(Guid businessId, string? status, string? currency)
     {
-        Currency currencyEnum = Enum.Parse<Currency>(currency, true); // Catch in controller
-        OrderStatus statusEnum = Enum.Parse<OrderStatus>(status, true); // Catch in controller
+        Currency currencyEnum = 0; // Default if null
+        OrderStatus statusEnum = 0; // Default if null
+
+        if(!string.IsNullOrEmpty(status))
+        {
+            if(!Enum.TryParse(status, true, out statusEnum))
+                throw new ArgumentException($"Status '{status}' does not exist."); // Catch in controller
+        }
+
+        if(!string.IsNullOrEmpty(currency))
+        {
+            if(!Enum.TryParse(currency, true, out currencyEnum))
+                throw new ArgumentException($"Currency '{currency}' does not exist."); // Catch in controller
+        }
 
         var order = new Order(businessId, currencyEnum, 0, statusEnum);
 
@@ -72,7 +90,7 @@ public class OrderRepository : IOrderRepository
     public async Task<IEnumerable<Transaction>> GetAllTransactionsOfOrderAsync(Guid orderId)
     {
         // Ensure the order exists
-        var order = await GetOrderByIdAsync(orderId) ?? throw new ArgumentException($"Order with ID {orderId} does not exist.");
+        var order = await GetOrderByIdAsync(orderId) ?? throw new ArgumentException($"Order with ID '{orderId}' does not exist.");
 
         // Retrieve all OrderItems associated with the order
         var orderItemTransactionIds = await _context.OrderItems
@@ -94,9 +112,14 @@ public class OrderRepository : IOrderRepository
         throw new NotImplementedException();
     }
 
-    public async Task<Transaction?> GetTransactionByIdAsync(Guid id)
+    public async Task<Transaction?> GetTransactionByIdAsync(Guid transactionId)
     {
-        return await _context.Transactions.FindAsync(id);
+        return await _context.Transactions.FindAsync(transactionId);
+    }
+
+    public async Task<IEnumerable<Payment>> GetAllPaymentsOfTransacionAsync(Guid transactionId)
+    {
+        return await _context.Payments.Where(p => p.TransactionId == transactionId).ToArrayAsync();
     }
 
     public Task RefundTransactionAsync(Transaction transaction)
@@ -107,7 +130,7 @@ public class OrderRepository : IOrderRepository
     public async Task<IEnumerable<OrderItem>> GetAllItemsOfOrderAsync(Guid orderId)
     {
         // Ensure the order exists
-        var order = await GetOrderByIdAsync(orderId) ?? throw new ArgumentException($"Order with ID {orderId} does not exist.");
+        var order = await GetOrderByIdAsync(orderId) ?? throw new ArgumentException($"Order with ID '{orderId}' does not exist.");
 
         // Retrieve all OrderItems associated with the order
         var orderItems = await _context.OrderItems
@@ -121,7 +144,7 @@ public class OrderRepository : IOrderRepository
     {
         // Ensure the order exists
         if((await GetOrderByIdAsync(orderItem.OrderId)) == null)
-            throw new ArgumentException($"Order with ID {orderItem.OrderId} does not exist.");
+            throw new ArgumentException($"Order with ID '{orderItem.OrderId}' does not exist.");
 
         await _context.OrderItems.AddAsync(orderItem);
         await _context.SaveChangesAsync();
@@ -131,7 +154,7 @@ public class OrderRepository : IOrderRepository
     {
         // Ensure the order exists
         if((await GetOrderByIdAsync(orderItem.OrderId)) == null)
-            throw new ArgumentException($"Order with ID {orderItem.OrderId} does not exist.");
+            throw new ArgumentException($"Order with ID '{orderItem.OrderId}' does not exist.");
 
         _context.OrderItems.Update(orderItem);
         await _context.SaveChangesAsync();
