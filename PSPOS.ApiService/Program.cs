@@ -17,6 +17,9 @@ builder.AddServiceDefaults();
 // Add services to the container.
 builder.Services.AddProblemDetails();
 
+// Add AutoMapper
+builder.Services.AddAutoMapper(typeof(MappingProfile));
+
 // TODO Later move this to a separate extension method
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();

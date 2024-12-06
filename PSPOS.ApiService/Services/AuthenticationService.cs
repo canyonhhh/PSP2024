@@ -44,7 +44,7 @@ public class AuthenticationService : IAuthenticationService
 
         // Generate a JWT token
         var token = GenerateJwtToken(user);
-        
+
         return new LoginResponse(token, DateTime.UtcNow.AddHours(1));
     }
 
@@ -71,7 +71,7 @@ public class AuthenticationService : IAuthenticationService
     public string GenerateJwtToken(User user)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
-        var key = Encoding.ASCII.GetBytes("YourSecretKeyHere"); // TODO: Replace with a secure key
+        var key = Encoding.ASCII.GetBytes("YourSecretKeyHerejhbfdjshbgfjsdhbgkjsdzhrbglkewyrbfiuwbfeiwuebfiquwfiub342b34hb23j4hbewifbsiudnfiwifusbrfisjbu"); // TODO: Replace with a secure key
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(new[]

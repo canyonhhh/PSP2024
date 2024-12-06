@@ -2,16 +2,21 @@ using PSPOS.ApiService.Repositories.Interfaces;
 using PSPOS.ApiService.Services.Interfaces;
 using PSPOS.ServiceDefaults.DTOs;
 using PSPOS.ServiceDefaults.Models;
+using AutoMapper;
 
 namespace PSPOS.ApiService.Services;
 
 public class UserService : IUserService
 {
     private readonly IUserRepository _userRepository;
+    private readonly IAuthenticationService _authenticationService;
+    private readonly IMapper _mapper;
 
-    public UserService(IUserRepository userRepository)
+    public UserService(IUserRepository userRepository, IAuthenticationService authenticationService, IMapper mapper)
     {
         _userRepository = userRepository;
+        _authenticationService = authenticationService;
+        _mapper = mapper;
     }
 
     public async Task<User?> GetUserByIdAsync(Guid id)
@@ -26,15 +31,19 @@ public class UserService : IUserService
 
     public async Task AddUserAsync(UserDTO userDto)
     {
-        var user = new User
+
+        var user = _mapper.Map<User>(userDto);
+
+        // check if the user has a password or PIN
+        if (!string.IsNullOrWhiteSpace(userDto.Pin))
         {
-            FirstName = userDto.FirstName,
-            LastName = userDto.LastName,
-            Email = userDto.Email,
-            Phone = userDto.Phone,
-            Role = (UserRole)userDto.Role,
-            BusinessId = userDto.BusinessId
-        };
+            user.PinHash = _authenticationService.HashPin(userDto.Pin);
+        }
+
+        if (!string.IsNullOrWhiteSpace(userDto.Password))
+        {
+            user.PasswordHash = _authenticationService.HashPassword(userDto.Password);
+        }
 
         await _userRepository.AddUserAsync(user);
     }
@@ -61,7 +70,7 @@ public class UserService : IUserService
             Role = (UserRole)userDto.Role,
             BusinessId = userDto.BusinessId
         };
-        
+
         // update the user
         await _userRepository.UpdateUserAsync(userToUpdate);
     }
