@@ -1,100 +1,101 @@
 using Microsoft.AspNetCore.Mvc;
 using PSPOS.ApiService.Services.Interfaces;
 using PSPOS.ServiceDefaults.Models;
+using Microsoft.AspNetCore.Authorization;
 
-namespace PSPOS.ApiService.Controllers
+namespace PSPOS.ApiService.Controllers;
+
+[Authorize]
+[ApiController]
+[Route("api/[controller]")]
+public class BusinessController : ControllerBase
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    public class BusinessController : ControllerBase
+    private readonly IBusinessService _businessService;
+
+    public BusinessController(IBusinessService businessService)
     {
-        private readonly IBusinessService _businessService;
+        _businessService = businessService;
+    }
 
-        public BusinessController(IBusinessService businessService)
+    [HttpGet]
+    public async Task<IActionResult> GetBusinesses([FromQuery] DateTime? from, [FromQuery] DateTime? to, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    {
+        var (businesses, totalCount) = await _businessService.GetBusinessesAsync(from, to, page, pageSize);
+
+        // Pagination metadata
+        var metadata = new
         {
-            _businessService = businessService;
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize,
+            TotalPages = (int)Math.Ceiling((double)totalCount / pageSize)
+        };
+
+        Response.Headers.Append("X-Pagination", System.Text.Json.JsonSerializer.Serialize(metadata));
+
+        return Ok(businesses);
+    }
+
+    [HttpGet("{businessId:guid}")]
+    public async Task<IActionResult> GetBusinessById(Guid businessId)
+    {
+        var business = await _businessService.GetBusinessByIdAsync(businessId);
+
+        if (business == null)
+        {
+            return NotFound();
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetBusinesses([FromQuery] DateTime? from, [FromQuery] DateTime? to, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        return Ok(business);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> CreateBusiness([FromBody] Business business)
+    {
+        if (!ModelState.IsValid)
         {
-            var (businesses, totalCount) = await _businessService.GetBusinessesAsync(from, to, page, pageSize);
-
-            // Pagination metadata
-            var metadata = new
-            {
-                TotalCount = totalCount,
-                Page = page,
-                PageSize = pageSize,
-                TotalPages = (int)Math.Ceiling((double)totalCount / pageSize)
-            };
-
-            Response.Headers.Append("X-Pagination", System.Text.Json.JsonSerializer.Serialize(metadata));
-
-            return Ok(businesses);
+            return BadRequest(ModelState);
         }
 
-        [HttpGet("{businessId:guid}")]
-        public async Task<IActionResult> GetBusinessById(Guid businessId)
+        try
         {
-            var business = await _businessService.GetBusinessByIdAsync(businessId);
+            var createdBusiness = await _businessService.CreateBusinessAsync(business);
+            return CreatedAtAction(nameof(GetBusinessById), new { businessId = createdBusiness.Id }, createdBusiness);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { ex.Message });
+        }
+    }
 
-            if (business == null)
-            {
-                return NotFound();
-            }
-
-            return Ok(business);
+    [HttpPut("{businessId:guid}")]
+    public async Task<IActionResult> UpdateBusiness(Guid businessId, [FromBody] Business updatedBusiness)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
         }
 
-        [HttpPost]
-        public async Task<IActionResult> CreateBusiness([FromBody] Business business)
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+        var result = await _businessService.UpdateBusinessAsync(businessId, updatedBusiness);
 
-            try
-            {
-                var createdBusiness = await _businessService.CreateBusinessAsync(business);
-                return CreatedAtAction(nameof(GetBusinessById), new { businessId = createdBusiness.Id }, createdBusiness);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { ex.Message });
-            }
+        if (result == null)
+        {
+            return NotFound();
         }
 
-        [HttpPut("{businessId:guid}")]
-        public async Task<IActionResult> UpdateBusiness(Guid businessId, [FromBody] Business updatedBusiness)
+        return Ok(result);
+    }
+
+    [HttpDelete("{businessId:guid}")]
+    public async Task<IActionResult> DeleteBusiness(Guid businessId)
+    {
+        var success = await _businessService.DeleteBusinessAsync(businessId);
+
+        if (!success)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var result = await _businessService.UpdateBusinessAsync(businessId, updatedBusiness);
-
-            if (result == null)
-            {
-                return NotFound();
-            }
-
-            return Ok(result);
+            return NotFound();
         }
 
-        [HttpDelete("{businessId:guid}")]
-        public async Task<IActionResult> DeleteBusiness(Guid businessId)
-        {
-            var success = await _businessService.DeleteBusinessAsync(businessId);
-
-            if (!success)
-            {
-                return NotFound();
-            }
-
-            return NoContent();
-        }
+        return NoContent();
     }
 }
