@@ -19,14 +19,31 @@ public class UserRepository : IUserRepository
         return await _context.Users.FindAsync(id);
     }
 
-    Task<IEnumerable<User>> IUserRepository.GetAllUsersAsync()
+    public async Task<User?> GetByEmailAsync(string email)
     {
-        return GetAllUsersAsync();
+        return await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
     }
 
-    public async Task<IEnumerable<User>> GetAllUsersAsync()
+    public Task<IEnumerable<User>> GetAllUsersAsync(string? role, string? name, string? surname, int limit, int skip)
     {
-        return await _context.Users.ToListAsync();
+        var query = _context.Users.AsQueryable();
+
+        if (!string.IsNullOrEmpty(role))
+        {
+            query = query.Where(u => u.Role.ToString() == role);
+        }
+
+        if (!string.IsNullOrEmpty(name))
+        {
+            query = query.Where(u => u.FirstName.Contains(name) || u.LastName.Contains(name));
+        }
+
+        if (!string.IsNullOrEmpty(surname))
+        {
+            query = query.Where(u => u.LastName.Contains(surname));
+        }
+
+        return Task.FromResult<IEnumerable<User>>(query.Skip(skip).Take(limit).ToList());
     }
 
     public async Task AddUserAsync(User user)
