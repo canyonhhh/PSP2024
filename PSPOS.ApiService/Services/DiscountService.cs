@@ -12,12 +12,12 @@ namespace PSPOS.ApiService.Services
     public class DiscountService : IDiscountService
     {
         private readonly IDiscountRepository _discountRepository;
-        private readonly IOrderRepository _orderRepository;
+       // private readonly IOrderRepository _orderRepository;
 
-        public DiscountService(IDiscountRepository discountRepository, IOrderRepository orderRepository)
+        public DiscountService(IDiscountRepository discountRepository/*, IOrderRepository orderRepository*/)
         {
             _discountRepository = discountRepository;
-            _orderRepository = orderRepository;
+           // _orderRepository = orderRepository;
         }
 
         public async Task<IEnumerable<Discount>> GetAllDiscountsAsync(DateTime? from, DateTime? to, int page, int pageSize)
@@ -69,8 +69,8 @@ namespace PSPOS.ApiService.Services
         {
             await _discountRepository.DeleteDiscountAsync(discountId);
         }
-
-        public async Task ApplyDiscountToOrderItemAsync(Guid orderId, Guid orderItemId, Guid discountId)
+        //uses the order repository, which is non existant now :)
+       /* public async Task ApplyDiscountToOrderItemAsync(Guid orderId, Guid orderItemId, Guid discountId)
         {
             var discount = await _discountRepository.GetDiscountByIdAsync(discountId);
             if (discount == null)
@@ -114,9 +114,7 @@ namespace PSPOS.ApiService.Services
             orderItem.UpdatedAt = DateTime.UtcNow;
 
             await _orderRepository.UpdateOrderItemOfOrderAsync(orderItem);
-        }
-
-
+        }*/
 
     }
 }

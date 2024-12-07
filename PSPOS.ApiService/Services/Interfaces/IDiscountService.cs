@@ -12,6 +12,6 @@ namespace PSPOS.ApiService.Services.Interfaces
         Task AddDiscountAsync(Discount discount);
         Task UpdateDiscountAsync(Guid discountId, Discount updatedDiscount);
         Task DeleteDiscountAsync(Guid discountId);
-        Task ApplyDiscountToOrderItemAsync(Guid orderId, Guid orderItemId, Guid discountId);
+       // Task ApplyDiscountToOrderItemAsync(Guid orderId, Guid orderItemId, Guid discountId);
     }
 }
