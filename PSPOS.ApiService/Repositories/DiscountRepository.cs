@@ -2,6 +2,10 @@
 using PSPOS.ApiService.Data;
 using PSPOS.ApiService.Repositories.Interfaces;
 using PSPOS.ServiceDefaults.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace PSPOS.ApiService.Repositories
 {
@@ -14,9 +18,21 @@ namespace PSPOS.ApiService.Repositories
             _context = context;
         }
 
-        public async Task<IEnumerable<Discount>> GetAllDiscountsAsync()
+        public async Task<IEnumerable<Discount>> GetAllDiscountsAsync(DateTime? from, DateTime? to, int page, int pageSize)
         {
-            return await _context.Discounts.ToListAsync();
+            var query = _context.Discounts.AsQueryable();
+
+            if (from.HasValue)
+                query = query.Where(d => d.CreatedAt >= from.Value);
+
+            if (to.HasValue)
+                query = query.Where(d => d.CreatedAt <= to.Value);
+
+            return await query
+                .OrderBy(d => d.EndDate)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
         }
 
         public async Task<Discount?> GetDiscountByIdAsync(Guid discountId)
@@ -30,16 +46,9 @@ namespace PSPOS.ApiService.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public async Task UpdateDiscountAsync(Guid discountId, Discount updatedDiscount)
+        public async Task UpdateDiscountAsync(Discount discount)
         {
-            var discount = await _context.Discounts.FindAsync(discountId);
-            if (discount == null)
-                throw new ArgumentException($"Discount with ID {discountId} does not exist.");
-
-            discount.Name = updatedDiscount.Name;
-            discount.Type = updatedDiscount.Type;
-            discount.Value = updatedDiscount.Value;
-
+            discount.UpdatedAt = DateTime.Now; // Update timestamp
             _context.Discounts.Update(discount);
             await _context.SaveChangesAsync();
         }
@@ -52,29 +61,6 @@ namespace PSPOS.ApiService.Repositories
                 _context.Discounts.Remove(discount);
                 await _context.SaveChangesAsync();
             }
-        }
-
-        public async Task ApplyDiscountToOrderItemAsync(Guid orderId, Guid orderItemId, Guid discountId)
-        {
-            var orderItem = await _context.OrderItems.FindAsync(orderItemId);
-            if (orderItem == null)
-                throw new ArgumentException($"OrderItem with ID {orderItemId} does not exist.");
-
-            var discount = await _context.Discounts.FindAsync(discountId);
-            if (discount == null)
-                throw new ArgumentException($"Discount with ID {discountId} does not exist.");
-
-            if (discount.Type == DiscountType.Percentage)
-            {
-                orderItem.Price -= orderItem.Price * (discount.Value / 100);
-            }
-            else
-            {
-                orderItem.Price -= discount.Value;
-            }
-
-            _context.OrderItems.Update(orderItem);
-            await _context.SaveChangesAsync();
         }
     }
 }

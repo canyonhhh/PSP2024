@@ -2,15 +2,15 @@
 {
     public class Discount : BaseClass
     {
-        public Discount(string name, DiscountType type, decimal value)
-        {
-            Name = name;
-            Type = type;
-            Value = value;
-        }
-
-        public string Name { get; set; } // Name of the discount
-        public DiscountType Type { get; set; } // Percentage or FixedAmount
-        public decimal Value { get; set; } // Discount value
+        public string Name { get; set; }                     
+        public string Description { get; set; }              
+        public string Method { get; set; }                   
+        public bool Active { get; set; }                     
+        public decimal Amount { get; set; }                  
+        public decimal Percentage { get; set; }              
+        public DateTime EndDate { get; set; }               
+        public Guid BusinessId { get; set; }                 
+        public Guid ProductOrServiceGroupId { get; set; }    
+        public Guid ProductOrServiceId { get; set; }         
     }
 }
