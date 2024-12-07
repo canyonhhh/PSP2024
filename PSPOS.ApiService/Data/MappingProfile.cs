@@ -6,7 +6,7 @@ public class MappingProfile : Profile
 {
     public MappingProfile()
     {
-        CreateMap<UserDTO, User>()
+        CreateMap<UserDto, User>()
             .ForMember(dest => dest.PinHash, opt => opt.Ignore())
             .ForMember(dest => dest.PasswordHash, opt => opt.Ignore());
     }

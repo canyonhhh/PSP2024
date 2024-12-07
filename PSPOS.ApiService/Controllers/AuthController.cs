@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using PSPOS.ApiService.Services;
 using PSPOS.ApiService.Services.Interfaces;
-using LoginRequest = PSPOS.ServiceDefaults.Models.LoginRequest;
+using PSPOS.ServiceDefaults.DTOs;
 
 namespace PSPOS.ApiService.Controllers;
 
@@ -15,12 +14,23 @@ public class AuthController : Controller
     }
 
     [HttpPost("login")]
-    public async Task<IActionResult> Login(LoginRequest request)
+    public async Task<IActionResult> Login(LoginRequestDto requestDTO)
     {
         try
         {
-            var response = await _authenticationService.AuthenticateAsync(request);
-            return Ok(response);
+            var response = await _authenticationService.AuthenticateAsync(requestDTO);
+
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Expires = response.Expiration
+            };
+
+            Response.Cookies.Append("AuthToken", response.Token, cookieOptions);
+
+            return Ok(new { message = "Login successful" });
         }
         catch (UnauthorizedAccessException ex)
         {

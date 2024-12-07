@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using PSPOS.ApiService.Services.Interfaces;
 using PSPOS.ServiceDefaults.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PSPOS.ApiService.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class BusinessController : ControllerBase

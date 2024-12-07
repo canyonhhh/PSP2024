@@ -2,6 +2,18 @@ namespace PSPOS.ServiceDefaults.Models;
 
 public class User : BaseClass
 {
+    public User(string firstName, string lastName, string email, string phone, UserRole role, Guid businessId, string? pinHash = null, string? passwordHash = null)
+    {
+        FirstName = firstName;
+        LastName = lastName;
+        Email = email;
+        Phone = phone;
+        Role = role;
+        BusinessId = businessId;
+        PinHash = pinHash;
+        PasswordHash = passwordHash;
+    }
+
     public string FirstName { get; set; }
     public string LastName { get; set; }
     public string Email { get; set; }

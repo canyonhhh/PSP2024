@@ -2,11 +2,13 @@ using Microsoft.AspNetCore.Mvc;
 using PSPOS.ApiService.Services.Interfaces;
 using PSPOS.ServiceDefaults.DTOs;
 using PSPOS.ServiceDefaults.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PSPOS.ApiService.Controllers
 {
+    [Authorize]
     [ApiController]
-    [Route("users")] // Matches the specified path
+    [Route("users")]
     public class UserController : ControllerBase
     {
         private readonly IUserService _userService;
@@ -22,15 +24,15 @@ namespace PSPOS.ApiService.Controllers
             [FromQuery] string? role = null,
             [FromQuery] string? name = null,
             [FromQuery] string? surname = null,
-            [FromQuery] int? limit = 10,
-            [FromQuery] int? skip = 0)
+            [FromQuery] int limit = 10,
+            [FromQuery] int skip = 0)
         {
             if (limit <= 0 || skip < 0)
             {
                 return BadRequest("Invalid pagination parameters.");
             }
 
-            var users = await _userService.GetAllUsersAsync(role, name, surname, limit.Value, skip.Value);
+            var users = await _userService.GetAllUsersAsync(role, name, surname, limit, skip);
 
             return Ok(users);
         }
@@ -50,7 +52,7 @@ namespace PSPOS.ApiService.Controllers
 
         // POST: /users
         [HttpPost]
-        public async Task<IActionResult> CreateUser([FromBody] UserDTO userDto)
+        public async Task<IActionResult> CreateUser([FromBody] UserDto userDto)
         {
             if (!ModelState.IsValid)
             {
@@ -64,7 +66,7 @@ namespace PSPOS.ApiService.Controllers
 
         // PUT: /users/{id}
         [HttpPut("{id}")]
-        public async Task<ActionResult> UpdateUser(Guid id, [FromBody] UserDTO userDto)
+        public async Task<ActionResult> UpdateUser(Guid id, [FromBody] UserDto userDto)
         {
             if (!ModelState.IsValid)
             {
