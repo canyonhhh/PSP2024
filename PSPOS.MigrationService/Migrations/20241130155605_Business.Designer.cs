@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PSPOS.ApiService.Data;
@@ -11,9 +12,11 @@ using PSPOS.ApiService.Data;
 namespace PSPOS.MigrationService.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241130155605_Business")]
+    partial class Business
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -22,7 +25,6 @@ namespace PSPOS.MigrationService.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-
             modelBuilder.Entity("PSPOS.ServiceDefaults.Models.Business", b =>
                 {
                     b.Property<Guid>("Id")
@@ -30,7 +32,6 @@ namespace PSPOS.MigrationService.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("AddressId")
-                    
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
@@ -38,7 +39,6 @@ namespace PSPOS.MigrationService.Migrations
 
                     b.Property<Guid>("CreatedBy")
                         .HasColumnType("uuid");
-
 
                     b.Property<int>("DefaultCurrency")
                         .HasColumnType("integer");
@@ -65,7 +65,6 @@ namespace PSPOS.MigrationService.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
-
 
                     b.ToTable("Businesses");
                 });
