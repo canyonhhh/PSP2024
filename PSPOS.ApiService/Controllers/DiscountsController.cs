@@ -26,15 +26,13 @@ public class DiscountsController : ControllerBase
         if (page <= 0 || pageSize <= 0)
             return BadRequest(new { Message = "Page and pageSize must be positive integers." });
 
-        DateTime? fromDate = ParseDateToUtc(from);
-        if (fromDate == null && !string.IsNullOrEmpty(from))
+        if (from == null && !string.IsNullOrEmpty(from))
             return BadRequest(new { Message = "Invalid 'from' date format. Use ISO 8601 (UTC)." });
 
-        DateTime? toDate = ParseDateToUtc(to);
-        if (toDate == null && !string.IsNullOrEmpty(to))
+        if (to == null && !string.IsNullOrEmpty(to))
             return BadRequest(new { Message = "Invalid 'to' date format. Use ISO 8601 (UTC)." });
 
-        var discounts = await _discountService.GetAllDiscountsAsync(fromDate, toDate, page, pageSize);
+        var discounts = await _discountService.GetAllDiscountsAsync(null, null, page, pageSize);
 
         if (discounts == null || !discounts.Any())
             return NotFound(new { Message = "No discounts found for the specified criteria." });
@@ -109,18 +107,4 @@ public class DiscountsController : ControllerBase
         return Ok(new { Message = "Discount applied successfully." });
     }
 
-    private DateTime? ParseDateToUtc(string? date)
-    {
-        if (string.IsNullOrEmpty(date)) return null;
-
-        if (DateTime.TryParse(date, out var parsedDate))
-        {
-            // Convert to UTC if not already
-            return parsedDate.Kind == DateTimeKind.Utc
-                ? parsedDate
-                : parsedDate.ToUniversalTime();
-        }
-
-        return null;
-    }
 }
