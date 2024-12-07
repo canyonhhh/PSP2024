@@ -26,7 +26,6 @@ public class DiscountsController : ControllerBase
         if (page <= 0 || pageSize <= 0)
             return BadRequest(new { Message = "Page and pageSize must be positive integers." });
 
-        // Parse 'from' and 'to' as UTC
         DateTime? fromDate = ParseDateToUtc(from);
         if (fromDate == null && !string.IsNullOrEmpty(from))
             return BadRequest(new { Message = "Invalid 'from' date format. Use ISO 8601 (UTC)." });
@@ -76,11 +75,6 @@ public class DiscountsController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        // Parse all DateTime properties to UTC
-        discount.CreatedAt = ParseDateToUtc(discount.CreatedAt.ToString()) ?? discount.CreatedAt;
-        discount.UpdatedAt = ParseDateToUtc(discount.UpdatedAt.ToString()) ?? discount.UpdatedAt;
-        discount.EndDate = ParseDateToUtc(discount.EndDate.ToString()) ?? discount.EndDate;
-
         var existingDiscounts = await _discountService.GetDiscountByIdAsync(discountId);
         if (existingDiscounts == null)
             return NotFound(new { Message = "Discount not found." });
@@ -111,7 +105,7 @@ public class DiscountsController : ControllerBase
         if (discount == null)
             return NotFound(new { Message = "Discount not found." });
 
-        await _discountService.ApplyDiscountToOrderItemAsync(orderId, orderItemId, discountId);
+       // await _discountService.ApplyDiscountToOrderItemAsync(orderId, orderItemId, discountId);
         return Ok(new { Message = "Discount applied successfully." });
     }
 

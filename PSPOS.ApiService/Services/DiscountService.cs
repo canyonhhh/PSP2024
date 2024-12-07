@@ -41,11 +41,6 @@ namespace PSPOS.ApiService.Services
             if (existingDiscount == null)
                 throw new KeyNotFoundException("Discount not found");
 
-            // Ensure DateTime fields are converted to UTC
-            updatedDiscount.CreatedAt = EnsureUtc(updatedDiscount.CreatedAt);
-            updatedDiscount.UpdatedAt = EnsureUtc(DateTime.UtcNow); 
-            updatedDiscount.EndDate = EnsureUtc(updatedDiscount.EndDate);
-
 
             existingDiscount.Name = updatedDiscount.Name;
             existingDiscount.Description = updatedDiscount.Description;
@@ -60,11 +55,7 @@ namespace PSPOS.ApiService.Services
 
             await _discountRepository.UpdateDiscountAsync(existingDiscount);
         }
-        private DateTime EnsureUtc(DateTime date)
-        {
-            // Ensure DateTime is UTC
-            return date.Kind == DateTimeKind.Utc ? date : date.ToUniversalTime();
-        }
+
         public async Task DeleteDiscountAsync(Guid discountId)
         {
             await _discountRepository.DeleteDiscountAsync(discountId);

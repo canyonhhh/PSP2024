@@ -48,7 +48,6 @@ namespace PSPOS.ApiService.Repositories
 
         public async Task UpdateDiscountAsync(Discount discount)
         {
-            discount.UpdatedAt = DateTime.Now; // Update timestamp
             _context.Discounts.Update(discount);
             await _context.SaveChangesAsync();
         }
