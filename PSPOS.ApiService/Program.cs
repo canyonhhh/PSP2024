@@ -22,6 +22,9 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IBusinessRepository, BusinessRepository>();
 builder.Services.AddScoped<IBusinessService, BusinessService>();
 
+builder.Services.AddScoped<IProdAndServRepository, ProdAndServRepository>();
+builder.Services.AddScoped<IProdAndServService, ProdAndServService>();
+
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 
 builder.Services.AddControllers();
