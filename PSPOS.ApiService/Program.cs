@@ -26,14 +26,29 @@ builder.Services.AddScoped<ITaxService  , TaxService>();
 builder.Services.AddScoped<IReservationRepository, ReservationRepository>();
 builder.Services.AddScoped<IReservationService , ReservationService>();
 
+builder.Services.AddScoped<IDiscountRepository, DiscountRepository>();
+builder.Services.AddScoped<IDiscountService, DiscountService>();
+
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+
+builder.Services.AddSingleton<ISmsService>(provider =>
+{
+    var configuration = provider.GetRequiredService<IConfiguration>();
+    var accountSid = builder.Configuration["Twilio:SID"] ?? throw new Exception("Twilio:SID is missing");
+    var authToken = builder.Configuration["Twilio:Token"] ?? throw new Exception("Twilio:Token is missing");
+    var fromPhoneNumber = builder.Configuration["Twilio:PhoneNumber"] ?? throw new Exception("Twilio:PhoneNumber is missing");
+
+    return new TwilioSmsService(accountSid, authToken, fromPhoneNumber);
+});
+
+
 
 builder.Services.AddControllers();
 builder.Services.AddProblemDetails();
 
 builder.Services.AddAutoMapper(typeof(MappingProfile));
 
-var jwtKey = Encoding.UTF8.GetBytes("e56ccfdac2091df4a0377cd7db900c23b716f8830cc178f6401cea7a12b42a6f3389edb104a6703036f5a56093c422e289b6292176659c45786b7493cca4371e0b20ea931768aac892f7f83084074c51c63f975d46020810a93943ed1d48454b56ad4d265a2dde18fea260ad117ad78fa8cc48088265cdcbf240b9f5e20a358646be1c022699e81147c3be18115a8d335904d00513c232c7dca6a32dfc1e3bcdee59c6ecbcbf3a57b7c2622cfca7266eb17e012079223855911a25d474a9c93a50ea17ae9f5bb2143eac7fef1cc49ef5044e59ad8901f4fee0382a286fc9587090f55fe72d428fbe43d541f24d07c23c5353a5929482b92d00e2f17b4c452238");
+var jwtKey = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? throw new Exception("Jwt:Key is missing"));
 
 builder.Services.AddAuthentication(options =>
 {
@@ -110,6 +125,7 @@ app.UseExceptionHandler();
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
+
 app.UseAuthorization();
 
 app.MapControllers();

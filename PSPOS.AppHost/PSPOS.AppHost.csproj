@@ -1,13 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
-        <OutputType>Exe</OutputType>
-        <TargetFramework>net8.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <IsAspireHost>true</IsAspireHost>
-        <UserSecretsId>1ee9cc89-a426-4429-b8a7-9a7e8b7aa197</UserSecretsId>
-    </PropertyGroup>
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<IsAspireHost>true</IsAspireHost>
+		<UserSecretsId>1ee9cc89-a426-4429-b8a7-9a7e8b7aa197</UserSecretsId>
+	</PropertyGroup>
+
 
     <ItemGroup>
         <ProjectReference Include="..\PSPOS.ApiService\PSPOS.ApiService.csproj" />
