@@ -10,7 +10,11 @@ public class AppDbContext : DbContext
 
     public DbSet<User> Users { get; set; }
     public DbSet<Business> Businesses { get; set; }
-
+    public DbSet<Service> Services { get; set; }
+    public DbSet<ServiceGroup> ServiceGroups { get; set; }
+    public DbSet<Product> Products { get; set; }
+    public DbSet<ProductGroup> ProductGroups { get; set; }
+    public DbSet<ProductStock> ProductStocks { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // apply converters for DateTime and DateTime? properties
