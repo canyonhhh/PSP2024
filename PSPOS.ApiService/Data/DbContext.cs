@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Internal;
 using PSPOS.ApiService.Data.ValueConverters;
 using PSPOS.ServiceDefaults.Models;
 
@@ -10,6 +11,13 @@ public class AppDbContext : DbContext
 
     public DbSet<User> Users { get; set; }
     public DbSet<Business> Businesses { get; set; }
+
+    public DbSet<Tax> Taxes { get; set; }
+
+    public DbSet<Reservation> Reservations { get; set; }
+
+    public DbSet<Service> Services { get; set; }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
