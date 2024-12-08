@@ -1,8 +1,8 @@
-﻿using PSPOS.ServiceDefaults.Models;
-using PSPOS.ApiService.Repositories.Interfaces;
+﻿using Microsoft.EntityFrameworkCore;
 using PSPOS.ApiService.Data;
-using Microsoft.EntityFrameworkCore;
+using PSPOS.ApiService.Repositories.Interfaces;
 using PSPOS.ServiceDefaults.DTOs;
+using PSPOS.ServiceDefaults.Models;
 
 namespace PSPOS.ApiService.Repositories
 {
@@ -74,7 +74,7 @@ namespace PSPOS.ApiService.Repositories
                 .FirstOrDefault(r => r.Id == reservation.Id);
             if (trackedEntity != null)
             {
-                _context.Entry(trackedEntity).State = EntityState.Detached; 
+                _context.Entry(trackedEntity).State = EntityState.Detached;
             }
 
             _context.Entry(reservation).State = EntityState.Modified;

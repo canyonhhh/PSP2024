@@ -1,10 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using PSPOS.ApiService.Services.Interfaces;
 using PSPOS.ServiceDefaults.DTOs;
 using PSPOS.ServiceDefaults.Models;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace PSPOS.ApiService.Controllers
 {
