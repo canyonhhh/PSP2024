@@ -1,7 +1,7 @@
+using PSPOS.ApiService.Services.Interfaces;
 using Twilio;
 using Twilio.Rest.Api.V2010.Account;
 using Twilio.Types;
-using PSPOS.ApiService.Services.Interfaces;
 
 namespace PSPOS.ApiService.Services
 {
