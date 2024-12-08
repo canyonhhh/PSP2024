@@ -20,19 +20,11 @@ public class ApiDbInitializer(
     {
         using var activity = _activitySource.StartActivity(hostEnvironment.ApplicationName, ActivityKind.Client);
 
-        try
-        {
-            using var scope = serviceProvider.CreateScope();
-            var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        using var scope = serviceProvider.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-            await EnsureDatabaseAsync(dbContext, cancellationToken);
-            await RunMigrationAsync(dbContext, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            // activity?.AddException(ex);
-            throw;
-        }
+        await EnsureDatabaseAsync(dbContext, cancellationToken);
+        await RunMigrationAsync(dbContext, cancellationToken);
 
         hostApplicationLifetime.StopApplication();
     }
