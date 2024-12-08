@@ -1,5 +1,5 @@
-using PSPOS.ServiceDefaults.Models;
 using PSPOS.ServiceDefaults.DTOs;
+using PSPOS.ServiceDefaults.Models;
 
 namespace PSPOS.ApiService.Services.Interfaces;
 

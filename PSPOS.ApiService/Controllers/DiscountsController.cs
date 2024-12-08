@@ -103,7 +103,7 @@ public class DiscountsController : ControllerBase
         if (discount == null)
             return NotFound(new { Message = "Discount not found." });
 
-       // await _discountService.ApplyDiscountToOrderItemAsync(orderId, orderItemId, discountId);
+        // await _discountService.ApplyDiscountToOrderItemAsync(orderId, orderItemId, discountId);
         return Ok(new { Message = "Discount applied successfully." });
     }
 

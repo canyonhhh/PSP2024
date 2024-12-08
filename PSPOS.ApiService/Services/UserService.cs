@@ -1,8 +1,8 @@
+using AutoMapper;
 using PSPOS.ApiService.Repositories.Interfaces;
 using PSPOS.ApiService.Services.Interfaces;
 using PSPOS.ServiceDefaults.DTOs;
 using PSPOS.ServiceDefaults.Models;
-using AutoMapper;
 
 namespace PSPOS.ApiService.Services;
 
