@@ -4,5 +4,5 @@ public enum PaymentMethod
 {
     Cash,
     Giftcard,
-    Bankcard
+    Bankcard // Stripe
 }

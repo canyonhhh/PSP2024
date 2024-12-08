@@ -20,6 +20,12 @@ public class OrderRepository : IOrderRepository
         return await _context.Orders.FindAsync(id);
     }
 
+    public async Task UpdateOrder(Order order)
+    {
+        _context.Orders.Update(order);
+        await _context.SaveChangesAsync();
+    }
+
     public async Task<IEnumerable<Order>> GetAllOrdersAsync(string? status, int? limit, int? skip)
     {
         var query = _context.Orders.AsQueryable();
@@ -70,14 +76,8 @@ public class OrderRepository : IOrderRepository
         var order = await GetOrderByIdAsync(orderId);
         if(order != null)
         {
-            var orderItems = _context.OrderItems.Where(oi => oi.OrderId == orderId);
-
-            // Remove related Transactions
-            var transactionIds = orderItems.Select(oi => oi.TransactionId);
-            var transactions = _context.Transactions.Where(t => transactionIds.Contains(t.Id));
-            _context.Transactions.RemoveRange(transactions);
-
             // Remove related OrderItems
+            var orderItems = _context.OrderItems.Where(oi => oi.OrderId == orderId);
             _context.OrderItems.RemoveRange(orderItems);
 
             // Remove the Order itself
@@ -92,10 +92,11 @@ public class OrderRepository : IOrderRepository
         // Ensure the order exists
         var order = await GetOrderByIdAsync(orderId) ?? throw new ArgumentException($"Order with ID '{orderId}' does not exist.");
 
-        // Retrieve all OrderItems associated with the order
+        // Retrieve all transaction IDs associated with the order
         var orderItemTransactionIds = await _context.OrderItems
             .Where(oi => oi.OrderId == orderId)
             .Select(oi => oi.TransactionId)
+            .Distinct()
             .ToListAsync();
 
         // Retrieve Transactions by their IDs
@@ -106,10 +107,16 @@ public class OrderRepository : IOrderRepository
         return transactions;
     }
 
-    public async Task ProcessAllTransactionsOfOrderAsync(Guid id)
+    public async Task AddPaymentAsync(Payment payment)
     {
-        var order = await GetOrderByIdAsync(id);
-        throw new NotImplementedException();
+        await _context.Payments.AddAsync(payment);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task AddTransactionAsync(Transaction transaction)
+    {
+        await _context.Transactions.AddAsync(transaction);
+        await _context.SaveChangesAsync();
     }
 
     public async Task<Transaction?> GetTransactionByIdAsync(Guid transactionId)
@@ -117,14 +124,14 @@ public class OrderRepository : IOrderRepository
         return await _context.Transactions.FindAsync(transactionId);
     }
 
+    public async Task<Giftcard?> GetGiftcardByIdAsync(Guid giftcardId)
+    {
+        return await _context.GiftCards.FindAsync(giftcardId);
+    }
+
     public async Task<IEnumerable<Payment>> GetAllPaymentsOfTransacionAsync(Guid transactionId)
     {
         return await _context.Payments.Where(p => p.TransactionId == transactionId).ToArrayAsync();
-    }
-
-    public Task RefundTransactionAsync(Transaction transaction)
-    {
-        throw new NotImplementedException();
     }
 
     public async Task<IEnumerable<OrderItem>> GetAllItemsOfOrderAsync(Guid orderId)

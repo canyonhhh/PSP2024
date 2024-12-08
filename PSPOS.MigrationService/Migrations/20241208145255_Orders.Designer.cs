@@ -12,7 +12,7 @@ using PSPOS.ApiService.Data;
 namespace PSPOS.MigrationService.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20241201100128_Orders")]
+    [Migration("20241208145255_Orders")]
     partial class Orders
     {
         /// <inheritdoc />
@@ -69,7 +69,7 @@ namespace PSPOS.MigrationService.Migrations
                     b.ToTable("Businesses");
                 });
 
-            modelBuilder.Entity("PSPOS.ServiceDefaults.Models.GiftCard", b =>
+            modelBuilder.Entity("PSPOS.ServiceDefaults.Models.Giftcard", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()

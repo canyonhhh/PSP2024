@@ -14,7 +14,7 @@ public class AppDbContext : DbContext
     public DbSet<OrderItem> OrderItems { get; set; }
     public DbSet<Transaction> Transactions { get; set; }
     public DbSet<Payment> Payments { get; set; }
-    public DbSet<GiftCard> GiftCards { get; set; }
+    public DbSet<Giftcard> GiftCards { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

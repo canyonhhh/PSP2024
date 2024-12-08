@@ -15,13 +15,13 @@ public interface IOrderService
 
     // '/orders/transactions'
     Task<IEnumerable<TransactionSchema>> GetAllTransactionsOfOrderAsync(Guid id);
-    Task ProcessAllTransactionsOfOrderAsync(Guid id);
+    Task ProcessTransactionForOrderAsync(Guid id, TransactionDTO transactionDTO);
     Task<Transaction?> GetTransactionByIdAsync(Guid id);
-    Task<TransactionSchema?> GetTransactionSchemaByIdAsync(Guid id);
-    Task RefundTransactionAsync(Order order, Transaction transaction, RefundDTO refundDTO);
+    Task<TransactionSchema?> GetTransactionSchemaByIdAsync(Order orderId, Guid transactionId);
+    Task RefundTransactionAsync(Order order, TransactionSchema transactionSchema, RefundDTO refundDTO);
 
     // '/orders/items'
     Task<IEnumerable<OrderItemSchema>> GetAllItemsOfOrderAsync(Guid id);
-    Task AddOrderItemToOrderAsync(OrderItemDTO orderItem);
+    Task AddOrderItemToOrderAsync(Guid orderItemId, OrderItemDTO orderItem);
     Task UpdateOrderItemAsync(Guid orderItemId, OrderItemDTO orderItem);
 }

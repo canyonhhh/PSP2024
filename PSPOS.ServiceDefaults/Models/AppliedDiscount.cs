@@ -12,7 +12,7 @@ public class AppliedDiscount : BaseClass
         OrderId = orderId;
     }
 
-    // public DiscountMethod Method { get; set; }
+    // public DiscountMethod Method { get; set; } // TODO Uncomment when dependency exists
     public decimal Amount { get; set; }
     public decimal Percentage { get; set; }
     public Guid DiscountId { get; set; }

@@ -66,7 +66,7 @@ namespace PSPOS.MigrationService.Migrations
                     b.ToTable("Businesses");
                 });
 
-            modelBuilder.Entity("PSPOS.ServiceDefaults.Models.GiftCard", b =>
+            modelBuilder.Entity("PSPOS.ServiceDefaults.Models.Giftcard", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()

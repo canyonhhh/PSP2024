@@ -6,16 +6,18 @@ public interface IOrderRepository
 {
     // '/orders'
     Task<Order?> GetOrderByIdAsync(Guid id);
+    Task UpdateOrder(Order order);
     Task<IEnumerable<Order>> GetAllOrdersAsync(string? status, int? limit, int? skip);
     Task<Order> AddOrderAsync(Guid businessId, string? status, string? currency);
     Task DeleteOrderAsync(Guid id);
 
     // '/orders/transactions'
     Task<IEnumerable<Transaction>> GetAllTransactionsOfOrderAsync(Guid id);
-    Task ProcessAllTransactionsOfOrderAsync(Guid id);
+    Task AddPaymentAsync(Payment payment);
+    Task AddTransactionAsync(Transaction transaction);
     Task<Transaction?> GetTransactionByIdAsync(Guid id);
     Task<IEnumerable<Payment>> GetAllPaymentsOfTransacionAsync(Guid transactionId);
-    Task RefundTransactionAsync(Transaction transaction);
+    Task<Giftcard?> GetGiftcardByIdAsync(Guid id);
 
     // '/orders/items'
     Task<IEnumerable<OrderItem>> GetAllItemsOfOrderAsync(Guid id);
