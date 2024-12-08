@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PSPOS.ApiService.Data;
@@ -11,9 +12,11 @@ using PSPOS.ApiService.Data;
 namespace PSPOS.MigrationService.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241207161426_fixed")]
+    partial class @fixed
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -122,7 +125,7 @@ namespace PSPOS.MigrationService.Migrations
                     b.ToTable("Discounts");
                 });
 
-            modelBuilder.Entity("PSPOS.ServiceDefaults.Models.Giftcard", b =>
+            modelBuilder.Entity("PSPOS.ServiceDefaults.Models.GiftCard", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -252,7 +255,7 @@ namespace PSPOS.MigrationService.Migrations
                     b.Property<Guid>("ExternalPaymentId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("GiftcardId")
+                    b.Property<Guid>("GiftCardId")
                         .HasColumnType("uuid");
 
                     b.Property<int>("Method")

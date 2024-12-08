@@ -22,6 +22,9 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IBusinessRepository, BusinessRepository>();
 builder.Services.AddScoped<IBusinessService, BusinessService>();
 
+builder.Services.AddScoped<IDiscountRepository, DiscountRepository>();
+builder.Services.AddScoped<IDiscountService, DiscountService>();
+
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 
@@ -36,6 +39,8 @@ builder.Services.AddSingleton<ISmsService>(provider =>
 
     return new TwilioSmsService(accountSid, authToken, fromPhoneNumber);
 });
+
+
 
 builder.Services.AddControllers();
 builder.Services.AddProblemDetails();
@@ -119,6 +124,7 @@ app.UseExceptionHandler();
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
+
 app.UseAuthorization();
 
 app.MapControllers();
