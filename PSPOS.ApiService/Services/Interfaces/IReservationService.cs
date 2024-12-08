@@ -1,4 +1,5 @@
-﻿using PSPOS.ServiceDefaults.Models;
+﻿using PSPOS.ServiceDefaults.DTOs;
+using PSPOS.ServiceDefaults.Models;
 
 namespace PSPOS.ApiService.Services.Interfaces
 {
@@ -14,7 +15,7 @@ namespace PSPOS.ApiService.Services.Interfaces
         Task AddReservationAsync(Reservation reservation);
         Task UpdateReservationAsync(Reservation reservation);
         Task DeleteReservationAsync(Guid id);
-        Task<PaginatedResult<AvailableTime>> GetAvailableTimesAsync(
+        Task<PaginatedResult<AvailableTimeDto>> GetAvailableTimesAsync(
             Guid serviceId,
             DateTime? from,
             DateTime? to,

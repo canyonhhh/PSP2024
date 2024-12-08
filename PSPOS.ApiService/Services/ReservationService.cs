@@ -1,5 +1,6 @@
 ﻿using PSPOS.ApiService.Repositories.Interfaces;
 using PSPOS.ApiService.Services.Interfaces;
+using PSPOS.ServiceDefaults.DTOs;
 using PSPOS.ServiceDefaults.Models;
 
 namespace PSPOS.ApiService.Services
@@ -42,7 +43,7 @@ namespace PSPOS.ApiService.Services
             await _reservationRepository.DeleteReservationAsync(id);
         }
 
-        public async Task<PaginatedResult<AvailableTime>> GetAvailableTimesAsync(
+        public async Task<PaginatedResult<AvailableTimeDto>> GetAvailableTimesAsync(
             Guid serviceId,
             DateTime? from,
             DateTime? to,

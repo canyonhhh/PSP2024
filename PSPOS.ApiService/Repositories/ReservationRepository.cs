@@ -2,6 +2,7 @@
 using PSPOS.ApiService.Repositories.Interfaces;
 using PSPOS.ApiService.Data;
 using Microsoft.EntityFrameworkCore;
+using PSPOS.ServiceDefaults.DTOs;
 
 namespace PSPOS.ApiService.Repositories
 {
@@ -91,7 +92,7 @@ namespace PSPOS.ApiService.Repositories
             }
         }
 
-        public async Task<PaginatedResult<AvailableTime>> GetAvailableTimesAsync(
+        public async Task<PaginatedResult<AvailableTimeDto>> GetAvailableTimesAsync(
             Guid serviceId,
             DateTime? from,
             DateTime? to,
@@ -109,7 +110,7 @@ namespace PSPOS.ApiService.Repositories
                 .Where(r => r.ServiceId == serviceId && r.AppointmentTime >= startDate && r.AppointmentTime <= endDate)
                 .ToListAsync();
 
-            var availableTimes = new List<AvailableTime>();
+            var availableTimes = new List<AvailableTimeDto>();
             var businessDayStart = new TimeSpan(9, 0, 0);
             var businessDayEnd = new TimeSpan(17, 0, 0);
 
@@ -129,7 +130,7 @@ namespace PSPOS.ApiService.Repositories
 
                     if (!conflicts)
                     {
-                        availableTimes.Add(new AvailableTime
+                        availableTimes.Add(new AvailableTimeDto
                         {
                             ServiceId = serviceId,
                             TimeFrom = currentTime,
@@ -149,7 +150,7 @@ namespace PSPOS.ApiService.Repositories
                 .Take(pageSize)
                 .ToList();
 
-            return new PaginatedResult<AvailableTime>
+            return new PaginatedResult<AvailableTimeDto>
             {
                 TotalItems = totalItems,
                 TotalPages = totalPages,

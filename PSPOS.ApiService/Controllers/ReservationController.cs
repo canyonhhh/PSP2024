@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using PSPOS.ApiService.Services.Interfaces;
+using PSPOS.ServiceDefaults.DTOs;
 using PSPOS.ServiceDefaults.Models;
 
 namespace PSPOS.ApiService.Controllers
@@ -87,9 +88,9 @@ namespace PSPOS.ApiService.Controllers
         }
 
         [HttpGet("free")]
-        [ProducesResponseType(typeof(PaginatedResult<AvailableTime>), 200)]
+        [ProducesResponseType(typeof(PaginatedResult<AvailableTimeDto>), 200)]
         [ProducesResponseType(400)]
-        public async Task<ActionResult<PaginatedResult<AvailableTime>>> GetAvailableTimes(
+        public async Task<ActionResult<PaginatedResult<AvailableTimeDto>>> GetAvailableTimes(
             [FromQuery] Guid serviceId,
             [FromQuery] DateTime? from,
             [FromQuery] DateTime? to,
