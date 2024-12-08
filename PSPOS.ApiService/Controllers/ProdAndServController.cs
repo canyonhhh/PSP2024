@@ -5,7 +5,7 @@ using PSPOS.ServiceDefaults.Models;
 namespace PSPOS.ApiService.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api")]
     public class ProdAndServController : ControllerBase
     {
         private readonly ProdAndServService _service;
@@ -24,7 +24,7 @@ namespace PSPOS.ApiService.Controllers
             return Ok(products);
         }
 
-        [HttpGet("products/{id}")]
+        [HttpGet("products/{productId}")]
         public async Task<IActionResult> GetProductById(Guid id)
         {
             var product = await _service.GetProductByIdAsync(id);
@@ -42,7 +42,7 @@ namespace PSPOS.ApiService.Controllers
             return CreatedAtAction(nameof(GetProductById), new { id = product.Id }, product);
         }
 
-        [HttpPut("products/{id}")]
+        [HttpPut("products/{productId}")]
         public async Task<IActionResult> UpdateProduct(Guid id, Product product)
         {
             if (id != product.Id)
@@ -54,7 +54,7 @@ namespace PSPOS.ApiService.Controllers
             return NoContent();
         }
 
-        [HttpDelete("products/{id}")]
+        [HttpDelete("products/{productId}")]
         public async Task<IActionResult> DeleteProduct(Guid id)
         {
             await _service.DeleteProductAsync(id);
@@ -70,7 +70,7 @@ namespace PSPOS.ApiService.Controllers
             return Ok(services);
         }
 
-        [HttpGet("services/{id}")]
+        [HttpGet("services/{serviceId}")]
         public async Task<IActionResult> GetServiceById(Guid id)
         {
             var service = await _service.GetServiceByIdAsync(id);
@@ -88,7 +88,7 @@ namespace PSPOS.ApiService.Controllers
             return CreatedAtAction(nameof(GetServiceById), new { id = service.Id }, service);
         }
 
-        [HttpPut("services/{id}")]
+        [HttpPut("services/{serviceId}")]
         public async Task<IActionResult> UpdateService(Guid id, Service service)
         {
             if (id != service.Id)
@@ -100,7 +100,7 @@ namespace PSPOS.ApiService.Controllers
             return NoContent();
         }
 
-        [HttpDelete("services/{id}")]
+        [HttpDelete("services/{serviceId}")]
         public async Task<IActionResult> DeleteService(Guid id)
         {
             await _service.DeleteServiceAsync(id);

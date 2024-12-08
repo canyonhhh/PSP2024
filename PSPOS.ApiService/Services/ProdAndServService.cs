@@ -1,9 +1,10 @@
 ﻿using PSPOS.ApiService.Repositories.Interfaces;
+using PSPOS.ApiService.Services.Interfaces;
 using PSPOS.ServiceDefaults.Models;
 
 namespace PSPOS.ApiService.Services
 {
-    public class ProdAndServService
+    public class ProdAndServService : IProdAndServService
     {
         private readonly IProdAndServRepository _repository;
 
