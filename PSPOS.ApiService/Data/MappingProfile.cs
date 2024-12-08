@@ -1,6 +1,6 @@
 using AutoMapper;
-using PSPOS.ServiceDefaults.Models;
 using PSPOS.ServiceDefaults.DTOs;
+using PSPOS.ServiceDefaults.Models;
 
 public class MappingProfile : Profile
 {

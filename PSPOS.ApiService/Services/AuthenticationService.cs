@@ -1,11 +1,11 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using PSPOS.ApiService.Repositories.Interfaces;
 using PSPOS.ApiService.Services.Interfaces;
-using PSPOS.ServiceDefaults.Models;
 using PSPOS.ServiceDefaults.DTOs;
+using PSPOS.ServiceDefaults.Models;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
 namespace PSPOS.ApiService.Services;
 

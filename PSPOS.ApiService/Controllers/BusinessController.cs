@@ -1,7 +1,7 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PSPOS.ApiService.Services.Interfaces;
 using PSPOS.ServiceDefaults.Models;
-using Microsoft.AspNetCore.Authorization;
 
 namespace PSPOS.ApiService.Controllers;
 
