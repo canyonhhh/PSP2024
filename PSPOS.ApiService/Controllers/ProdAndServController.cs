@@ -1,16 +1,19 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using PSPOS.ApiService.Services;
+using PSPOS.ApiService.Services.Interfaces;
 using PSPOS.ServiceDefaults.Models;
 
 namespace PSPOS.ApiService.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api")]
     public class ProdAndServController : ControllerBase
     {
-        private readonly ProdAndServService _service;
+        private readonly IProdAndServService _service;
 
-        public ProdAndServController(ProdAndServService service)
+        public ProdAndServController(IProdAndServService service)
         {
             _service = service;
         }
@@ -18,92 +21,152 @@ namespace PSPOS.ApiService.Controllers
         // **Products**
 
         [HttpGet("products")]
-        public async Task<IActionResult> GetAllProducts()
+        public async Task<IActionResult> GetAllProducts([FromQuery] DateTime? from, [FromQuery] DateTime? to, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
-            var products = await _service.GetAllProductsAsync();
+            var (products, totalCount) = await _service.GetAllProductsAsync(from, to, page, pageSize);
+
+            var metadata = new
+            {
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize,
+                TotalPages = (int)Math.Ceiling((double)totalCount / pageSize)
+            };
+
+            Response.Headers.Append("X-Pagination", System.Text.Json.JsonSerializer.Serialize(metadata));
+
             return Ok(products);
         }
 
-        [HttpGet("products/{productId}")]
-        public async Task<IActionResult> GetProductById(Guid id)
+        [HttpGet("products/{productId:guid}")]
+        public async Task<IActionResult> GetProductById(Guid productId)
         {
-            var product = await _service.GetProductByIdAsync(id);
+            var product = await _service.GetProductByIdAsync(productId);
+
             if (product == null)
             {
                 return NotFound();
             }
+
             return Ok(product);
         }
 
         [HttpPost("products")]
-        public async Task<IActionResult> AddProduct(Product product)
+        public async Task<IActionResult> AddProduct([FromBody] Product product)
         {
-            await _service.AddProductAsync(product);
-            return CreatedAtAction(nameof(GetProductById), new { id = product.Id }, product);
-        }
-
-        [HttpPut("products/{productId}")]
-        public async Task<IActionResult> UpdateProduct(Guid id, Product product)
-        {
-            if (id != product.Id)
+            if (!ModelState.IsValid)
             {
-                return BadRequest();
+                return BadRequest(ModelState);
             }
 
-            await _service.UpdateProductAsync(product);
-            return NoContent();
+            var createdProduct = await _service.AddProductAsync(product);
+            return CreatedAtAction(nameof(GetProductById), new { productId = createdProduct.Id }, createdProduct);
         }
 
-        [HttpDelete("products/{productId}")]
-        public async Task<IActionResult> DeleteProduct(Guid id)
+        [HttpPut("products/{productId:guid}")]
+        public async Task<IActionResult> UpdateProduct(Guid productId, [FromBody] Product updatedProduct)
         {
-            await _service.DeleteProductAsync(id);
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var result = await _service.UpdateProductAsync(productId, updatedProduct);
+
+            if (result == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(result);
+        }
+
+        [HttpDelete("products/{productId:guid}")]
+        public async Task<IActionResult> DeleteProduct(Guid productId)
+        {
+            var success = await _service.DeleteProductAsync(productId);
+
+            if (!success)
+            {
+                return NotFound();
+            }
+
             return NoContent();
         }
 
         // **Services**
 
         [HttpGet("services")]
-        public async Task<IActionResult> GetAllServices()
+        public async Task<IActionResult> GetAllServices([FromQuery] DateTime? from, [FromQuery] DateTime? to, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
-            var services = await _service.GetAllServicesAsync();
+            var (services, totalCount) = await _service.GetAllServicesAsync(from, to, page, pageSize);
+
+            var metadata = new
+            {
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize,
+                TotalPages = (int)Math.Ceiling((double)totalCount / pageSize)
+            };
+
+            Response.Headers.Append("X-Pagination", System.Text.Json.JsonSerializer.Serialize(metadata));
+
             return Ok(services);
         }
 
-        [HttpGet("services/{serviceId}")]
-        public async Task<IActionResult> GetServiceById(Guid id)
+        [HttpGet("services/{serviceId:guid}")]
+        public async Task<IActionResult> GetServiceById(Guid serviceId)
         {
-            var service = await _service.GetServiceByIdAsync(id);
+            var service = await _service.GetServiceByIdAsync(serviceId);
+
             if (service == null)
             {
                 return NotFound();
             }
+
             return Ok(service);
         }
 
         [HttpPost("services")]
-        public async Task<IActionResult> AddService(Service service)
+        public async Task<IActionResult> AddService([FromBody] Service service)
         {
-            await _service.AddServiceAsync(service);
-            return CreatedAtAction(nameof(GetServiceById), new { id = service.Id }, service);
-        }
-
-        [HttpPut("services/{serviceId}")]
-        public async Task<IActionResult> UpdateService(Guid id, Service service)
-        {
-            if (id != service.Id)
+            if (!ModelState.IsValid)
             {
-                return BadRequest();
+                return BadRequest(ModelState);
             }
 
-            await _service.UpdateServiceAsync(service);
-            return NoContent();
+            var createdService = await _service.AddServiceAsync(service);
+            return CreatedAtAction(nameof(GetServiceById), new { serviceId = createdService.Id }, createdService);
         }
 
-        [HttpDelete("services/{serviceId}")]
-        public async Task<IActionResult> DeleteService(Guid id)
+        [HttpPut("services/{serviceId:guid}")]
+        public async Task<IActionResult> UpdateService(Guid serviceId, [FromBody] Service updatedService)
         {
-            await _service.DeleteServiceAsync(id);
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var result = await _service.UpdateServiceAsync(serviceId, updatedService);
+
+            if (result == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(result);
+        }
+
+        [HttpDelete("services/{serviceId:guid}")]
+        public async Task<IActionResult> DeleteService(Guid serviceId)
+        {
+            var success = await _service.DeleteServiceAsync(serviceId);
+
+            if (!success)
+            {
+                return NotFound();
+            }
+
             return NoContent();
         }
     }
