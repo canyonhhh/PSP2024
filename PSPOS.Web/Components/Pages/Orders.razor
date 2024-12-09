@@ -1,0 +1,147 @@
+﻿@page "/orders"
+@inject IHttpClientFactory ClientFactory
+
+<h2>Order Management</h2>
+
+<!-- Add New Order Button -->
+<button class="btn btn-primary mb-3" @onclick="AddOrder">+ Add Order</button>
+
+<!-- Orders Table -->
+@if (orders == null)
+{
+    <p>Loading orders...</p>
+}
+else if (!orders.Any())
+{
+    <p>No orders found.</p>
+}
+else
+{
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Order ID</th>
+                <th>Status</th>
+                <th>Currency</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var order in orders)
+            {
+                <tr>
+                    <td>@order.Id</td>
+                    <td>@order.Status</td>
+                    <td>@order.Currency</td>
+                    <td>
+                        <button class="btn btn-warning btn-sm me-2" @onclick="() => EditOrder(order.Id)">Edit</button>
+                        <button class="btn btn-danger btn-sm" @onclick="() => DeleteOrder(order.Id)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<!-- Success/Error Messages -->
+@if (!string.IsNullOrEmpty(Message))
+{
+    <div class="alert alert-info">@Message</div>
+}
+
+@code {
+    private HttpClient Http => ClientFactory.CreateClient("ApiClient");
+    private List<OrderSchema> orders;
+    private string Message;
+
+    // Fetch orders when the page is loaded
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadOrders();
+    }
+
+    // Load orders from the API
+    private async Task LoadOrders()
+    {
+        try
+        {
+            orders = await Http.GetFromJsonAsync<List<OrderSchema>>("orders");
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error loading orders: {ex.Message}";
+        }
+    }
+
+    // Add a new order (example data)
+    private async Task AddOrder()
+    {
+        var newOrder = new OrderDTO
+            {
+                BusinessId = "123", // Example business ID
+                Status = "New",
+                Currency = "USD"
+            };
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("orders", newOrder);
+            if (response.IsSuccessStatusCode)
+            {
+                Message = "New order added successfully.";
+                await LoadOrders(); // Reload orders after adding
+            }
+            else
+            {
+                Message = $"Failed to add order: {response.ReasonPhrase}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error adding order: {ex.Message}";
+        }
+    }
+
+    // Delete an order
+    private async Task DeleteOrder(Guid id)
+    {
+        try
+        {
+            var response = await Http.DeleteAsync($"orders/{id}");
+            if (response.IsSuccessStatusCode)
+            {
+                Message = "Order deleted successfully.";
+                orders.RemoveAll(o => o.Id == id);
+            }
+            else
+            {
+                Message = $"Failed to delete order: {response.ReasonPhrase}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error deleting order: {ex.Message}";
+        }
+    }
+
+    // Edit an order (navigate to edit page or logic placeholder)
+    private void EditOrder(Guid id)
+    {
+        Message = $"Edit order functionality not implemented. Order ID: {id}";
+    }
+
+    // Order DTOs and Schemas
+    public class OrderSchema
+    {
+        public Guid Id { get; set; }
+        public string? Status { get; set; }
+        public string? Currency { get; set; }
+    }
+
+    public class OrderDTO
+    {
+        public string? BusinessId { get; set; }
+        public string? Status { get; set; }
+        public string? Currency { get; set; }
+    }
+}
