@@ -1,8 +1,8 @@
 namespace PSPOS.ServiceDefaults.Models;
 
-public class GiftCard : BaseClass
+public class Giftcard : BaseClass
 {
-    public GiftCard(decimal amount, string code, Guid businessId)
+    public Giftcard(decimal amount, string code, Guid businessId)
     {
         Amount = amount;
         Code = code;
