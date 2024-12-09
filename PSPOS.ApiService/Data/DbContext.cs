@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Internal;
 using PSPOS.ApiService.Data.ValueConverters;
 using PSPOS.ServiceDefaults.Models;
 
