@@ -29,7 +29,7 @@ public class OrderController : ControllerBase
             var orders = await _orderService.GetAllOrdersAsync(status, limit, skip);
             return Ok(orders);
         }
-        catch(ArgumentException ex)
+        catch (ArgumentException ex)
         {
             return BadRequest(new { ex.Message });
         }
@@ -41,7 +41,7 @@ public class OrderController : ControllerBase
     [ProducesResponseType(400)]
     public async Task<ActionResult> AddOrder([FromBody] OrderDTO orderDTO)
     {
-        if(!ModelState.IsValid)
+        if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
         try
@@ -49,7 +49,7 @@ public class OrderController : ControllerBase
             var createdOrder = await _orderService.AddOrderAsync(orderDTO.businessId, orderDTO.status, orderDTO.currency);
             return CreatedAtAction(nameof(GetOrderById), new { orderId = createdOrder.Id }, null);
         }
-        catch(ArgumentException ex)
+        catch (ArgumentException ex)
         {
             return BadRequest(new { ex.Message });
         }
@@ -62,7 +62,7 @@ public class OrderController : ControllerBase
     public async Task<ActionResult<OrderSchema>> GetOrderById(Guid orderId)
     {
         var order = await _orderService.GetOrderSchemaByIdAsync(orderId);
-        if(order == null)
+        if (order == null)
             return NotFound();
 
         return Ok(order);
@@ -75,7 +75,7 @@ public class OrderController : ControllerBase
     public async Task<ActionResult> DeleteOrder(Guid orderId)
     {
         var order = await _orderService.GetOrderSchemaByIdAsync(orderId);
-        if(order == null)
+        if (order == null)
             return NotFound();
 
         await _orderService.DeleteOrderAsync(orderId);
@@ -94,12 +94,12 @@ public class OrderController : ControllerBase
         {
             transactions = await _orderService.GetAllTransactionsOfOrderAsync(orderId);
         }
-        catch(ArgumentException ex)
+        catch (ArgumentException ex)
         {
             return BadRequest(new { ex.Message });
         }
 
-        if(!transactions.Any())
+        if (!transactions.Any())
             return NotFound();
 
         return Ok(transactions);
@@ -111,14 +111,14 @@ public class OrderController : ControllerBase
     [ProducesResponseType(400)]
     public async Task<ActionResult> ProcessTransactionForOrder(Guid orderId, [FromBody] TransactionDTO transactionDTO)
     {
-        if(!ModelState.IsValid)
+        if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
         try
         {
             await _orderService.ProcessTransactionForOrderAsync(orderId, transactionDTO);
         }
-        catch(ArgumentException ex)
+        catch (ArgumentException ex)
         {
             return BadRequest(new { ex.Message });
         }
@@ -133,11 +133,11 @@ public class OrderController : ControllerBase
     public async Task<ActionResult<TransactionSchema>> GetTransactionOfOrder(Guid orderId, Guid transactionId)
     {
         var order = await _orderService.GetOrderByIdAsync(orderId);
-        if(order == null)
+        if (order == null)
             return NotFound();
 
         var transaction = await _orderService.GetTransactionSchemaByIdAsync(order, transactionId);
-        if(transaction == null)
+        if (transaction == null)
             return NotFound();
 
         transaction.status = order.Status.ToString();
@@ -153,18 +153,18 @@ public class OrderController : ControllerBase
     public async Task<ActionResult> RefundTransaction(Guid orderId, Guid transactionId, [FromBody] RefundDTO refundDTO)
     {
         var order = await _orderService.GetOrderByIdAsync(orderId);
-        if(order == null)
+        if (order == null)
             return NotFound();
 
         var transactionSchema = await _orderService.GetTransactionSchemaByIdAsync(order, transactionId);
-        if(transactionSchema == null)
+        if (transactionSchema == null)
             return NotFound();
 
         try
         {
             await _orderService.RefundTransactionAsync(order, transactionSchema, refundDTO);
         }
-        catch(ArgumentException ex)
+        catch (ArgumentException ex)
         {
             return BadRequest(new { ex.Message });
         }
@@ -189,7 +189,7 @@ public class OrderController : ControllerBase
             return BadRequest(new { ex.Message });
         }
 
-        if(!items.Any())
+        if (!items.Any())
             return NotFound();
 
         return Ok(items);
@@ -201,14 +201,14 @@ public class OrderController : ControllerBase
     [ProducesResponseType(400)]
     public async Task<ActionResult> AddOrderItemToOrder(Guid orderId, [FromBody] OrderItemDTO orderItem)
     {
-        if(!ModelState.IsValid)
+        if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
         try
         {
             await _orderService.AddOrderItemToOrderAsync(orderId, orderItem);
         }
-        catch(ArgumentException ex)
+        catch (ArgumentException ex)
         {
             return BadRequest(new { ex.Message });
         }
@@ -223,22 +223,22 @@ public class OrderController : ControllerBase
     [ProducesResponseType(404)]
     public async Task<ActionResult> UpdateOrderItem(Guid orderId, Guid orderItemId, [FromBody] OrderItemDTO orderItem)
     {
-        if(!ModelState.IsValid)
+        if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
         var order = await _orderService.GetOrderSchemaByIdAsync(orderId);
-        if(order == null)
+        if (order == null)
             return NotFound();
 
         try
         {
             await _orderService.UpdateOrderItemAsync(orderItemId, orderItem);
         }
-        catch(ArgumentException ex)
+        catch (ArgumentException ex)
         {
             return BadRequest(new { ex.Message });
         }
-            
+
         return Ok();
     }
 }
