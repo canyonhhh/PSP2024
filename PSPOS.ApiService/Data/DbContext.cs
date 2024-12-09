@@ -22,6 +22,10 @@ public class AppDbContext : DbContext
     public DbSet<Reservation> Reservations { get; set; }
 
     public DbSet<Service> Services { get; set; }
+    public DbSet<Product> Products { get; set; }
+    public DbSet<ProductGroup> ProductGroups { get; set; }
+    public DbSet<ServiceGroup> ServiceGroups { get; set; }
+    public DbSet<ProductStock> ProductStocks { get; set; }
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
