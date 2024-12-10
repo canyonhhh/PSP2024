@@ -6,13 +6,6 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
-    <ItemGroup>
-      <Content Remove="Components\Pages\createOrder.razor" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Compile Include="Components\Pages\CreateOrder.razor" />
-    </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\PSPOS.ServiceDefaults\PSPOS.ServiceDefaults.csproj" />

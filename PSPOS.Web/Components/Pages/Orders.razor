@@ -3,9 +3,6 @@
 
 <h2>Order Management</h2>
 
-<!-- Add New Order Button -->
-<button class="btn btn-primary mb-3" @onclick="AddOrder">+ Add Order</button>
-
 <!-- Orders Table -->
 @if (orders == null)
 {
@@ -73,45 +70,17 @@ else
         }
     }
 
-    // Add a new order (example data)
-    private async Task AddOrder()
-    {
-        var newOrder = new OrderDTO
-            {
-                BusinessId = "123", // Example business ID
-                Status = "New",
-                Currency = "USD"
-            };
-
-        try
-        {
-            var response = await Http.PostAsJsonAsync("orders", newOrder);
-            if (response.IsSuccessStatusCode)
-            {
-                Message = "New order added successfully.";
-                await LoadOrders(); // Reload orders after adding
-            }
-            else
-            {
-                Message = $"Failed to add order: {response.ReasonPhrase}";
-            }
-        }
-        catch (Exception ex)
-        {
-            Message = $"Error adding order: {ex.Message}";
-        }
-    }
-
-    // Delete an order
-    private async Task DeleteOrder(Guid id)
+    
+    // Delete order logic
+    private async Task DeleteOrder(Guid orderId)
     {
         try
         {
-            var response = await Http.DeleteAsync($"orders/{id}");
+            var response = await Http.DeleteAsync($"orders/{orderId}");
             if (response.IsSuccessStatusCode)
             {
+                orders.RemoveAll(o => o.Id == orderId); // Remove order from the local list
                 Message = "Order deleted successfully.";
-                orders.RemoveAll(o => o.Id == id);
             }
             else
             {
