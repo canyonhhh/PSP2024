@@ -34,6 +34,9 @@ builder.Services.AddScoped<IDiscountService, DiscountService>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 
+builder.Services.AddScoped<IProdAndServRepository, ProdAndServRepository>();
+builder.Services.AddScoped<IProdAndServService, ProdAndServService>();
+
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 
 builder.Services.AddSingleton<ISmsService>(provider =>
