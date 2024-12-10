@@ -198,4 +198,106 @@ public class ProdAndServRepository : IProdAndServRepository
 
         return true;
     }
+
+    // **Product Groups**
+
+    public async Task<(IEnumerable<ProductGroup>, int)> GetAllProductGroupsAsync(int skip, int limit)
+    {
+        var query = _context.ProductGroups.AsQueryable();
+        var totalCount = await query.CountAsync();
+        var productGroups = await query.Skip(skip).Take(limit).ToListAsync();
+        return (productGroups, totalCount);
+    }
+
+    public async Task<ProductGroup?> GetProductGroupByIdAsync(Guid id)
+    {
+        return await _context.ProductGroups.FindAsync(id);
+    }
+
+    public async Task<ProductGroup> AddProductGroupAsync(ProductGroup group)
+    {
+        await _context.ProductGroups.AddAsync(group);
+        await _context.SaveChangesAsync();
+        return group;
+    }
+
+    public async Task<ProductGroup> UpdateProductGroupAsync(ProductGroup group)
+    {
+        var existingGroup = await GetProductGroupByIdAsync(group.Id);
+        if (existingGroup == null)
+        {
+            return null;
+        }
+
+        existingGroup.Name = group.Name;
+        existingGroup.Description = group.Description;
+
+        _context.ProductGroups.Update(existingGroup);
+        await _context.SaveChangesAsync();
+        return existingGroup;
+    }
+
+    public async Task<bool> DeleteProductGroupAsync(Guid id)
+    {
+        var group = await _context.ProductGroups.FindAsync(id);
+        if (group == null)
+        {
+            return false;
+        }
+
+        _context.ProductGroups.Remove(group);
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    // **Service Groups**
+
+    public async Task<(IEnumerable<ServiceGroup>, int)> GetAllServiceGroupsAsync(int skip, int limit)
+    {
+        var query = _context.ServiceGroups.AsQueryable();
+        var totalCount = await query.CountAsync();
+        var serviceGroups = await query.Skip(skip).Take(limit).ToListAsync();
+        return (serviceGroups, totalCount);
+    }
+
+    public async Task<ServiceGroup?> GetServiceGroupByIdAsync(Guid id)
+    {
+        return await _context.ServiceGroups.FindAsync(id);
+    }
+
+    public async Task<ServiceGroup> AddServiceGroupAsync(ServiceGroup group)
+    {
+        await _context.ServiceGroups.AddAsync(group);
+        await _context.SaveChangesAsync();
+        return group;
+    }
+
+    public async Task<ServiceGroup> UpdateServiceGroupAsync(ServiceGroup group)
+    {
+        var existingGroup = await GetServiceGroupByIdAsync(group.Id);
+        if (existingGroup == null)
+        {
+            return null;
+        }
+
+        existingGroup.Name = group.Name;
+        existingGroup.Description = group.Description;
+
+        _context.ServiceGroups.Update(existingGroup);
+        await _context.SaveChangesAsync();
+        return existingGroup;
+    }
+
+    public async Task<bool> DeleteServiceGroupAsync(Guid id)
+    {
+        var group = await _context.ServiceGroups.FindAsync(id);
+        if (group == null)
+        {
+            return false;
+        }
+
+        _context.ServiceGroups.Remove(group);
+        await _context.SaveChangesAsync();
+        return true;
+    }
 }

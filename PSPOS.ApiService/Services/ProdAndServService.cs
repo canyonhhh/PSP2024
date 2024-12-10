@@ -323,5 +323,189 @@ namespace PSPOS.ApiService.Services
         {
             return await _repository.DeleteServiceAsync(id);
         }
+
+        public async Task<(IEnumerable<ProductCategorySchema> Categories, int TotalCount)> GetAllCategoriesAsync(int skip = 0, int limit = 10)
+        {
+            var (productGroups, productCount) = await _repository.GetAllProductGroupsAsync(skip, limit);
+            var (serviceGroups, serviceCount) = await _repository.GetAllServiceGroupsAsync(skip, limit);
+
+            var categories = productGroups
+                .Select(pg => new ProductCategorySchema
+                {
+                    id = pg.Id,
+                    createdAt = pg.CreatedAt,
+                    updatedAt = pg.UpdatedAt,
+                    createdBy = pg.CreatedBy,
+                    updatedBy = pg.UpdatedBy,
+                    name = pg.Name,
+                    description = pg.Description,
+                    productOrServiceIds = new[] { pg.Id }
+                })
+                .Concat(serviceGroups.Select(sg => new ProductCategorySchema
+                {
+                    id = sg.Id,
+                    createdAt = sg.CreatedAt,
+                    updatedAt = sg.UpdatedAt,
+                    createdBy = sg.CreatedBy,
+                    updatedBy = sg.UpdatedBy,
+                    name = sg.Name,
+                    description = sg.Description,
+                    productOrServiceIds = new[] { sg.Id }
+                }))
+                .ToList();
+
+            return (categories, productCount + serviceCount);
+        }
+
+        public async Task<ProductCategorySchema?> GetCategoryByIdAsync(Guid categoryId)
+        {
+            var productGroup = await _repository.GetProductGroupByIdAsync(categoryId);
+            if (productGroup != null)
+            {
+                return new ProductCategorySchema
+                {
+                    id = productGroup.Id,
+                    createdAt = productGroup.CreatedAt,
+                    updatedAt = productGroup.UpdatedAt,
+                    createdBy = productGroup.CreatedBy,
+                    updatedBy = productGroup.UpdatedBy,
+                    name = productGroup.Name,
+                    description = productGroup.Description,
+                    productOrServiceIds = new[] { productGroup.Id }
+                };
+            }
+
+            var serviceGroup = await _repository.GetServiceGroupByIdAsync(categoryId);
+            if (serviceGroup != null)
+            {
+                return new ProductCategorySchema
+                {
+                    id = serviceGroup.Id,
+                    createdAt = serviceGroup.CreatedAt,
+                    updatedAt = serviceGroup.UpdatedAt,
+                    createdBy = serviceGroup.CreatedBy,
+                    updatedBy = serviceGroup.UpdatedBy,
+                    name = serviceGroup.Name,
+                    description = serviceGroup.Description,
+                    productOrServiceIds = new[] { serviceGroup.Id }
+                };
+            }
+
+            return null;
+        }
+
+        public async Task<ProductCategorySchema> AddCategoryAsync(CategoryDTO categoryDto)
+        {
+            if (categoryDto.ProductOrServiceIds.Length == 0)
+            {
+                throw new ArgumentException("Category must include product or service IDs.");
+            }
+
+            var isProduct = categoryDto.ProductOrServiceIds.All(id => /* Check if ID is a product */ true);
+
+            if (isProduct)
+            {
+                var productGroup = new ProductGroup(categoryDto.Name, categoryDto.Description);
+                var addedGroup = await _repository.AddProductGroupAsync(productGroup);
+
+                return new ProductCategorySchema
+                {
+                    id = addedGroup.Id,
+                    createdAt = addedGroup.CreatedAt,
+                    updatedAt = addedGroup.UpdatedAt,
+                    createdBy = addedGroup.CreatedBy,
+                    updatedBy = addedGroup.UpdatedBy,
+                    name = addedGroup.Name,
+                    description = addedGroup.Description,
+                    productOrServiceIds = categoryDto.ProductOrServiceIds
+                };
+            }
+
+            var serviceGroup = new ServiceGroup(categoryDto.Name, categoryDto.Description);
+            var addedServiceGroup = await _repository.AddServiceGroupAsync(serviceGroup);
+
+            return new ProductCategorySchema
+            {
+                id = addedServiceGroup.Id,
+                createdAt = addedServiceGroup.CreatedAt,
+                updatedAt = addedServiceGroup.UpdatedAt,
+                createdBy = addedServiceGroup.CreatedBy,
+                updatedBy = addedServiceGroup.UpdatedBy,
+                name = addedServiceGroup.Name,
+                description = addedServiceGroup.Description,
+                productOrServiceIds = categoryDto.ProductOrServiceIds
+            };
+        }
+
+        public async Task<ProductCategorySchema?> UpdateCategoryAsync(Guid categoryId, CategoryDTO categoryDto)
+        {
+            var productGroup = await _repository.GetProductGroupByIdAsync(categoryId);
+            if (productGroup != null)
+            {
+                // Update the product group
+                productGroup.Name = categoryDto.Name;
+                productGroup.Description = categoryDto.Description;
+
+                var updatedGroup = await _repository.UpdateProductGroupAsync(productGroup);
+                if (updatedGroup != null)
+                {
+                    return new ProductCategorySchema
+                    {
+                        id = updatedGroup.Id,
+                        createdAt = updatedGroup.CreatedAt,
+                        updatedAt = updatedGroup.UpdatedAt,
+                        createdBy = updatedGroup.CreatedBy,
+                        updatedBy = updatedGroup.UpdatedBy,
+                        name = updatedGroup.Name,
+                        description = updatedGroup.Description,
+                        productOrServiceIds = categoryDto.ProductOrServiceIds
+                    };
+                }
+            }
+
+            var serviceGroup = await _repository.GetServiceGroupByIdAsync(categoryId);
+            if (serviceGroup != null)
+            {
+                // Update the service group
+                serviceGroup.Name = categoryDto.Name;
+                serviceGroup.Description = categoryDto.Description;
+
+                var updatedGroup = await _repository.UpdateServiceGroupAsync(serviceGroup);
+                if (updatedGroup != null)
+                {
+                    return new ProductCategorySchema
+                    {
+                        id = updatedGroup.Id,
+                        createdAt = updatedGroup.CreatedAt,
+                        updatedAt = updatedGroup.UpdatedAt,
+                        createdBy = updatedGroup.CreatedBy,
+                        updatedBy = updatedGroup.UpdatedBy,
+                        name = updatedGroup.Name,
+                        description = updatedGroup.Description,
+                        productOrServiceIds = categoryDto.ProductOrServiceIds
+                    };
+                }
+            }
+
+            return null;
+        }
+
+        public async Task<bool> DeleteCategoryAsync(Guid categoryId)
+        {
+            var productGroup = await _repository.GetProductGroupByIdAsync(categoryId);
+            if (productGroup != null)
+            {
+                return await _repository.DeleteProductGroupAsync(categoryId);
+            }
+
+            var serviceGroup = await _repository.GetServiceGroupByIdAsync(categoryId);
+            if (serviceGroup != null)
+            {
+                return await _repository.DeleteServiceGroupAsync(categoryId);
+            }
+
+            return false;
+        }
+
     }
 }

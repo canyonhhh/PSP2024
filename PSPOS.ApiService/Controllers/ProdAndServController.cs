@@ -19,6 +19,61 @@ namespace PSPOS.ApiService.Controllers
             _service = service;
         }
 
+        // **Categories**
+
+        [HttpGet("categories")]
+        public async Task<IActionResult> GetCategories([FromQuery] int skip = 0, [FromQuery] int limit = 10)
+        {
+            var (categories, totalCount) = await _service.GetAllCategoriesAsync(skip, limit);
+            return Ok(new { categories, totalCount });
+        }
+
+        [HttpGet("categories/{id:guid}")]
+        public async Task<IActionResult> GetCategoryById(Guid id)
+        {
+            var category = await _service.GetCategoryByIdAsync(id);
+            if (category == null) return NotFound();
+            return Ok(category);
+        }
+
+        [HttpPost("categories")]
+        public async Task<IActionResult> AddCategory([FromBody] CategoryDTO categoryDto)
+        {
+            var category = await _service.AddCategoryAsync(categoryDto);
+            return CreatedAtAction(nameof(GetCategoryById), new { id = category.id }, category);
+        }
+
+        [HttpPut("categories/{id:guid}")]
+        public async Task<IActionResult> UpdateCategory(Guid id, [FromBody] CategoryDTO categoryDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var result = await _service.UpdateCategoryAsync(id, categoryDto);
+
+            if (result == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(result);
+        }
+
+        [HttpDelete("categories/{id:guid}")]
+        public async Task<IActionResult> DeleteCategory(Guid id)
+        {
+            var success = await _service.DeleteCategoryAsync(id);
+
+            if (!success)
+            {
+                return NotFound();
+            }
+
+            return NoContent();
+        }
+
         // **Products**
 
         [HttpGet("products")]

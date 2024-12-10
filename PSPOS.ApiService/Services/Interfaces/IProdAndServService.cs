@@ -18,5 +18,12 @@ namespace PSPOS.ApiService.Services.Interfaces
         Task<ServiceSchema> AddServiceAsync(ServiceDTO serviceDto);
         Task<Service?> UpdateServiceAsync(Guid serviceId, ServiceDTO updatedServiceDto);
         Task<bool> DeleteServiceAsync(Guid id);
+
+        // **Categories**
+        Task<(IEnumerable<ProductCategorySchema> Categories, int TotalCount)> GetAllCategoriesAsync(int skip = 0, int limit = 10);
+        Task<ProductCategorySchema?> GetCategoryByIdAsync(Guid categoryId);
+        Task<ProductCategorySchema> AddCategoryAsync(CategoryDTO categoryDto);
+        Task<ProductCategorySchema?> UpdateCategoryAsync(Guid categoryId, CategoryDTO categoryDto);
+        Task<bool> DeleteCategoryAsync(Guid categoryId);
     }
 }

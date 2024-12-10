@@ -22,4 +22,16 @@ public interface IProdAndServRepository
     Task AddProductStockAsync(ProductStock productStock);
     Task<ProductStock?> UpdateProductStockAsync(ProductStock productStock);
     Task<bool> DeleteProductStockAsync(ProductStock productStock);
+
+    // **Categories**
+    Task<(IEnumerable<ProductGroup>, int)> GetAllProductGroupsAsync(int skip, int limit);
+    Task<(IEnumerable<ServiceGroup>, int)> GetAllServiceGroupsAsync(int skip, int limit);
+    Task<ProductGroup?> GetProductGroupByIdAsync(Guid id);
+    Task<ServiceGroup?> GetServiceGroupByIdAsync(Guid id);
+    Task<ProductGroup> AddProductGroupAsync(ProductGroup group);
+    Task<ServiceGroup> AddServiceGroupAsync(ServiceGroup group);
+    Task<ProductGroup> UpdateProductGroupAsync(ProductGroup group);
+    Task<ServiceGroup> UpdateServiceGroupAsync(ServiceGroup group);
+    Task<bool> DeleteProductGroupAsync(Guid id);
+    Task<bool> DeleteServiceGroupAsync(Guid id);
 }
