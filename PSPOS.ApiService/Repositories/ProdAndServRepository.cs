@@ -14,8 +14,6 @@ public class ProdAndServRepository : IProdAndServRepository
         _context = context;
     }
 
-    // add categories
-
     // **Products**
 
     public async Task<(IEnumerable<Product>, int totalCount)> GetAllProductsAsync(DateTime? from = null, DateTime? to = null, int page = 1, int pageSize = 10)
@@ -64,7 +62,6 @@ public class ProdAndServRepository : IProdAndServRepository
         existingProduct.Description = updatedProduct.Description;
         existingProduct.Price = updatedProduct.Price;
         existingProduct.ImageUrl = updatedProduct.ImageUrl;
-        //existingProduct.StockQuantity = updatedProduct.StockQuantity;
         existingProduct.BusinessId = updatedProduct.BusinessId;
         existingProduct.BaseProductId = updatedProduct.BaseProductId;
 
@@ -160,8 +157,45 @@ public class ProdAndServRepository : IProdAndServRepository
         return true;
     }
 
+    // **Product Stock**
+
     public async Task<ProductStock?> GetProductStockAsync(Guid productId)
     {
         return await _context.ProductStocks.FindAsync(productId);
+    }
+
+    public async Task AddProductStockAsync(ProductStock productStock)
+    {
+        await _context.ProductStocks.AddAsync(productStock);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<ProductStock?> UpdateProductStockAsync(ProductStock productStock)
+    {
+        var existingProductStock = await _context.ProductStocks.FindAsync(productStock.ProductId);
+        if (existingProductStock == null)
+        {
+            return null;
+        }
+
+        existingProductStock.Quantity = productStock.Quantity;
+        _context.ProductStocks.Update(existingProductStock);
+        await _context.SaveChangesAsync();
+
+        return existingProductStock;
+    }
+
+    public async Task<bool> DeleteProductStockAsync(ProductStock productStock)
+    {
+        var existingProductStock = await _context.ProductStocks.FindAsync(productStock.ProductId);
+        if (existingProductStock == null)
+        {
+            return false;
+        }
+
+        _context.ProductStocks.Remove(existingProductStock);
+        await _context.SaveChangesAsync();
+
+        return true;
     }
 }

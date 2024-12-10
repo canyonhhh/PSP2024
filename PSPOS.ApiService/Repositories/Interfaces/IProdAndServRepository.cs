@@ -17,5 +17,9 @@ public interface IProdAndServRepository
     Task<Service?> UpdateServiceAsync(Guid serviceId, Service updatedService);
     Task<bool> DeleteServiceAsync(Guid id);
 
+    // **Product Stock**
     Task<ProductStock?> GetProductStockAsync(Guid productId);
+    Task AddProductStockAsync(ProductStock productStock);
+    Task<ProductStock?> UpdateProductStockAsync(ProductStock productStock);
+    Task<bool> DeleteProductStockAsync(ProductStock productStock);
 }

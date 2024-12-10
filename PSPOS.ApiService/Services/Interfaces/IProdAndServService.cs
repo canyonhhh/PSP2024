@@ -1,21 +1,22 @@
 ﻿using PSPOS.ServiceDefaults.Models;
+using PSPOS.ServiceDefaults.Schemas;
 
 namespace PSPOS.ApiService.Services.Interfaces
 {
     public interface IProdAndServService
     {
         // **Products**
-        Task<(IEnumerable<Product> Products, int TotalCount)> GetAllProductsAsync(DateTime? from = null, DateTime? to = null, int page = 1, int pageSize = 10);
-        Task<Product?> GetProductByIdAsync(Guid id);
-        Task<Product> AddProductAsync(Product product);
-        Task<Product?> UpdateProductAsync(Guid productId, Product updatedProduct);
+        Task<(IEnumerable<ProductSchema> ProductsSchema, int TotalCount)> GetAllProductsSchemaAsync(DateTime? from = null, DateTime? to = null, int page = 1, int pageSize = 10);
+        Task<ProductSchema?> GetProductSchemaByIdAsync(Guid id);
+        Task<ProductSchema> AddProductSchemaAsync(ProductDTO productDto);
+        Task<ProductSchema?> UpdateProductSchemaAsync(Guid productId, ProductDTO updatedProductDto);
         Task<bool> DeleteProductAsync(Guid id);
 
         // **Services**
-        Task<(IEnumerable<Service> Services, int TotalCount)> GetAllServicesAsync(DateTime? from = null, DateTime? to = null, int page = 1, int pageSize = 10);
-        Task<Service?> GetServiceByIdAsync(Guid id);
-        Task<Service> AddServiceAsync(Service service);
-        Task<Service?> UpdateServiceAsync(Guid serviceId, Service updatedService);
+        Task<(IEnumerable<ServiceSchema> ServicesSchema, int TotalCount)> GetAllServicesAsync(DateTime? from = null, DateTime? to = null, int page = 1, int pageSize = 10);
+        Task<ServiceSchema?> GetServiceByIdAsync(Guid id);
+        Task<ServiceSchema> AddServiceAsync(ServiceDTO serviceDto);
+        Task<Service?> UpdateServiceAsync(Guid serviceId, ServiceDTO updatedServiceDto);
         Task<bool> DeleteServiceAsync(Guid id);
     }
 }
