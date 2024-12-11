@@ -1,0 +1,87 @@
+@page "/payment-test"
+@rendermode InteractiveServer
+@inject IJSRuntime JSRuntime
+@inject HttpClient Http
+@using System.Text.Json
+
+<PageTitle>Stripe Payment</PageTitle>
+
+<h1>Stripe Payment</h1>
+<p>Enter your payment details below:</p>
+
+<!-- Stripe Card Element -->
+<div id="card-element" style="border: 1px solid #ccc; padding: 10px; border-radius: 4px; margin-bottom: 10px;"></div>
+<p id="card-errors" style="color: red; margin-top: 10px;"></p>
+
+<button class="btn btn-primary" @onclick="SubmitPayment" style="margin-top: 10px;">Submit Payment</button>
+
+<script src="https://js.stripe.com/v3/"></script>
+
+@code {
+    private IJSObjectReference? stripeJs;
+    private bool _isInitialized = false;
+    private string? _clientSecret;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_isInitialized)
+        {
+            await InitializeStripe();
+            _isInitialized = true;
+        }
+    }
+
+    private async Task InitializeStripe()
+    {
+        try
+        {
+            stripeJs = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./stripeHandler.js");
+            Console.WriteLine("Stripe.js loaded");
+            await stripeJs.InvokeVoidAsync("initializeStripe", "pk_test_51QUWBYGUMof1EohPLwH4KQZj1wbLTJf8o8kzruKACLFgDeiH7SLxAAGN8dYUxP0Ku85bqSow0hEHGthPuPATzfCP00sDDvnD8L");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to load Stripe.js: {ex.Message}");
+        }
+    }
+
+    private async Task SubmitPayment()
+    {
+        try
+        {
+            var response = await Http.PostAsJsonAsync("https://localhost:7337/api/payment/create-intent", new { amount = 5000, currency = "usd" });
+            if (!response.IsSuccessStatusCode)
+            {
+                Console.WriteLine("Failed to fetch client secret from backend");
+                return;
+            }
+
+            var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+            _clientSecret = json.GetProperty("clientSecret").GetString();
+
+            var result = await stripeJs!.InvokeAsync<StripeResult>("confirmPayment", _clientSecret);
+
+            if (result.Success)
+            {
+                Console.WriteLine($"Payment succeeded: {result.Id}");
+                await JSRuntime.InvokeVoidAsync("alert", $"Payment successful! Payment Intent ID: {result.Id}");
+            }
+            else
+            {
+                Console.WriteLine($"Payment failed: {result.Message}");
+                await JSRuntime.InvokeVoidAsync("alert", $"Payment failed: {result.Message}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error processing payment: {ex.Message}");
+        }
+    }
+
+    private class StripeResult
+    {
+        public bool Success { get; set; }
+        public string? Id { get; set; }
+        public string? Message { get; set; }
+    }
+}

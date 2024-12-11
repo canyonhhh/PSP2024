@@ -6,7 +6,6 @@ using PSPOS.ServiceDefaults.Models;
 
 namespace PSPOS.ApiService.Controllers
 {
-    [Authorize]
     [ApiController]
     [Route("users")]
     public class UserController : ControllerBase
