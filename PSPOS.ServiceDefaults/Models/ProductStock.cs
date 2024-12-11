@@ -7,6 +7,6 @@ public class ProductStock : BaseClass
         Quantity = quantity;
         ProductId = productId;
     }
-    public int Quantity { get; set; } 
+    public int Quantity { get; set; }
     public Guid ProductId { get; set; }
 }
