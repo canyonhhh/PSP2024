@@ -5,8 +5,8 @@ using PSPOS.ServiceDefaults.DTOs;
 using PSPOS.ServiceDefaults.Models;
 
 namespace PSPOS.ApiService.Controllers
-{
-    [Authorize]
+{  //TODO: CreateUser should not use [authorize]
+   // [Authorize]
     [ApiController]
     [Route("users")]
     public class UserController : ControllerBase
