@@ -294,9 +294,6 @@ public class OrderService : IOrderService
         if (order.Status != OrderStatus.Open)
             throw new ArgumentException($"Order '{existingOrderItem.OrderId}' is not open.");
 
-        if (orderItemDTO.transactionId != Guid.Empty && (await _orderRepository.GetTransactionByIdAsync(orderItemDTO.transactionId)) == null)
-            throw new ArgumentException($"Transaction '{orderItemDTO.transactionId}' does not exist.");
-
         // Update the order item
         existingOrderItem.Type = orderItemType;
         existingOrderItem.Price = orderItemDTO.price;

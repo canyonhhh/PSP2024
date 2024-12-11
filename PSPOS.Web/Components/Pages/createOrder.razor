@@ -137,6 +137,7 @@
     private string OrderItemErrorMessage = string.Empty;
 
     private string orderCurrency = string.Empty;
+    private bool ShouldLoadOrderItems = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -201,7 +202,7 @@
                             orderCurrency = createdOrderResponse.currency ?? "USD"; 
                         }
 
-                        await LoadOrderItems();
+                        ShouldLoadOrderItems = true;
                     }
                     else
                     {
@@ -227,7 +228,7 @@
 
     private async Task LoadOrderItems()
     {
-        if (CreatedOrderId == Guid.Empty)
+        if (!ShouldLoadOrderItems || CreatedOrderId == Guid.Empty)
             return;
 
         try

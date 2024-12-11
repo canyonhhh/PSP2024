@@ -50,8 +50,8 @@ else
 
 @code {
     private HttpClient Http => ClientFactory.CreateClient("ApiClient");
-    private List<OrderSchema> orders;
-    private string Message;
+    private List<OrderSchema>? orders;
+    private string? Message;
 
     // Fetch orders when the page is loaded
     protected override async Task OnInitializedAsync()
@@ -79,7 +79,7 @@ else
         try
         {
             var response = await Http.DeleteAsync($"orders/{orderId}");
-            if (response.IsSuccessStatusCode)
+            if (response.IsSuccessStatusCode && orders != null)
             {
                 orders.RemoveAll(o => o.Id == orderId); 
                 Message = "Order deleted successfully.";
