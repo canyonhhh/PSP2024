@@ -12,8 +12,8 @@ using PSPOS.ApiService.Data;
 namespace PSPOS.MigrationService.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20241209082032_Orders")]
-    partial class Orders
+    [Migration("20241211113627_NewMig")]
+    partial class NewMig
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

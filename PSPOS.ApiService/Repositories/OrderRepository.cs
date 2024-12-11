@@ -156,12 +156,14 @@ public class OrderRepository : IOrderRepository
         await _context.OrderItems.AddAsync(orderItem);
         await _context.SaveChangesAsync();
     }
-
+    public async Task<OrderItem?> GetOrderItemByIdAsync(Guid orderItemId)
+    {
+        return await _context.OrderItems.FindAsync(orderItemId);
+    }
     public async Task UpdateOrderItemAsync(OrderItem orderItem)
     {
-        // Ensure the order exists
-        if ((await GetOrderByIdAsync(orderItem.OrderId)) == null)
-            throw new ArgumentException($"Order with ID '{orderItem.OrderId}' does not exist.");
+        if ((await GetOrderItemByIdAsync(orderItem.Id)) == null)
+            throw new ArgumentException($"Order item with ID '{orderItem.Id}' does not exist.");
 
         _context.OrderItems.Update(orderItem);
         await _context.SaveChangesAsync();

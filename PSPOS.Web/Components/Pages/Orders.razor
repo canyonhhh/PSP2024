@@ -1,5 +1,6 @@
 ﻿@page "/orders"
 @inject IHttpClientFactory ClientFactory
+@inject NavigationManager Navigation
 @rendermode InteractiveServer
 
 <h2>Order Management</h2>
@@ -80,7 +81,7 @@ else
             var response = await Http.DeleteAsync($"orders/{orderId}");
             if (response.IsSuccessStatusCode)
             {
-                orders.RemoveAll(o => o.Id == orderId); // Remove order from the local list
+                orders.RemoveAll(o => o.Id == orderId); 
                 Message = "Order deleted successfully.";
             }
             else
@@ -94,10 +95,10 @@ else
         }
     }
 
-    // Edit an order (navigate to edit page or logic placeholder)
+    // Edit an order 
     private void EditOrder(Guid id)
     {
-        Message = $"Edit order functionality not implemented. Order ID: {id}";
+        Navigation.NavigateTo($"/EditOrder/{id}");
     }
 
     // Order DTOs and Schemas
