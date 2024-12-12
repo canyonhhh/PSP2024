@@ -23,11 +23,9 @@ public class AuthenticationService : IAuthenticationService
     public async Task<LoginResponse> AuthenticateAsync(LoginRequestDto requestDTO)
     {
         var user = await _userRepository.GetByEmailAsync(requestDTO.Email);
-
         if (user == null)
             throw new UnauthorizedAccessException("User not found");
 
-        // Validate based on role
         if (user.Role == UserRole.Employee)
         {
             if (string.IsNullOrEmpty(requestDTO.Pin))
@@ -47,7 +45,6 @@ public class AuthenticationService : IAuthenticationService
 
         // Generate a JWT token
         var token = GenerateJwtToken(user);
-
         return new LoginResponse(token, DateTime.UtcNow.AddHours(1));
     }
 

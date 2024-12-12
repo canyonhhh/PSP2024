@@ -1,75 +1,14 @@
 ﻿@page "/login"
-@inject IHttpClientFactory ClientFactory
-@inject NavigationManager Navigation
-@rendermode InteractiveServer
 
 <h3>Login</h3>
-
-@if (!string.IsNullOrEmpty(ErrorMessage))
-{
-    <div class="alert alert-danger">@ErrorMessage</div>
-}
-
-<div class="card p-4">
-    <form @onsubmit="OnLogin" @onsubmit:preventDefault="true">
-        <div class="form-group mb-3">
-            <label for="email">Email</label>
-            <input type="email" id="email" class="form-control" @bind="LoginRequest.Email" required />
-        </div>
-
-        <div class="form-group mb-3">
-            <label for="pin">Pin</label>
-            <input type="text" id="pin" class="form-control" @bind="LoginRequest.Pin" />
-        </div>
-
-        <div class="form-group mb-3">
-            <label for="password">Password</label>
-            <input type="password" id="password" class="form-control" @bind="LoginRequest.Password" required />
-        </div>
-
-        <button type="submit" class="btn btn-primary">Login</button>
-    </form>
-</div>
-
-@code {
-    private HttpClient Http => ClientFactory.CreateClient("ApiClient");
-
-    private LoginRequestDto LoginRequest = new LoginRequestDto();
-    private string ErrorMessage = string.Empty;
-
-    private async Task OnLogin()
-    {
-        try
-        {
-            ErrorMessage = string.Empty;
-
-            var response = await Http.PostAsJsonAsync("/login", LoginRequest);
-
-            if (response.IsSuccessStatusCode)
-            {
-                Navigation.NavigateTo("/");
-            }
-            else
-            {
-                var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
-                ErrorMessage = error?.message ?? "Login failed. Please check your credentials.";
-            }
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"An error occurred: {ex.Message}";
-        }
-    }
-
-    public class LoginRequestDto
-    {
-        public string? Email { get; set; }
-        public string? Pin { get; set; }
-        public string? Password { get; set; }
-    }
-
-    public class ErrorResponse
-    {
-        public string? message { get; set; }
-    }
-}
+<form action="/api/auth/login" method="post">
+    <div>
+        <label>Email</label>
+        <input type="email" name="Email" required />
+    </div>
+    <div>
+        <label>Password</label>
+        <input type="password" name="Password" required />
+    </div>
+    <button type="submit">Login</button>
+</form>
