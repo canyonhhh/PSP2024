@@ -16,6 +16,6 @@ namespace PSPOS.ServiceDefaults.Schemas
         public Guid? updatedBy { get; set; }
         public required string name { get; set; }
         public string? description { get; set; }
-        public Guid[] productOrServiceIds { get; set; }
+        public required Guid[] productOrServiceIds { get; set; }
     }
 }
