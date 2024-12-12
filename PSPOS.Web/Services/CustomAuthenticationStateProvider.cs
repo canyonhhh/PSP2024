@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Components.Authorization;
 using System.Security.Claims;
-using System.Text.Json;
 
 public class CustomAuthenticationStateProvider : AuthenticationStateProvider
 {
@@ -17,13 +16,24 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
 
         if (string.IsNullOrWhiteSpace(authToken))
         {
-            return Task.FromResult(new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity())));
+            // No token found, return anonymous user
+            var anonymousUser = new ClaimsPrincipal(new ClaimsIdentity());
+            return Task.FromResult(new AuthenticationState(anonymousUser));
         }
 
-        var identity = new ClaimsIdentity(ParseClaimsFromJwt(authToken), "jwt");
-        var user = new ClaimsPrincipal(identity);
-
-        return Task.FromResult(new AuthenticationState(user));
+        try
+        {
+            // Parse the JWT token and set claims
+            var identity = new ClaimsIdentity(ParseClaimsFromJwt(authToken), "jwt");
+            var user = new ClaimsPrincipal(identity);
+            return Task.FromResult(new AuthenticationState(user));
+        }
+        catch
+        {
+            // If parsing fails, return anonymous user
+            var anonymousUser = new ClaimsPrincipal(new ClaimsIdentity());
+            return Task.FromResult(new AuthenticationState(anonymousUser));
+        }
     }
 
     private IEnumerable<Claim> ParseClaimsFromJwt(string jwt)
@@ -31,11 +41,14 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
         var claims = new List<Claim>();
         var payload = jwt.Split('.')[1];
         var jsonBytes = Convert.FromBase64String(AddPadding(payload));
-        var keyValuePairs = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonBytes);
+        var keyValuePairs = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(jsonBytes);
 
-        if (keyValuePairs != null)
+        if(keyValuePairs != null)
         {
-            claims.AddRange(keyValuePairs.Select(kvp => new Claim(kvp.Key, kvp.Value.ToString()!)));
+            foreach (var kvp in keyValuePairs)
+            {
+                claims.Add(new Claim(kvp.Key, kvp.Value.ToString()));
+            }
         }
 
         return claims;
