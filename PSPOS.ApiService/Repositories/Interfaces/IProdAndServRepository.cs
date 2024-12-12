@@ -30,8 +30,8 @@ public interface IProdAndServRepository
     Task<ServiceGroup?> GetServiceGroupByIdAsync(Guid id);
     Task<ProductGroup> AddProductGroupAsync(ProductGroup group);
     Task<ServiceGroup> AddServiceGroupAsync(ServiceGroup group);
-    Task<ProductGroup> UpdateProductGroupAsync(ProductGroup group);
-    Task<ServiceGroup> UpdateServiceGroupAsync(ServiceGroup group);
+    Task<ProductGroup?> UpdateProductGroupAsync(ProductGroup group);
+    Task<ServiceGroup?> UpdateServiceGroupAsync(ServiceGroup group);
     Task<bool> DeleteProductGroupAsync(Guid id);
     Task<bool> DeleteServiceGroupAsync(Guid id);
 }

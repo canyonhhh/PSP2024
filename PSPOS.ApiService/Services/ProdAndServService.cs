@@ -189,6 +189,11 @@ namespace PSPOS.ApiService.Services
             existingProduct.BaseProductId = updatedProductDto.BaseProductId;
 
             var updatedProduct = await _repository.UpdateProductAsync(productId, existingProduct);
+            if (updatedProduct == null)
+            {
+                return null;
+            }
+
             var productStock = await _repository.GetProductStockAsync(productId);
             if (productStock != null)
             {

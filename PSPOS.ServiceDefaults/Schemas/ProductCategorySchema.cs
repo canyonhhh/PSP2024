@@ -14,8 +14,8 @@ namespace PSPOS.ServiceDefaults.Schemas
         public DateTime? updatedAt { get; set; }
         public Guid? createdBy { get; set; }
         public Guid? updatedBy { get; set; }
-        public required string name { get; set; }
+        public string? name { get; set; }
         public string? description { get; set; }
-        public required Guid[] productOrServiceIds { get; set; }
+        public Guid[]? productOrServiceIds { get; set; }
     }
 }

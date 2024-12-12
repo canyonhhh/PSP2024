@@ -221,7 +221,7 @@ public class ProdAndServRepository : IProdAndServRepository
         return group;
     }
 
-    public async Task<ProductGroup> UpdateProductGroupAsync(ProductGroup group)
+    public async Task<ProductGroup?> UpdateProductGroupAsync(ProductGroup group)
     {
         var existingGroup = await GetProductGroupByIdAsync(group.Id);
         if (existingGroup == null)
@@ -272,7 +272,7 @@ public class ProdAndServRepository : IProdAndServRepository
         return group;
     }
 
-    public async Task<ServiceGroup> UpdateServiceGroupAsync(ServiceGroup group)
+    public async Task<ServiceGroup?> UpdateServiceGroupAsync(ServiceGroup group)
     {
         var existingGroup = await GetServiceGroupByIdAsync(group.Id);
         if (existingGroup == null)
