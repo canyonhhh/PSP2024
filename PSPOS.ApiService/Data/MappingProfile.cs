@@ -2,12 +2,14 @@ using AutoMapper;
 using PSPOS.ServiceDefaults.DTOs;
 using PSPOS.ServiceDefaults.Models;
 
-public class MappingProfile : Profile
+namespace PSPOS.ApiService.Data
 {
-    public MappingProfile()
+    public class MappingProfile : Profile
     {
-        CreateMap<UserDto, User>()
-            .ForMember(dest => dest.PinHash, opt => opt.Ignore())
-            .ForMember(dest => dest.PasswordHash, opt => opt.Ignore());
+        public MappingProfile()
+        {
+            CreateMap<User, UserDto>();
+            CreateMap<UserDto, User>();
+        }
     }
 }

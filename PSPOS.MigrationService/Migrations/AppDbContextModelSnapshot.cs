@@ -546,13 +546,11 @@ namespace PSPOS.MigrationService.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("PasswordHash")
+                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("Phone")
                         .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("PinHash")
                         .HasColumnType("text");
 
                     b.Property<int>("Role")

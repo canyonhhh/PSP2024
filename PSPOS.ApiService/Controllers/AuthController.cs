@@ -2,39 +2,31 @@ using Microsoft.AspNetCore.Mvc;
 using PSPOS.ApiService.Services.Interfaces;
 using PSPOS.ServiceDefaults.DTOs;
 
-namespace PSPOS.ApiService.Controllers;
-
-public class AuthController : Controller
+namespace PSPOS.ApiService.Controllers
 {
-    private readonly IAuthenticationService _authenticationService;
-
-    public AuthController(IAuthenticationService authenticationService)
+    [ApiController]
+    [Route("[controller]")]
+    public class AuthController : ControllerBase
     {
-        _authenticationService = authenticationService;
-    }
+        private readonly IAuthenticationService _authenticationService;
 
-    [HttpPost("login")]
-    public async Task<IActionResult> Login(LoginRequestDto requestDTO)
-    {
-        try
+        public AuthController(IAuthenticationService authenticationService)
         {
-            var response = await _authenticationService.AuthenticateAsync(requestDTO);
-
-            var cookieOptions = new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.Strict,
-                Expires = response.Expiration
-            };
-
-            Response.Cookies.Append("AuthToken", response.Token, cookieOptions);
-
-            return Ok(new { message = "Login successful" });
+            _authenticationService = authenticationService;
         }
-        catch (UnauthorizedAccessException ex)
+
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] LoginRequestDto requestDTO)
         {
-            return Unauthorized(new { message = ex.Message });
+            try
+            {
+                var response = await _authenticationService.AuthenticateAsync(requestDTO);
+                return Ok(response);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { message = ex.Message });
+            }
         }
     }
 }

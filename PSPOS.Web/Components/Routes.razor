@@ -1,6 +1,25 @@
-﻿<Router AppAssembly="@typeof(Program).Assembly">
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@rendermode InteractiveServer
+<Router AppAssembly="@typeof(Program).Assembly">
     <Found Context="routeData">
-        <RouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)" />
-        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+        <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)">
+            <NotAuthorized>
+                <LayoutView Layout="@typeof(Layout.MainLayout)">
+                    <p>You are not authorized to view this page.</p>
+                    <a href="/login">Go to Login</a>
+                </LayoutView>
+            </NotAuthorized>
+            <Authorizing>
+                <LayoutView Layout="@typeof(Layout.MainLayout)">
+                    <p>Checking authorization...</p>
+                </LayoutView>
+            </Authorizing>
+        </AuthorizeRouteView>
     </Found>
+    <NotFound>
+        <LayoutView Layout="@typeof(Layout.MainLayout)">
+            <p>Sorry, there's nothing at this address.</p>
+            <a href="/">Return Home</a>
+        </LayoutView>
+    </NotFound>
 </Router>

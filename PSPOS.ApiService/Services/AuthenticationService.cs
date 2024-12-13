@@ -7,87 +7,92 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace PSPOS.ApiService.Services;
-
-public class AuthenticationService : IAuthenticationService
+namespace PSPOS.ApiService.Services
 {
-    private readonly IUserRepository _userRepository;
-    private readonly IConfiguration _configuration;
-
-    public AuthenticationService(IUserRepository userRepository, IConfiguration configuration)
+    public class AuthenticationService : IAuthenticationService
     {
-        _userRepository = userRepository;
-        _configuration = configuration;
-    }
+        private readonly IUserRepository _userRepository;
+        private readonly IConfiguration _configuration;
 
-    public async Task<LoginResponse> AuthenticateAsync(LoginRequestDto requestDTO)
-    {
-        var user = await _userRepository.GetByEmailAsync(requestDTO.Email);
-
-        if (user == null)
-            throw new UnauthorizedAccessException("User not found");
-
-        // Validate based on role
-        if (user.Role == UserRole.Employee)
+        public AuthenticationService(IUserRepository userRepository, IConfiguration configuration)
         {
-            if (string.IsNullOrEmpty(requestDTO.Pin))
-                throw new UnauthorizedAccessException("PIN is required");
-
-            if (!BCrypt.Net.BCrypt.Verify(requestDTO.Pin, user.PinHash))
-                throw new UnauthorizedAccessException("Invalid PIN");
+            _userRepository = userRepository;
+            _configuration = configuration;
         }
-        else
+
+        public async Task<LoginResponseDto> AuthenticateAsync(LoginRequestDto requestDTO)
         {
+            var user = await _userRepository.GetByEmailAsync(requestDTO.Email);
+            if (user == null)
+                throw new UnauthorizedAccessException("User not found");
+
             if (string.IsNullOrEmpty(requestDTO.Password))
                 throw new UnauthorizedAccessException("Password is required");
 
             if (!BCrypt.Net.BCrypt.Verify(requestDTO.Password, user.PasswordHash))
                 throw new UnauthorizedAccessException("Invalid password");
+
+            var token = GenerateJwtToken(user);
+
+            var handler = new JwtSecurityTokenHandler();
+            var jwtToken = handler.ReadJwtToken(token);
+            var expiration = jwtToken.ValidTo;
+
+            var userIdClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "UserId")?.Value;
+            var businessIdClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "BusinessId")?.Value;
+            var roleClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "UserRole")?.Value;
+
+            if (string.IsNullOrEmpty(businessIdClaim) || string.IsNullOrEmpty(roleClaim))
+                throw new Exception("Token missing required claims.");
+
+            if (!Guid.TryParse(businessIdClaim, out var businessId))
+                throw new Exception("Invalid BusinessId in token.");
+
+            if (!Guid.TryParse(userIdClaim, out var userId))
+                throw new Exception("Invalid UserId in token.");
+
+            return new LoginResponseDto
+            {
+                BusinessId = businessId,
+                UserId = userId,
+                Role = roleClaim,
+                Expiration = expiration,
+                Token = token
+            };
         }
 
-        // Generate a JWT token
-        var token = GenerateJwtToken(user);
-
-        return new LoginResponse(token, DateTime.UtcNow.AddHours(1));
-    }
-
-    public string HashPin(string pin)
-    {
-        return BCrypt.Net.BCrypt.HashPassword(pin);
-    }
-
-    public string HashPassword(string password)
-    {
-        return BCrypt.Net.BCrypt.HashPassword(password);
-    }
-
-    public bool VerifyPin(string plainTextPin, string hashedPin)
-    {
-        return BCrypt.Net.BCrypt.Verify(plainTextPin, hashedPin);
-    }
-
-    public bool VerifyPassword(string plainTextPassword, string hashedPassword)
-    {
-        return BCrypt.Net.BCrypt.Verify(plainTextPassword, hashedPassword);
-    }
-
-    public string GenerateJwtToken(User user)
-    {
-        var tokenHandler = new JwtSecurityTokenHandler();
-        var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"] ?? throw new Exception("Jwt:Key is missing"));
-        var tokenDescriptor = new SecurityTokenDescriptor
+        public string HashPassword(string password)
         {
-            Subject = new ClaimsIdentity(new[]
-            {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Role, user.Role.ToString()),
-                new Claim("BusinessId", user.BusinessId.ToString())
-            }),
-            Expires = DateTime.UtcNow.AddHours(1),
-            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-        };
+            return BCrypt.Net.BCrypt.HashPassword(password);
+        }
 
-        var token = tokenHandler.CreateToken(tokenDescriptor);
-        return tokenHandler.WriteToken(token);
+        public bool VerifyPassword(string plainTextPassword, string hashedPassword)
+        {
+            return BCrypt.Net.BCrypt.Verify(plainTextPassword, hashedPassword);
+        }
+
+        public string GenerateJwtToken(User user)
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"] ?? throw new Exception("Jwt:Key is missing"));
+
+
+            Console.WriteLine($"User ID: {user.Id}");
+
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(new[]
+                {
+                    new Claim("UserId", user.Id.ToString()),
+                    new Claim("UserRole", user.Role.ToString()),
+                    new Claim("BusinessId", user.BusinessId.ToString())
+                }),
+                Expires = DateTime.UtcNow.AddHours(1),
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+            };
+
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            return tokenHandler.WriteToken(token);
+        }
     }
 }
