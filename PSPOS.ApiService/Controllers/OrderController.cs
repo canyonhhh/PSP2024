@@ -6,7 +6,6 @@ using PSPOS.ServiceDefaults.Schemas;
 
 namespace PSPOS.ApiService.Controllers;
 
-[Authorize]
 [ApiController]
 [Route("orders")]
 public class OrderController : ControllerBase

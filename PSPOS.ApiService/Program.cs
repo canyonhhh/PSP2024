@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using PSPOS.ApiService.Data;
@@ -44,20 +43,37 @@ builder.Services.AddProblemDetails();
 
 var jwtKey = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? throw new Exception("Jwt:Key is missing"));
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultScheme = "Cookies";
+    options.DefaultChallengeScheme = "Cookies";
+})
+.AddCookie("Cookies", options =>
+{
+    options.Cookie.Name = "AuthToken";
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SameSite = SameSiteMode.None;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Events.OnRedirectToLogin = context =>
     {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(jwtKey),
-            ValidateIssuer = false,
-            ValidateAudience = false,
-            ClockSkew = TimeSpan.Zero
-        };
-    });
+        context.Response.StatusCode = 401;
+        return Task.CompletedTask;
+    };
+})
+.AddJwtBearer("Bearer", options =>
+{
+    options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(jwtKey),
+        ValidateIssuer = false,
+        ValidateAudience = false,
+        ClockSkew = TimeSpan.Zero
+    };
+});
 
 builder.Services.AddAuthorization();
+
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -91,6 +107,13 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+
+app.Use(async (context, next) =>
+{
+    Console.WriteLine($"Request Path: {context.Request.Path}");
+    await next();
+});
 
 app.UseExceptionHandler();
 app.UseHttpsRedirection();

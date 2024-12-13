@@ -24,13 +24,13 @@ public class UserRepository : IUserRepository
         return await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
     }
 
-    public Task<IEnumerable<User>> GetAllUsersAsync(string? role, string? name, string? surname, int limit, int skip)
+    public Task<IEnumerable<User>> GetAllUsersAsync(string? role, string? name, string? surname, int limit, int skip, string? businessId)
     {
         var query = _context.Users.AsQueryable();
 
-        if (!string.IsNullOrEmpty(role))
+        if (!string.IsNullOrEmpty(role) && Enum.TryParse<UserRole>(role, out var userRole))
         {
-            query = query.Where(u => u.Role.ToString() == role);
+            query = query.Where(u => u.Role == userRole);
         }
 
         if (!string.IsNullOrEmpty(name))
@@ -41,6 +41,11 @@ public class UserRepository : IUserRepository
         if (!string.IsNullOrEmpty(surname))
         {
             query = query.Where(u => u.LastName.Contains(surname));
+        }
+
+        if (!string.IsNullOrEmpty(businessId) && Guid.TryParse(businessId, out var businessGuid))
+        {
+            query = query.Where(u => u.BusinessId == businessGuid);
         }
 
         return Task.FromResult<IEnumerable<User>>(query.Skip(skip).Take(limit).ToList());

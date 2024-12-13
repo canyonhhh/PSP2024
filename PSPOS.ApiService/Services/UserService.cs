@@ -24,9 +24,9 @@ public class UserService : IUserService
         return await _userRepository.GetUserByIdAsync(id);
     }
 
-    public async Task<IEnumerable<User>> GetAllUsersAsync(string? role, string? name, string? surname, int limit, int skip)
+    public async Task<IEnumerable<User>> GetAllUsersAsync(string? role, string? name, string? surname, int limit, int skip, string? businessId)
     {
-        return await _userRepository.GetAllUsersAsync(role, name, surname, limit, skip);
+        return await _userRepository.GetAllUsersAsync(role, name, surname, limit, skip, businessId);
     }
 
     public async Task AddUserAsync(UserDto userDto)
