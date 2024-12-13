@@ -7,7 +7,7 @@ using PSPOS.ServiceDefaults.Schemas;
 
 namespace PSPOS.ApiService.Controllers
 {
-    [Authorize]
+   // [Authorize]
     [ApiController]
     [Route("api")]
     public class ProdAndServController : ControllerBase
@@ -40,7 +40,7 @@ namespace PSPOS.ApiService.Controllers
         public async Task<IActionResult> AddCategory([FromBody] CategoryDTO categoryDto)
         {
             var category = await _service.AddCategoryAsync(categoryDto);
-            return CreatedAtAction(nameof(GetCategoryById), new { id = category.id }, category);
+            return CreatedAtAction(nameof(GetCategoryById), new { id = category.Id }, category);
         }
 
         [HttpPut("categories/{id:guid}")]

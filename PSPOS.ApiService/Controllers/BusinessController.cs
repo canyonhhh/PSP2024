@@ -5,7 +5,7 @@ using PSPOS.ServiceDefaults.Models;
 
 namespace PSPOS.ApiService.Controllers;
 
-[Authorize]
+//[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class BusinessController : ControllerBase

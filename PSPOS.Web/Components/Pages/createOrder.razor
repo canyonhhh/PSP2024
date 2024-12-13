@@ -53,15 +53,18 @@
     <div class="card p-4 mb-4">
         <form @onsubmit="OnAddOrderItem" @onsubmit:preventDefault="true">
             <div class="form-group mb-3">
-                <label for="stockItem">Select Stock Item</label>
+                <label for="stockItem">Select Product</label>
                 <select id="stockItem" @bind="selectedStockItemId" class="form-select" required>
-                    <option value="">-- Select Stock Item --</option>
-                    @foreach (var stock in StockItems)
+                    <option value="">-- Select Product --</option>
+                    @foreach (var product in StockItems)
                     {
-                        <option value="@stock.Id">@stock.Name (@stock.Price @orderCurrency)</option>
+                        <option value="@product.Id">
+                            @product.Name - Price: @product.Price.ToString("C") - Stock: @product.StockQuantity
+                        </option>
                     }
                 </select>
             </div>
+
 
             <div class="form-group mb-3">
                 <label for="quantity">Quantity</label>
@@ -148,14 +151,18 @@
     {
         try
         {
-            // TODO: Replace with actual API endpoint if available
-            StockItems = new List<StockItem>
-            {
-                new StockItem { Id = Guid.NewGuid(), Name = "Product A", Description = "High quality product A", Price = 50.00m },
-                new StockItem { Id = Guid.NewGuid(), Name = "Product B", Description = "High quality product B", Price = 30.00m },
-                new StockItem { Id = Guid.NewGuid(), Name = "Service A", Description = "Premium service A", Price = 100.00m },
-                new StockItem { Id = Guid.NewGuid(), Name = "Service B", Description = "Premium service B", Price = 150.00m },
-            };
+            // Fetch products with stock data
+            var products = await Http.GetFromJsonAsync<List<ProductSchema>>("api/products");
+
+            // Map the products to the StockItems list
+            StockItems = products?.Select(p => new StockItem
+                {
+                    Id = p.Id,
+                    Name = p.name ?? "No Name",
+                    Description = p.description ?? "No Description",
+                    Price = p.price ?? 0,
+                    StockQuantity = p.stockQuantity
+                }).ToList() ?? new List<StockItem>();
         }
         catch (Exception ex)
         {
@@ -247,40 +254,44 @@
         IsOrderItemAdded = false;
         OrderItemErrorMessage = string.Empty;
 
+        // Check if the order is already created
         if (CreatedOrderId == Guid.Empty)
         {
             OrderItemErrorMessage = "Please create an order first.";
             return;
         }
 
+        // Check if a stock item is selected
         if (selectedStockItemId == Guid.Empty)
         {
             OrderItemErrorMessage = "Please select a stock item.";
             return;
         }
 
+        // Validate the quantity
         if (newOrderItem.Quantity < 1)
         {
             OrderItemErrorMessage = "Quantity must be at least 1.";
             return;
         }
 
+        // Retrieve the selected product
         var selectedStockItem = StockItems.FirstOrDefault(s => s.Id == selectedStockItemId);
         if (selectedStockItem == null)
         {
-            OrderItemErrorMessage = "Selected stock item not found.";
+            OrderItemErrorMessage = "Selected product not found.";
             return;
         }
 
+        // Prepare the order item DTO
         var orderItemDTO = new OrderItemDTO
             {
                 orderId = CreatedOrderId,
-                type = selectedStockItem.Name.Contains("Service", StringComparison.OrdinalIgnoreCase) ? "SERVICE" : "PRODUCT",
+                type = "PRODUCT", // Since everything is a product
                 price = selectedStockItem.Price,
                 quantity = newOrderItem.Quantity,
-                serviceId = selectedStockItem.Name.Contains("Service", StringComparison.OrdinalIgnoreCase) ? selectedStockItem.Id : Guid.Empty,
-                productId = selectedStockItem.Name.Contains("Product", StringComparison.OrdinalIgnoreCase) ? selectedStockItem.Id : Guid.Empty,
-                transactionId = Guid.Empty 
+                productId = selectedStockItem.Id,
+                transactionId = Guid.Empty
             };
 
         try
@@ -292,7 +303,7 @@
                 newOrderItem = new NewOrderItemDTO();
                 selectedStockItemId = Guid.Empty;
 
-                await LoadOrderItems();
+                await LoadOrderItems(); // Reload current order items
             }
             else
             {
@@ -317,5 +328,7 @@
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public decimal Price { get; set; }
+        public int StockQuantity { get; set; }
     }
+
 }

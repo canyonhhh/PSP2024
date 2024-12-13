@@ -337,22 +337,22 @@ namespace PSPOS.ApiService.Services
             var categories = productGroups
                 .Select(pg => new ProductCategorySchema
                 {
-                    id = pg.Id,
-                    createdAt = pg.CreatedAt,
-                    updatedAt = pg.UpdatedAt,
-                    createdBy = pg.CreatedBy,
-                    updatedBy = pg.UpdatedBy,
+                    Id = pg.Id,
+                    CreatedAt = pg.CreatedAt,
+                    UpdatedAt = pg.UpdatedAt,
+                    CreatedBy = pg.CreatedBy,
+                    UpdatedBy = pg.UpdatedBy,
                     name = pg.Name,
                     description = pg.Description,
                     productOrServiceIds = new[] { pg.Id }
                 })
                 .Concat(serviceGroups.Select(sg => new ProductCategorySchema
                 {
-                    id = sg.Id,
-                    createdAt = sg.CreatedAt,
-                    updatedAt = sg.UpdatedAt,
-                    createdBy = sg.CreatedBy,
-                    updatedBy = sg.UpdatedBy,
+                    Id = sg.Id,
+                    CreatedAt = sg.CreatedAt,
+                    UpdatedAt = sg.UpdatedAt,
+                    CreatedBy = sg.CreatedBy,
+                    UpdatedBy = sg.UpdatedBy,
                     name = sg.Name,
                     description = sg.Description,
                     productOrServiceIds = new[] { sg.Id }
@@ -369,11 +369,11 @@ namespace PSPOS.ApiService.Services
             {
                 return new ProductCategorySchema
                 {
-                    id = productGroup.Id,
-                    createdAt = productGroup.CreatedAt,
-                    updatedAt = productGroup.UpdatedAt,
-                    createdBy = productGroup.CreatedBy,
-                    updatedBy = productGroup.UpdatedBy,
+                    Id = productGroup.Id,
+                    CreatedAt = productGroup.CreatedAt,
+                    UpdatedAt = productGroup.UpdatedAt,
+                    CreatedBy = productGroup.CreatedBy,
+                    UpdatedBy = productGroup.UpdatedBy,
                     name = productGroup.Name,
                     description = productGroup.Description,
                     productOrServiceIds = new[] { productGroup.Id }
@@ -385,11 +385,11 @@ namespace PSPOS.ApiService.Services
             {
                 return new ProductCategorySchema
                 {
-                    id = serviceGroup.Id,
-                    createdAt = serviceGroup.CreatedAt,
-                    updatedAt = serviceGroup.UpdatedAt,
-                    createdBy = serviceGroup.CreatedBy,
-                    updatedBy = serviceGroup.UpdatedBy,
+                    Id = serviceGroup.Id,
+                    CreatedAt = serviceGroup.CreatedAt,
+                    UpdatedAt = serviceGroup.UpdatedAt,
+                    CreatedBy = serviceGroup.CreatedBy,
+                    UpdatedBy = serviceGroup.UpdatedBy,
                     name = serviceGroup.Name,
                     description = serviceGroup.Description,
                     productOrServiceIds = new[] { serviceGroup.Id }
@@ -415,11 +415,11 @@ namespace PSPOS.ApiService.Services
 
                 return new ProductCategorySchema
                 {
-                    id = addedGroup.Id,
-                    createdAt = addedGroup.CreatedAt,
-                    updatedAt = addedGroup.UpdatedAt,
-                    createdBy = addedGroup.CreatedBy,
-                    updatedBy = addedGroup.UpdatedBy,
+                    Id = addedGroup.Id,
+                    CreatedAt = addedGroup.CreatedAt,
+                    UpdatedAt = addedGroup.UpdatedAt,
+                    CreatedBy = addedGroup.CreatedBy,
+                    UpdatedBy = addedGroup.UpdatedBy,
                     name = addedGroup.Name,
                     description = addedGroup.Description,
                     productOrServiceIds = categoryDto.ProductOrServiceIds
@@ -431,11 +431,11 @@ namespace PSPOS.ApiService.Services
 
             return new ProductCategorySchema
             {
-                id = addedServiceGroup.Id,
-                createdAt = addedServiceGroup.CreatedAt,
-                updatedAt = addedServiceGroup.UpdatedAt,
-                createdBy = addedServiceGroup.CreatedBy,
-                updatedBy = addedServiceGroup.UpdatedBy,
+                Id = addedServiceGroup.Id,
+                CreatedAt = addedServiceGroup.CreatedAt,
+                UpdatedAt = addedServiceGroup.UpdatedAt,
+                CreatedBy = addedServiceGroup.CreatedBy,
+                UpdatedBy = addedServiceGroup.UpdatedBy,
                 name = addedServiceGroup.Name,
                 description = addedServiceGroup.Description,
                 productOrServiceIds = categoryDto.ProductOrServiceIds
@@ -456,11 +456,11 @@ namespace PSPOS.ApiService.Services
                 {
                     return new ProductCategorySchema
                     {
-                        id = updatedGroup.Id,
-                        createdAt = updatedGroup.CreatedAt,
-                        updatedAt = updatedGroup.UpdatedAt,
-                        createdBy = updatedGroup.CreatedBy,
-                        updatedBy = updatedGroup.UpdatedBy,
+                        Id = updatedGroup.Id,
+                        CreatedAt = updatedGroup.CreatedAt,
+                        UpdatedAt = updatedGroup.UpdatedAt,
+                        CreatedBy = updatedGroup.CreatedBy,
+                        UpdatedBy = updatedGroup.UpdatedBy,
                         name = updatedGroup.Name,
                         description = updatedGroup.Description,
                         productOrServiceIds = categoryDto.ProductOrServiceIds
@@ -480,11 +480,11 @@ namespace PSPOS.ApiService.Services
                 {
                     return new ProductCategorySchema
                     {
-                        id = updatedGroup.Id,
-                        createdAt = updatedGroup.CreatedAt,
-                        updatedAt = updatedGroup.UpdatedAt,
-                        createdBy = updatedGroup.CreatedBy,
-                        updatedBy = updatedGroup.UpdatedBy,
+                        Id = updatedGroup.Id,
+                        CreatedAt = updatedGroup.CreatedAt,
+                        UpdatedAt = updatedGroup.UpdatedAt,
+                        CreatedBy = updatedGroup.CreatedBy,
+                        UpdatedBy = updatedGroup.UpdatedBy,
                         name = updatedGroup.Name,
                         description = updatedGroup.Description,
                         productOrServiceIds = categoryDto.ProductOrServiceIds

@@ -161,7 +161,9 @@ public class ProdAndServRepository : IProdAndServRepository
 
     public async Task<ProductStock?> GetProductStockAsync(Guid productId)
     {
-        return await _context.ProductStocks.FindAsync(productId);
+        return await _context.ProductStocks
+     .FirstOrDefaultAsync(ps => ps.ProductId == productId);
+
     }
 
     public async Task AddProductStockAsync(ProductStock productStock)
