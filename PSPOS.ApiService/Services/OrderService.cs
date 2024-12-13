@@ -265,7 +265,7 @@ public class OrderService : IOrderService
             throw new ArgumentException($"Transaction '{orderItemDTO.transactionId}' does not exist.");
 
         // Product quantity
-        if(orderItemType == OrderItemType.Product)
+        if (orderItemType == OrderItemType.Product)
         {
             // Checking
             var productStock = await _prodAndServRepository.GetProductStockAsync(orderItemDTO.productId)
