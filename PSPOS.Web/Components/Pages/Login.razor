@@ -1,14 +1,32 @@
 ﻿@page "/login"
+@using PSPOS.Web.Components.Layout
+@layout EmptyLayout
 
-<h3>Login</h3>
-<form action="/api/auth/login" method="post">
-    <div>
-        <label>Email</label>
-        <input type="email" name="Email" required />
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-lg">
+                <div class="card-header bg-primary text-white text-center">
+                    <h3>Login</h3>
+                </div>
+                <div class="card-body">
+                    <form action="/api/auth/login" method="post">
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" name="Email" id="email" class="form-control" placeholder="Enter your email" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" name="Password" id="password" class="form-control" placeholder="Enter your password" required />
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">Login</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
-    <div>
-        <label>Password</label>
-        <input type="password" name="Password" required />
-    </div>
-    <button type="submit">Login</button>
-</form>
+</div>

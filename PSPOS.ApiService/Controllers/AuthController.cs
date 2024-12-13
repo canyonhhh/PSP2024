@@ -1,64 +1,32 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
 using PSPOS.ApiService.Services.Interfaces;
 using PSPOS.ServiceDefaults.DTOs;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 
-namespace PSPOS.ApiService.Controllers;
-
-[ApiController]
-[Route("[controller]")]
-public class AuthController : ControllerBase
+namespace PSPOS.ApiService.Controllers
 {
-    private readonly IAuthenticationService _authenticationService;
-
-    public AuthController(IAuthenticationService authenticationService)
+    [ApiController]
+    [Route("[controller]")]
+    public class AuthController : ControllerBase
     {
-        _authenticationService = authenticationService;
-    }
+        private readonly IAuthenticationService _authenticationService;
 
-    [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] LoginRequestDto requestDTO)
-    {
-        try
+        public AuthController(IAuthenticationService authenticationService)
         {
-            var response = await _authenticationService.AuthenticateAsync(requestDTO);
+            _authenticationService = authenticationService;
+        }
 
-            var (businessId, role) = ExtractClaimsFromToken(response.Token);
-
-            return Ok(new
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] LoginRequestDto requestDTO)
+        {
+            try
             {
-                BusinessId = businessId,
-                Role = role,
-                response.Expiration
-            });
+                var response = await _authenticationService.AuthenticateAsync(requestDTO);
+                return Ok(response);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { message = ex.Message });
+            }
         }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(new { message = ex.Message });
-        }
-    }
-
-    private (Guid? BusinessId, string? Role) ExtractClaimsFromToken(string token)
-    {
-        var handler = new JwtSecurityTokenHandler();
-        if (!handler.CanReadToken(token))
-        {
-            throw new SecurityTokenException("Invalid token");
-        }
-
-        var jwtToken = handler.ReadJwtToken(token);
-
-        var roleClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-        var businessIdClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "BusinessId")?.Value;
-
-        Guid? businessId = null;
-        if (Guid.TryParse(businessIdClaim, out var parsedBusinessId))
-        {
-            businessId = parsedBusinessId;
-        }
-
-        return (businessId, roleClaim);
     }
 }

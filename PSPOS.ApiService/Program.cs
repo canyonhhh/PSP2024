@@ -18,9 +18,10 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 
+builder.Services.AddAutoMapper(typeof(MappingProfile));
+
 builder.Services.AddControllers();
 builder.Services.AddProblemDetails();
-builder.Services.AddAutoMapper(typeof(MappingProfile));
 
 var jwtKey = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? throw new Exception("Jwt:Key is missing"));
 

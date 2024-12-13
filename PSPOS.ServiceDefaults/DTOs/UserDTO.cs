@@ -4,7 +4,7 @@ namespace PSPOS.ServiceDefaults.DTOs;
 
 public class UserDto
 {
-    public UserDto(string firstName, string lastName, string email, string phone, int role, Guid businessId, string? password = null, string? pin = null)
+    public UserDto(string firstName, string lastName, string email, string phone, int role, Guid businessId, string password)
     {
         FirstName = firstName;
         LastName = lastName;
@@ -13,7 +13,6 @@ public class UserDto
         Role = role;
         BusinessId = businessId;
         Password = password;
-        Pin = pin;
     }
 
     [Required(ErrorMessage = "First name is required")]
@@ -33,8 +32,8 @@ public class UserDto
     [Required(ErrorMessage = "Role is required")]
     public int Role { get; set; }
 
-    public string? Password { get; set; } // Plaintext password for owners
-    public string? Pin { get; set; } // Plaintext PIN for employees
+    [Required(ErrorMessage = "Password is required")]
+    public string Password { get; set; }
 
     [Required(ErrorMessage = "Business ID is required")]
     public Guid BusinessId { get; set; }

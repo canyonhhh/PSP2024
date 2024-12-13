@@ -31,14 +31,7 @@ public class UserService : IUserService
 
     public async Task AddUserAsync(UserDto userDto)
     {
-
         var user = _mapper.Map<User>(userDto);
-
-        // check if the user has a password or PIN
-        if (!string.IsNullOrWhiteSpace(userDto.Pin))
-        {
-            user.PinHash = _authenticationService.HashPin(userDto.Pin);
-        }
 
         if (!string.IsNullOrWhiteSpace(userDto.Password))
         {
