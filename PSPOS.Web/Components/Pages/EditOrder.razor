@@ -5,27 +5,30 @@
 @inject NavigationManager Navigation
 @rendermode InteractiveServer
 
+<h3>Edit Order</h3>
 
-<h3>Edit Order Items</h3>
-
-@if (IsLoading)
-{
-    <p>Loading order items...</p>
-}
-else if (!string.IsNullOrEmpty(ErrorMessage))
+@if (!string.IsNullOrEmpty(ErrorMessage))
 {
     <div class="alert alert-danger">@ErrorMessage</div>
 }
+
+@if (IsLoading)
+{
+    <p>Loading...</p>
+}
 else
 {
+    <!-- Edit Existing Order Items -->
     <div class="table-responsive">
-        <table class="table table-striped table-hover">
+        <table class="table table-striped table-hover mb-4">
             <thead class="table-dark">
                 <tr>
                     <th>Item ID</th>
-                    <th>Type</th>
+                    <th>Product Name</th>
+                    <th>Description</th>
                     <th>Price</th>
                     <th>Quantity</th>
+                    <th>Total</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -35,21 +38,57 @@ else
                     <tr>
                         <td>@item.Id</td>
                         <td>
-                            <input type="text" class="form-control" @bind="item.type" />
+                            <input type="text" class="form-control" value="@item.ProductName" readonly />
                         </td>
                         <td>
-                            <input type="number" class="form-control" step="0.01" @bind="item.price" />
+                            <input type="text" class="form-control" value="@item.ProductDescription" readonly />
+                        </td>
+                        <td>
+                            <input type="number" class="form-control" step="0.01" value="@item.price" readonly />
                         </td>
                         <td>
                             <input type="number" class="form-control" min="1" @bind="item.quantity" />
                         </td>
+                        <td>@(item.price * item.quantity)</td>
                         <td>
                             <button class="btn btn-success btn-sm" @onclick="() => SaveItem(item)">Save</button>
                         </td>
                     </tr>
                 }
             </tbody>
+
         </table>
+    </div>
+
+    <!-- Add New Order Items -->
+    <h4>Add New Order Items</h4>
+    <div class="card p-4 mb-4">
+        <form @onsubmit="OnAddOrderItem" @onsubmit:preventDefault="true">
+            <div class="form-group mb-3">
+                <label for="stockItem">Select Product</label>
+                <select id="stockItem" @bind="selectedStockItemId" class="form-select" required>
+                    <option value="">-- Select Product --</option>
+                    @foreach (var product in StockItems)
+                    {
+                        <option value="@product.Id">
+                            @product.Name - Price: @product.Price.ToString("C") - Stock: @product.StockQuantity
+                        </option>
+                    }
+                </select>
+            </div>
+
+            <div class="form-group mb-3">
+                <label for="quantity">Quantity</label>
+                <input id="quantity" @bind="newOrderItem.Quantity" type="number" min="1" class="form-control" required />
+            </div>
+
+            <button type="submit" class="btn btn-success">Add Item</button>
+        </form>
+
+        @if (!string.IsNullOrEmpty(OrderItemErrorMessage))
+        {
+            <div class="alert alert-danger mt-3">@OrderItemErrorMessage</div>
+        }
     </div>
 }
 
@@ -66,32 +105,75 @@ else
 
     private HttpClient Http => ClientFactory.CreateClient("ApiClient");
 
-    private List<OrderItemDTO> OrderItems = new(); 
+    private List<OrderItemSchema> OrderItems = new();
+    private List<StockItem> StockItems = new();
+    private Guid selectedStockItemId = Guid.Empty;
+    private NewOrderItemDTO newOrderItem = new NewOrderItemDTO();
+
+    private string ErrorMessage = string.Empty;
+    private string OrderItemErrorMessage = string.Empty;
     private bool IsLoading = true;
     private bool IsSuccess = false;
-    private string ErrorMessage = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadStockItems();
         await LoadOrderItems();
     }
 
-    // Fetch all items for the specified order
+    private async Task LoadStockItems()
+    {
+        try
+        {
+            var products = await Http.GetFromJsonAsync<List<ProductSchema>>("api/products");
+            StockItems = products?.Select(p => new StockItem
+                {
+                    Id = p.Id,
+                    Name = p.name ?? "No Name",
+                    Price = p.price ?? 0,
+                    StockQuantity = p.stockQuantity
+                }).ToList() ?? new List<StockItem>();
+        }
+        catch (Exception ex)
+        {
+            OrderItemErrorMessage = $"Error loading stock items: {ex.Message}";
+            StockItems = new List<StockItem>();
+        }
+    }
+
     private async Task LoadOrderItems()
     {
         try
         {
-            IsLoading = true;
-            ErrorMessage = string.Empty;
+            // Fetch order items
+            OrderItems = await Http.GetFromJsonAsync<List<OrderItemSchema>>($"orders/{OrderId}/items") ?? new List<OrderItemSchema>();
 
-            var items = await Http.GetFromJsonAsync<List<OrderItemDTO>>($"orders/{OrderId}/items");
-            if (items != null)
+            // Fetch product details for items with productId
+            var productIds = OrderItems
+                .Where(item => item.productId.HasValue)
+                .Select(item => item.productId.Value)
+                .Distinct()
+                .ToList();
+
+            if (productIds.Any())
             {
-                OrderItems = items;
-            }
-            else
-            {
-                ErrorMessage = "No items found for this order.";
+                // Fetch product details in one API call
+                var products = await Http.GetFromJsonAsync<List<ProductSchema>>("api/products");
+
+                var productDict = products?
+                    .Where(p => productIds.Contains(p.Id))
+                    .ToDictionary(p => p.Id, p => p) ?? new Dictionary<Guid, ProductSchema>();
+
+                // Map product details into OrderItems
+                foreach (var orderItem in OrderItems)
+                {
+                    if (orderItem.productId.HasValue && productDict.ContainsKey(orderItem.productId.Value))
+                    {
+                        var product = productDict[orderItem.productId.Value];
+                        orderItem.ProductName = product.name;
+                        orderItem.ProductDescription = product.description;
+                    }
+                }
             }
         }
         catch (Exception ex)
@@ -104,21 +186,12 @@ else
         }
     }
 
-    // Update a specific order item
-    private async Task SaveItem(OrderItemDTO item)
+    private async Task SaveItem(OrderItemSchema item)
     {
         try
         {
-            IsSuccess = false;
-            ErrorMessage = string.Empty;
-            Console.WriteLine($"OrderId in URL: {OrderId}");
-            Console.WriteLine($"OrderId in Payload: {item.orderId}");
-            Console.WriteLine($"Requesting PUT orders/{OrderId}/items/{item.Id}");
-
             item.orderId = OrderId;
-
             var response = await Http.PutAsJsonAsync($"orders/{OrderId}/items/{item.Id}", item);
-
             if (response.IsSuccessStatusCode)
             {
                 IsSuccess = true;
@@ -126,7 +199,7 @@ else
             else
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                ErrorMessage = $"Error saving item: {response.ReasonPhrase} - {errorContent}";
+                ErrorMessage = $"Error saving item: {errorContent}";
             }
         }
         catch (Exception ex)
@@ -135,22 +208,116 @@ else
         }
     }
 
-    // Navigate back to the Orders page
+    private async Task OnAddOrderItem()
+    {
+        OrderItemErrorMessage = string.Empty;
+
+        if (selectedStockItemId == Guid.Empty)
+        {
+            OrderItemErrorMessage = "Please select a product.";
+            return;
+        }
+
+        if (newOrderItem.Quantity < 1)
+        {
+            OrderItemErrorMessage = "Quantity must be at least 1.";
+            return;
+        }
+
+        // Check if the product already exists in the order items
+        var existingItem = OrderItems.FirstOrDefault(oi => oi.productId == selectedStockItemId);
+        if (existingItem != null)
+        {
+            // Update the quantity of the existing item
+            existingItem.quantity += newOrderItem.Quantity;
+
+            try
+            {
+                var response = await Http.PutAsJsonAsync($"orders/{OrderId}/items/{existingItem.Id}", existingItem);
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    OrderItemErrorMessage = $"Error updating existing item: {errorContent}";
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                OrderItemErrorMessage = $"An error occurred: {ex.Message}";
+                return;
+            }
+        }
+        else
+        {
+            // Add new item if it does not already exist
+            var selectedStockItem = StockItems.FirstOrDefault(s => s.Id == selectedStockItemId);
+            if (selectedStockItem == null)
+            {
+                OrderItemErrorMessage = "Selected product not found.";
+                return;
+            }
+
+            var orderItemDTO = new OrderItemDTO
+                {
+                    orderId = OrderId,
+                    type = "PRODUCT",
+                    price = selectedStockItem.Price,
+                    quantity = newOrderItem.Quantity,
+                    productId = selectedStockItem.Id
+                };
+
+            try
+            {
+                var response = await Http.PostAsJsonAsync($"orders/{OrderId}/items", orderItemDTO);
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    OrderItemErrorMessage = $"Error adding order item: {errorContent}";
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                OrderItemErrorMessage = $"An error occurred: {ex.Message}";
+                return;
+            }
+        }
+
+        await LoadOrderItems();
+
+        // Reset input
+        newOrderItem = new NewOrderItemDTO();
+        selectedStockItemId = Guid.Empty;
+    }
+
+
     private void GoBack()
     {
         Navigation.NavigateTo("/Orders");
     }
 
-    // DTO representing an order item
-    public class OrderItemDTO
+    public class NewOrderItemDTO
     {
-        public Guid Id { get; set; } 
+        public int Quantity { get; set; } = 1;
+    }
+
+    public class StockItem
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+        public int StockQuantity { get; set; }
+    }
+
+    public class OrderItemSchema
+    {
+        public Guid Id { get; set; }
         public string? type { get; set; }
         public decimal price { get; set; }
         public int quantity { get; set; }
-        public Guid orderId { get; set; } 
-        public Guid? serviceId { get; set; }
+        public Guid orderId { get; set; }
         public Guid? productId { get; set; }
-        public Guid? transactionId { get; set; }
+        public string? ProductName { get; set; }
+        public string? ProductDescription { get; set; }
     }
 }
