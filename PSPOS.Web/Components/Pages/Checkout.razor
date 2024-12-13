@@ -1,0 +1,205 @@
+﻿@page "/Checkout/{OrderId:guid}"
+@using PSPOS.ServiceDefaults.Schemas
+@inject IHttpClientFactory ClientFactory
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<h3>Checkout</h3>
+
+@if (IsLoading)
+{
+    <p>Loading order details...</p>
+}
+else if (!string.IsNullOrEmpty(ErrorMessage))
+{
+    <div class="alert alert-danger">@ErrorMessage</div>
+}
+else
+{
+    <!-- Order Summary -->
+    <div class="card mb-4 p-4">
+        <h4>Order Summary</h4>
+        <p><strong>Order ID:</strong> @OrderDetails?.Id</p>
+        <p><strong>Status:</strong> @OrderDetails?.status</p>
+        <p><strong>Currency:</strong> @OrderDetails?.currency</p>
+        <p><strong>Created At:</strong> @OrderDetails?.createdAt?.ToString("g")</p>
+    </div>
+
+    <!-- Items in Order -->
+    <h4>Order Items</h4>
+    @if (OrderItems == null || !OrderItems.Any())
+    {
+        <p>No items in this order.</p>
+    }
+    else
+    {
+        <div class="table-responsive mb-4">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Product Name</th>
+                        <th>Description</th>
+                        <th>Price</th>
+                        <th>Quantity</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in OrderItems)
+                    {
+                        <tr>
+                            <td>@item.ProductName</td>
+                            <td>@item.ProductDescription</td>
+                            <td>@item.price.ToString("C", GetCultureInfo(OrderDetails?.currency))</td>
+                            <td>@item.quantity</td>
+                            <td>@((item.price * item.quantity).ToString("C", GetCultureInfo(OrderDetails?.currency)))</td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr class="table-primary">
+                        <td colspan="4" class="text-end"><strong>Total Amount:</strong></td>
+                        <td><strong>@TotalAmount.ToString("C", GetCultureInfo(OrderDetails?.currency))</strong></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    }
+
+    <!-- Complete Checkout Button -->
+    <div class="text-center">
+        <button class="btn btn-success" @onclick="CompleteCheckout">Complete Checkout</button>
+        <button class="btn btn-secondary ms-2" @onclick="GoBack">Back to Orders</button>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public Guid OrderId { get; set; }
+
+    private HttpClient Http => ClientFactory.CreateClient("ApiClient");
+
+    private OrderSchema? OrderDetails = null;
+    private List<OrderItemSchema> OrderItems = new();
+    private decimal TotalAmount = 0;
+
+    private string ErrorMessage = string.Empty;
+    private bool IsLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadOrderDetails();
+        await LoadOrderItems();
+        CalculateTotalAmount();
+    }
+
+    private async Task LoadOrderDetails()
+    {
+        try
+        {
+            // Fetch the order details
+            OrderDetails = await Http.GetFromJsonAsync<OrderSchema>($"/orders/{OrderId}");
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error loading order details: {ex.Message}";
+        }
+    }
+
+    private async Task LoadOrderItems()
+    {
+        try
+        {
+            // Fetch order items
+            OrderItems = await Http.GetFromJsonAsync<List<OrderItemSchema>>($"orders/{OrderId}/items") ?? new List<OrderItemSchema>();
+
+    // Fetch product details for items with productId
+    var productIds = OrderItems
+        .Where(item => item.productId != Guid.Empty)
+        .Select(item => item.productId)
+        .Distinct()
+        .ToList();
+
+        if (productIds.Any())
+        {
+            // Fetch product details in one API call
+            var products = await Http.GetFromJsonAsync<List<ProductSchema>>("api/products");
+
+    var productDict = products?
+        .Where(p => productIds.Contains(p.Id))
+        .ToDictionary(p => p.Id, p => p) ?? new Dictionary<Guid, ProductSchema>();
+
+            // Map product details into OrderItems
+            foreach (var orderItem in OrderItems)
+            {
+                if (orderItem.productId != Guid.Empty && productDict.ContainsKey(orderItem.productId))
+                {
+                    var product = productDict[orderItem.productId];
+    orderItem.ProductName = product.name;
+                    orderItem.ProductDescription = product.description;
+                }
+}
+        }
+}
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error loading order items: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private System.Globalization.CultureInfo GetCultureInfo(string? currency)
+    {
+        return currency?.ToUpper() switch
+        {
+            "USD" => System.Globalization.CultureInfo.GetCultureInfo("en-US"),
+            "EUR" => System.Globalization.CultureInfo.GetCultureInfo("fr-FR"),
+            "LITAS" => System.Globalization.CultureInfo.GetCultureInfo("lt-LT"),
+            _ => System.Globalization.CultureInfo.InvariantCulture,
+        };
+    }
+    private void CalculateTotalAmount()
+    {
+        TotalAmount = OrderItems.Sum(item => item.price * item.quantity);
+    }
+
+    private void CompleteCheckout()
+    {
+        // Logic for completing the checkout (e.g., call an API, process payment)
+        Navigation.NavigateTo("/Orders");
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/Orders");
+    }
+
+
+    public class OrderSchema
+    {
+        public Guid Id { get; set; }
+        public string? status { get; set; }
+        public string? currency { get; set; }
+        public DateTime? createdAt { get; set; }
+    }
+
+    public class OrderItemSchema
+    {
+        public Guid Id { get; set; }
+        public string? ProductName { get; set; }
+        public string? ProductDescription { get; set; }
+        public decimal price { get; set; }
+        public int quantity { get; set; }
+        public Guid productId { get; set; }
+    }
+
+    public class ProductSchema
+    {
+        public Guid Id { get; set; }
+        public string? name { get; set; }
+        public string? description { get; set; }
+    }
+}

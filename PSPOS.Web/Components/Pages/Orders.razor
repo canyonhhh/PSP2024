@@ -28,7 +28,7 @@ else
         <tbody>
             @foreach (var order in orders)
             {
-                <tr>
+                <tr @onclick="() => SelectOrder(order)" class="@(order.Id == SelectedOrderId ? "table-active" : "")">
                     <td>@order.Id</td>
                     <td>@order.Status</td>
                     <td>@order.Currency</td>
@@ -40,6 +40,13 @@ else
             }
         </tbody>
     </table>
+
+    @if (SelectedOrderId != Guid.Empty)
+    {
+        <div class="text-center mt-3">
+            <button class="btn btn-primary" @onclick="NavigateToCheckout">Checkout</button>
+        </div>
+    }
 }
 
 <!-- Success/Error Messages -->
@@ -52,11 +59,26 @@ else
     private HttpClient Http => ClientFactory.CreateClient("ApiClient");
     private List<OrderSchema>? orders;
     private string? Message;
+    private Guid SelectedOrderId = Guid.Empty;
 
     // Fetch orders when the page is loaded
     protected override async Task OnInitializedAsync()
     {
         await LoadOrders();
+    }
+
+    private void SelectOrder(OrderSchema order)
+    {
+        SelectedOrderId = order.Id;
+        Console.WriteLine($"Selected Order ID: {SelectedOrderId}");
+    }
+
+    private void NavigateToCheckout()
+    {
+        if (SelectedOrderId != Guid.Empty)
+        {
+            Navigation.NavigateTo($"/Checkout/{SelectedOrderId}");
+        }
     }
 
     // Load orders from the API
