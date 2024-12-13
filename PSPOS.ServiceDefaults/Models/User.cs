@@ -17,11 +17,11 @@ public class User : BaseClass
         PasswordHash = passwordHash;
     }
 
-    public string FirstName { get; set; }
-    public string LastName { get; set; }
-    public string Email { get; set; }
-    public string Phone { get; set; }
-    public UserRole Role { get; set; }
-    public Guid BusinessId { get; set; }
-    public string PasswordHash { get; set; }
+    public required string FirstName { get; set; }
+    public required string LastName { get; set; }
+    public required string Email { get; set; }
+    public required string Phone { get; set; }
+    public required UserRole Role { get; set; }
+    public required Guid BusinessId { get; set; }
+    public required string PasswordHash { get; set; }
 }
