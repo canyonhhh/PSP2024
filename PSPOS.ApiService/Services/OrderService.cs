@@ -282,29 +282,27 @@ public class OrderService : IOrderService
         if (!Enum.TryParse(orderItemDTO.type, true, out OrderItemType orderItemType))
             throw new ArgumentException($"Order item type '{orderItemDTO.type}' does not exist.");
 
-        Order? order = await _orderRepository.GetOrderByIdAsync(orderItemDTO.orderId) ?? throw new ArgumentException($"Order '{orderItemDTO.orderId}' does not exist.");
-        if (order.Id != orderItemId)
-            throw new ArgumentException($"Order id '{orderItemId}' doesn't match with order item's order id {orderItemDTO.orderId}.");
+        var existingOrderItem = await _orderRepository.GetOrderItemByIdAsync(orderItemId)
+            ?? throw new ArgumentException($"Order item '{orderItemId}' does not exist.");
+
+        if (existingOrderItem.OrderId != orderItemDTO.orderId)
+            throw new ArgumentException($"Order ID '{orderItemDTO.orderId}' does not match the order item's existing Order ID '{existingOrderItem.OrderId}'.");
+
+        Order? order = await _orderRepository.GetOrderByIdAsync(existingOrderItem.OrderId)
+            ?? throw new ArgumentException($"Order '{existingOrderItem.OrderId}' does not exist.");
+
         if (order.Status != OrderStatus.Open)
-            throw new ArgumentException($"Order '{orderItemDTO.orderId}' is not open.");
+            throw new ArgumentException($"Order '{existingOrderItem.OrderId}' is not open.");
 
-        if (orderItemDTO.transactionId != Guid.Empty && (await _orderRepository.GetTransactionByIdAsync(orderItemDTO.transactionId)) == null)
-            throw new ArgumentException($"Transaction '{orderItemDTO.transactionId}' does not exist.");
+        // Update the order item
+        existingOrderItem.Type = orderItemType;
+        existingOrderItem.Price = orderItemDTO.price;
+        existingOrderItem.Quantity = orderItemDTO.quantity;
+        existingOrderItem.ServiceId = orderItemDTO.serviceId;
+        existingOrderItem.ProductId = orderItemDTO.productId;
+        existingOrderItem.TransactionId = orderItemDTO.transactionId;
 
-        OrderItem orderItem = new
-        (
-            orderItemType,
-            orderItemDTO.price,
-            orderItemDTO.quantity,
-            orderItemDTO.orderId,
-            orderItemDTO.serviceId,
-            orderItemDTO.productId,
-            orderItemDTO.transactionId
-        )
-        {
-            Id = orderItemId
-        };
-
-        await _orderRepository.UpdateOrderItemAsync(orderItem);
+        await _orderRepository.UpdateOrderItemAsync(existingOrderItem);
     }
+
 }

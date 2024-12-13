@@ -22,5 +22,6 @@ public interface IOrderRepository
     // '/orders/items'
     Task<IEnumerable<OrderItem>> GetAllItemsOfOrderAsync(Guid id);
     Task AddOrderItemToOrderAsync(OrderItem orderItem);
+    Task<OrderItem?> GetOrderItemByIdAsync(Guid orderItemId);
     Task UpdateOrderItemAsync(OrderItem orderItem);
 }
