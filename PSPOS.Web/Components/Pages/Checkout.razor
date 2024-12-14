@@ -41,6 +41,7 @@ else
                         <th>Description</th>
                         <th>Price</th>
                         <th>Quantity</th>
+                        <th>Tax</th>
                         <th>Total</th>
                     </tr>
                 </thead>
@@ -52,13 +53,14 @@ else
                             <td>@item.ProductDescription</td>
                             <td>@item.price.ToString("C", GetCultureInfo(OrderDetails?.currency))</td>
                             <td>@item.quantity</td>
-                            <td>@((item.price * item.quantity).ToString("C", GetCultureInfo(OrderDetails?.currency)))</td>
+                            <td>@($"{item.tax}%")</td>
+                            <td>@((item.price * item.quantity * (1 + (item.tax / 100))).ToString("C", GetCultureInfo(OrderDetails?.currency)))</td>
                         </tr>
                     }
                 </tbody>
                 <tfoot>
                     <tr class="table-primary">
-                        <td colspan="4" class="text-end"><strong>Total Amount:</strong></td>
+                        <td colspan="5" class="text-end"><strong>Total Amount:</strong></td>
                         <td><strong>@TotalAmount.ToString("C", GetCultureInfo(OrderDetails?.currency))</strong></td>
                     </tr>
                 </tfoot>
@@ -74,8 +76,8 @@ else
 }
 
 @code {
-    [Parameter]
-    public Guid OrderId { get; set; }
+        [Parameter]
+        public Guid OrderId { get; set; }
 
     private HttpClient Http => ClientFactory.CreateClient("ApiClient");
 
@@ -105,42 +107,83 @@ else
             ErrorMessage = $"Error loading order details: {ex.Message}";
         }
     }
-
     private async Task LoadOrderItems()
     {
         try
         {
-            // Fetch order items
+            // Step 1: Fetch order items
             OrderItems = await Http.GetFromJsonAsync<List<OrderItemSchema>>($"orders/{OrderId}/items") ?? new List<OrderItemSchema>();
 
-    // Fetch product details for items with productId
-    var productIds = OrderItems
-        .Where(item => item.productId != Guid.Empty)
-        .Select(item => item.productId)
-        .Distinct()
-        .ToList();
+            // Extract unique ProductIds from OrderItems
+            var productIds = OrderItems
+                .Where(item => item.productId != Guid.Empty)
+                .Select(item => item.productId)
+                .Distinct()
+                .ToList();
 
-        if (productIds.Any())
-        {
-            // Fetch product details in one API call
+            // Step 2: Fetch products linked to the ProductIds
             var products = await Http.GetFromJsonAsync<List<ProductSchema>>("api/products");
 
-    var productDict = products?
-        .Where(p => productIds.Contains(p.Id))
-        .ToDictionary(p => p.Id, p => p) ?? new Dictionary<Guid, ProductSchema>();
+            var productDict = products?
+                .Where(p => productIds.Contains(p.Id))
+                .ToDictionary(p => p.Id, p => p) ?? new Dictionary<Guid, ProductSchema>();
 
-            // Map product details into OrderItems
+            // Step 3: Fetch categories for the ProductIds
+            var categoriesResponse = await Http.GetFromJsonAsync<CategoriesResponse>("api/categories");
+            var categories = categoriesResponse?.Categories ?? new List<CategorySchema>();
+
+            var categoryDict = new Dictionary<Guid, Guid>();
+            foreach (var category in categories)
+            {
+                foreach (var productId in category.ProductOrServiceIds)
+                {
+                    if (!categoryDict.ContainsKey(productId))
+                    {
+                        categoryDict[productId] = category.Id;
+                    }
+                }
+            }
+
+            // Step 4: Fetch taxes
+            var taxes = await Http.GetFromJsonAsync<List<Tax>>("tax");
+
+            // Step 5: Map product details, categories, and tax into OrderItems
             foreach (var orderItem in OrderItems)
             {
                 if (orderItem.productId != Guid.Empty && productDict.ContainsKey(orderItem.productId))
                 {
                     var product = productDict[orderItem.productId];
-    orderItem.ProductName = product.name;
+                    orderItem.ProductName = product.name;
                     orderItem.ProductDescription = product.description;
+
+                    // Find the CategoryId using the ProductId
+                    var category = categories.FirstOrDefault(c => c.ProductOrServiceIds.Contains(orderItem.productId));
+                    if (category != null)
+                    {
+                        var categoryId = category.Id;
+
+                        // Find tax using the matched CategoryId (linked to ProductGroupId)
+                        var matchingTax = taxes?.FirstOrDefault(t => t.ProductOrServiceGroupId == categoryId);
+                        if (matchingTax != null)
+                        {
+                            orderItem.tax = matchingTax.Percentage;
+                        }
+                        else
+                        {
+                            Console.WriteLine($"No matching tax found for Category ID: {categoryId}");
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine($"No Category ID found for product {orderItem.productId}");
+                    }
                 }
-}
+                else
+                {
+                    Console.WriteLine($"No product details found for item {orderItem.Id} with product ID {orderItem.productId}");
+                }
+            }
         }
-}
         catch (Exception ex)
         {
             ErrorMessage = $"Error loading order items: {ex.Message}";
@@ -150,6 +193,7 @@ else
             IsLoading = false;
         }
     }
+
 
     private System.Globalization.CultureInfo GetCultureInfo(string? currency)
     {
@@ -161,9 +205,10 @@ else
             _ => System.Globalization.CultureInfo.InvariantCulture,
         };
     }
+
     private void CalculateTotalAmount()
     {
-        TotalAmount = OrderItems.Sum(item => item.price * item.quantity);
+        TotalAmount = OrderItems.Sum(item => item.price * item.quantity * (1 + (item.tax / 100)));
     }
 
     private void CompleteCheckout()
@@ -175,6 +220,23 @@ else
     private void GoBack()
     {
         Navigation.NavigateTo("/Orders");
+    }
+    public class CategorySchema
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public List<Guid> ProductOrServiceIds { get; set; } = new();
+        public Guid Id { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+        public Guid CreatedBy { get; set; }
+        public Guid UpdatedBy { get; set; }
+    }
+
+    public class CategoriesResponse
+    {
+        public List<CategorySchema> Categories { get; set; } = new();
+        public int TotalCount { get; set; }
     }
 
 
@@ -193,6 +255,7 @@ else
         public string? ProductDescription { get; set; }
         public decimal price { get; set; }
         public int quantity { get; set; }
+        public decimal tax { get; set; } 
         public Guid productId { get; set; }
     }
 
@@ -201,5 +264,12 @@ else
         public Guid Id { get; set; }
         public string? name { get; set; }
         public string? description { get; set; }
+    }
+
+    public class Tax
+    {
+        public Guid Id { get; set; }
+        public decimal Percentage { get; set; } 
+        public Guid? ProductOrServiceGroupId { get; set; } 
     }
 }

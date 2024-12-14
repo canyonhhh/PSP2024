@@ -344,7 +344,7 @@ namespace PSPOS.ApiService.Services
                     UpdatedBy = pg.UpdatedBy,
                     name = pg.Name,
                     description = pg.Description,
-                    productOrServiceIds = new[] { pg.Id }
+                    productOrServiceIds = pg.productOrServiceIds
                 })
                 .Concat(serviceGroups.Select(sg => new ProductCategorySchema
                 {
@@ -410,7 +410,7 @@ namespace PSPOS.ApiService.Services
 
             if (isProduct)
             {
-                var productGroup = new ProductGroup(categoryDto.Name, categoryDto.Description);
+                var productGroup = new ProductGroup(categoryDto.Name, categoryDto.Description, categoryDto.ProductOrServiceIds);
                 var addedGroup = await _repository.AddProductGroupAsync(productGroup);
 
                 return new ProductCategorySchema
@@ -422,7 +422,7 @@ namespace PSPOS.ApiService.Services
                     UpdatedBy = addedGroup.UpdatedBy,
                     name = addedGroup.Name,
                     description = addedGroup.Description,
-                    productOrServiceIds = categoryDto.ProductOrServiceIds
+                    productOrServiceIds = addedGroup.productOrServiceIds
                 };
             }
 
@@ -450,6 +450,7 @@ namespace PSPOS.ApiService.Services
                 // Update the product group
                 productGroup.Name = categoryDto.Name;
                 productGroup.Description = categoryDto.Description;
+                productGroup.productOrServiceIds = categoryDto.ProductOrServiceIds;
 
                 var updatedGroup = await _repository.UpdateProductGroupAsync(productGroup);
                 if (updatedGroup != null)

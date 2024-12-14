@@ -233,6 +233,7 @@ public class ProdAndServRepository : IProdAndServRepository
 
         existingGroup.Name = group.Name;
         existingGroup.Description = group.Description;
+        existingGroup.productOrServiceIds = group.productOrServiceIds;
 
         _context.ProductGroups.Update(existingGroup);
         await _context.SaveChangesAsync();
