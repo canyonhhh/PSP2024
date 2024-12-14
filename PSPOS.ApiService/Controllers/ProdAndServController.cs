@@ -36,7 +36,7 @@ namespace PSPOS.ApiService.Controllers
         public async Task<IActionResult> AddCategory([FromBody] CategoryDTO categoryDto)
         {
             var category = await _service.AddCategoryAsync(categoryDto);
-            return CreatedAtAction(nameof(GetCategoryById), new { id = category.id }, category);
+            return CreatedAtAction(nameof(GetCategoryById), new { id = category.Id }, category);
         }
 
         [HttpPut("categories/{id:guid}")]

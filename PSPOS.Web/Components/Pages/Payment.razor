@@ -1,0 +1,515 @@
+﻿@page "/Payment/{OrderId:guid}"
+@using PSPOS.ServiceDefaults.Schemas
+@using System.Net.Http.Json
+@inject IHttpClientFactory ClientFactory
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<h3>Payment</h3>
+
+@if (IsLoading)
+{
+    <p>Loading order details and total amount...</p>
+}
+else if (!string.IsNullOrEmpty(ErrorMessage))
+{
+    <div class="alert alert-danger">@ErrorMessage</div>
+}
+else
+{
+    <div class="mb-4 p-4 card">
+        <h4>Order Payment</h4>
+        <p><strong>Order ID:</strong> @OrderDetails?.Id</p>
+        <p><strong>Total Amount (including discounts & tax):</strong> @TotalAmount.ToString("C", GetCultureInfo(OrderDetails?.currency))</p>
+    </div>
+
+    <h4>Select Payment Method</h4>
+    <div class="mb-3">
+        <select @bind="SelectedPaymentMethod" class="form-select" aria-label="Payment method">
+            <option value="Cash">Cash</option>
+            <option value="Card">Card</option>
+            <option value="GiftCard">Gift Card</option>
+        </select>
+    </div>
+
+    @if (SelectedPaymentMethod == "GiftCard")
+    {
+        <div class="mb-3">
+            <label>Gift Card Code:</label>
+            <input type="text" @bind="GiftCardCode" class="form-control" placeholder="Enter Gift Card Code" />
+        </div>
+    }
+
+    @if (SelectedPaymentMethod == "Cash")
+    {
+        <h5>Select Items to Pay</h5>
+        <div class="table-responsive mb-4">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Select</th>
+                        <th>Product</th>
+                        <th>Final Price (after discounts & tax)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in OrderItems)
+                    {
+                        var lineTotal = CalculateLineTotal(item);
+                        <tr>
+                            <td>
+                                <input type="checkbox" @bind="item.SelectedForPayment" />
+                            </td>
+                            <td>@item.ProductName</td>
+                            <td>@lineTotal.ToString("C", GetCultureInfo(OrderDetails?.currency))</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mb-3">
+            <label>Payment Amount:</label>
+            <input type="number" step="0.01" @bind="PaymentAmount" class="form-control" />
+        </div>
+    }
+    else if (SelectedPaymentMethod == "GiftCard")
+    {
+        <h5>Select Items to Pay</h5>
+        <div class="table-responsive mb-4">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Select</th>
+                        <th>Product</th>
+                        <th>Final Price (after discounts & tax)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in OrderItems)
+                    {
+                        var lineTotal = CalculateLineTotal(item);
+                        <tr>
+                            <td>
+                                <input type="checkbox" @bind="item.SelectedForPayment" />
+                            </td>
+                            <td>@item.ProductName</td>
+                            <td>@lineTotal.ToString("C", GetCultureInfo(OrderDetails?.currency))</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else if (SelectedPaymentMethod == "Card")
+    {
+        <h5>Select Items to Pay</h5>
+        <div class="table-responsive mb-4">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Select</th>
+                        <th>Product</th>
+                        <th>Final Price (after discounts & tax)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in OrderItems)
+                    {
+                        var lineTotal = CalculateLineTotal(item);
+                        <tr>
+                            <td>
+                                <input type="checkbox" @bind="item.SelectedForPayment" />
+                            </td>
+                            <td>@item.ProductName</td>
+                            <td>@lineTotal.ToString("C", GetCultureInfo(OrderDetails?.currency))</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (OrderDetails?.status?.ToUpper() == "CLOSED")
+        {
+            <div class="alert alert-success">
+                <p>Payment successful! Order has been CLOSED.</p>
+            </div>
+            <button class="btn btn-primary" @onclick="GoBack">Go Back</button>
+        }
+        else if (!string.IsNullOrEmpty(ErrorMessage))
+        {
+            <div class="alert alert-danger">@ErrorMessage</div>
+        }
+
+    }
+
+    <button class="btn btn-primary" @onclick="ProcessPayment">Process Payment</button>
+    <button class="btn btn-secondary ms-2" @onclick="GoBack">Back</button>
+}
+
+@code {
+    [Parameter]
+    public Guid OrderId { get; set; }
+
+    private HttpClient Http => ClientFactory.CreateClient("ApiClient");
+
+    private OrderSchema? OrderDetails = null;
+    private List<OrderItemSchema> OrderItems = new();
+    private decimal TotalAmount = 0;
+    private decimal OrderLevelDiscount = 0;
+    private Discount? FoundOrderLevelDiscount = null;
+
+    private string SelectedPaymentMethod = "Cash";
+    private string GiftCardCode = string.Empty;
+    private decimal PaymentAmount = 0;
+
+    private string ErrorMessage = string.Empty;
+    private bool IsLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadOrderDetails();
+        await LoadOrderItems();
+        await ApplyDiscountLogic();
+        CalculateTotalAmount();
+        IsLoading = false;
+    }
+
+    private async Task LoadOrderDetails()
+    {
+        try
+        {
+            OrderDetails = await Http.GetFromJsonAsync<OrderSchema>($"/orders/{OrderId}");
+            if (OrderDetails == null)
+                ErrorMessage = "Order not found.";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error loading order details: {ex.Message}";
+        }
+    }
+
+    private async Task LoadOrderItems()
+    {
+        try
+        {
+            OrderItems = await Http.GetFromJsonAsync<List<OrderItemSchema>>($"orders/{OrderId}/items") ?? new List<OrderItemSchema>();
+
+            var productIds = OrderItems
+                .Where(item => item.productId != Guid.Empty)
+                .Select(item => item.productId)
+                .Distinct()
+                .ToList();
+
+            var products = await Http.GetFromJsonAsync<List<ProductSchema>>("api/products");
+            var productDict = products?
+                .Where(p => productIds.Contains(p.Id))
+                .ToDictionary(p => p.Id, p => p) ?? new Dictionary<Guid, ProductSchema>();
+
+            var categoriesResponse = await Http.GetFromJsonAsync<CategoriesResponse>("api/categories");
+            var categories = categoriesResponse?.Categories ?? new List<CategorySchema>();
+
+            var taxes = await Http.GetFromJsonAsync<List<Tax>>("tax");
+
+            foreach (var orderItem in OrderItems)
+            {
+                if (orderItem.productId != Guid.Empty && productDict.ContainsKey(orderItem.productId))
+                {
+                    var product = productDict[orderItem.productId];
+                    orderItem.ProductName = product.name;
+                    orderItem.ProductDescription = product.description;
+
+                    var category = categories.FirstOrDefault(c => c.ProductOrServiceIds.Contains(orderItem.productId));
+                    if (category != null)
+                    {
+                        var categoryId = category.Id;
+                        var matchingTax = taxes?.FirstOrDefault(t => t.ProductOrServiceGroupId == categoryId);
+                        if (matchingTax != null)
+                        {
+                            orderItem.tax = matchingTax.Percentage;
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error loading order items: {ex.Message}";
+        }
+    }
+
+    private async Task ApplyDiscountLogic()
+    {
+        try
+        {
+            var discounts = await Http.GetFromJsonAsync<List<Discount>>("api/discounts") ?? new List<Discount>();
+            var categoriesResponse = await Http.GetFromJsonAsync<CategoriesResponse>("api/categories");
+            var categories = categoriesResponse?.Categories ?? new List<CategorySchema>();
+
+            foreach (var item in OrderItems)
+            {
+                var category = categories.FirstOrDefault(c => c.ProductOrServiceIds.Contains(item.productId));
+                if (category == null) continue;
+
+                Guid categoryId = category.Id;
+                var applicableDiscounts = discounts.Where(d =>
+                    d.Active &&
+                    d.EndDate > DateTime.UtcNow &&
+                    d.ProductOrServiceGroupId == categoryId
+                ).ToList();
+
+                var applicableDiscount = applicableDiscounts.FirstOrDefault();
+                if (applicableDiscount != null)
+                {
+                    decimal itemBasePrice = item.price * item.quantity;
+                    decimal discountAmount = 0;
+
+                    if (applicableDiscount.Method?.ToUpper() == "FIXED")
+                    {
+                        discountAmount = applicableDiscount.Amount;
+                        if (discountAmount > itemBasePrice)
+                            discountAmount = itemBasePrice;
+                    }
+                    else if (applicableDiscount.Method?.ToUpper() == "PERCENTAGE")
+                    {
+                        discountAmount = itemBasePrice * (applicableDiscount.Percentage / 100);
+                        item.AppliedDiscountPercentage = applicableDiscount.Percentage;
+                    }
+
+                    item.DiscountAmount = discountAmount;
+                    item.AppliedDiscountName = applicableDiscount.Name;
+                    item.AppliedDiscountMethod = applicableDiscount.Method;
+                }
+            }
+
+            var orderLevelDiscounts = discounts.Where(d =>
+                d.Active &&
+                d.EndDate > DateTime.UtcNow &&
+                d.ProductOrServiceId == Guid.Empty &&
+                d.ProductOrServiceGroupId == Guid.Empty
+            ).ToList();
+
+            FoundOrderLevelDiscount = orderLevelDiscounts.FirstOrDefault();
+        }
+        catch (Exception)
+        {
+            // ignore
+        }
+    }
+
+    private void CalculateTotalAmount()
+    {
+        decimal subtotalWithTax = 0;
+        foreach (var item in OrderItems)
+        {
+            decimal baseAfterDiscount = (item.price * item.quantity) - item.DiscountAmount;
+            if (baseAfterDiscount < 0) baseAfterDiscount = 0;
+            var lineTotal = baseAfterDiscount * (1 + (item.tax / 100));
+            subtotalWithTax += lineTotal;
+        }
+
+        if (FoundOrderLevelDiscount != null)
+        {
+            decimal discountValue = 0;
+            if (FoundOrderLevelDiscount.Method?.ToUpper() == "FIXED")
+            {
+                discountValue = FoundOrderLevelDiscount.Amount;
+                if (discountValue > subtotalWithTax) discountValue = subtotalWithTax;
+            }
+            else if (FoundOrderLevelDiscount.Method?.ToUpper() == "PERCENTAGE")
+            {
+                discountValue = subtotalWithTax * (FoundOrderLevelDiscount.Percentage / 100);
+            }
+
+            OrderLevelDiscount = discountValue;
+            subtotalWithTax -= discountValue;
+            if (subtotalWithTax < 0) subtotalWithTax = 0;
+        }
+
+        TotalAmount = subtotalWithTax;
+    }
+    private async Task SendTransactionToServer(List<OrderItemSchema> selectedItems, decimal paidByCash)
+    {
+        try
+        {
+            var transactionDTO = new TransactionDTO
+                {
+                    itemIds = selectedItems.Select(si => si.Id),
+                    paidByCash = paidByCash,
+                    paidByGiftcard = 0,
+                    giftcardId = Guid.Empty
+                };
+
+            var response = await Http.PostAsJsonAsync($"/orders/{OrderId}/transactions", transactionDTO);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var err = await response.Content.ReadAsStringAsync();
+                ErrorMessage = $"Error processing payment: {err}";
+                return;
+            }
+
+            await LoadOrderDetails();
+
+            if (OrderDetails?.status?.ToUpper() == "CLOSED")
+            {
+                ErrorMessage = "Payment successful! Order is now CLOSED.";
+            }
+            else
+            {
+                ErrorMessage = "Payment successful, but order status was not updated to CLOSED.";
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error processing payment: {ex.Message}";
+        }
+    }
+
+    private decimal CalculateLineTotal(OrderItemSchema item)
+    {
+        decimal basePrice = item.price * item.quantity;
+        decimal discountedBase = basePrice - item.DiscountAmount;
+        if (discountedBase < 0) discountedBase = 0;
+        var lineTotal = discountedBase * (1 + (item.tax / 100));
+        return lineTotal;
+    }
+
+    private async Task ProcessPayment()
+    {
+        try
+        {
+            var selectedItems = OrderItems.Where(i => i.SelectedForPayment).ToList();
+            if (!selectedItems.Any())
+            {
+                ErrorMessage = "No items selected for payment.";
+                return;
+            }
+
+            decimal sumOfSelected = selectedItems.Sum(i => CalculateLineTotal(i));
+
+            if (SelectedPaymentMethod == "Cash")
+            {
+                if (PaymentAmount <= 0)
+                {
+                    ErrorMessage = $"Payment amount must be greater than 0.";
+                    return;
+                }
+
+                if (PaymentAmount < sumOfSelected)
+                {
+                    ErrorMessage = $"Not enough money, need at least {sumOfSelected.ToString("C", GetCultureInfo(OrderDetails?.currency))}.";
+                    return;
+                }
+
+                decimal change = PaymentAmount - sumOfSelected;
+
+                await SendTransactionToServer(selectedItems, sumOfSelected);
+
+                if (change > 0)
+                {
+                    ErrorMessage = $"Payment accepted. Give back change: {change.ToString("C", GetCultureInfo(OrderDetails?.currency))}.";
+                }
+                else
+                {
+                    ErrorMessage = "Payment accepted.";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error processing payment: {ex.Message}";
+        }
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo($"/Checkout/{OrderId}");
+    }
+
+
+    private System.Globalization.CultureInfo GetCultureInfo(string? currency)
+    {
+        return currency?.ToUpper() switch
+        {
+            "USD" => System.Globalization.CultureInfo.GetCultureInfo("en-US"),
+            "EUR" => System.Globalization.CultureInfo.GetCultureInfo("fr-FR"),
+            "LITAS" => System.Globalization.CultureInfo.GetCultureInfo("lt-LT"),
+            _ => System.Globalization.CultureInfo.InvariantCulture,
+        };
+    }
+
+    public class CategorySchema
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public List<Guid> ProductOrServiceIds { get; set; } = new();
+        public Guid Id { get; set; }
+    }
+
+    public class CategoriesResponse
+    {
+        public List<CategorySchema> Categories { get; set; } = new();
+        public int TotalCount { get; set; }
+    }
+
+    public class OrderSchema
+    {
+        public Guid Id { get; set; }
+        public string? status { get; set; }
+        public string? currency { get; set; }
+        public DateTime? createdAt { get; set; }
+    }
+
+    public class OrderItemSchema
+    {
+        public Guid Id { get; set; }
+        public string? ProductName { get; set; }
+        public string? ProductDescription { get; set; }
+        public decimal price { get; set; }
+        public int quantity { get; set; }
+        public decimal tax { get; set; }
+        public Guid productId { get; set; }
+        public decimal DiscountAmount { get; set; } = 0;
+        public string? AppliedDiscountName { get; set; }
+        public string? AppliedDiscountMethod { get; set; }
+        public decimal AppliedDiscountPercentage { get; set; } = 0;
+        public bool SelectedForPayment { get; set; } = true;
+    }
+
+    public class ProductSchema
+    {
+        public Guid Id { get; set; }
+        public string? name { get; set; }
+        public string? description { get; set; }
+    }
+
+    public class Tax
+    {
+        public Guid Id { get; set; }
+        public decimal Percentage { get; set; }
+        public Guid? ProductOrServiceGroupId { get; set; }
+    }
+
+    public class Discount
+    {
+        public Guid Id { get; set; }
+        public string? Name { get; set; }
+        public string? Description { get; set; }
+        public string? Method { get; set; }
+        public bool Active { get; set; }
+        public decimal Amount { get; set; }
+        public decimal Percentage { get; set; }
+        public DateTime EndDate { get; set; }
+        public Guid BusinessId { get; set; }
+        public Guid ProductOrServiceGroupId { get; set; }
+        public Guid ProductOrServiceId { get; set; }
+    }
+
+    public class TransactionDTO
+    {
+        public IEnumerable<Guid>? itemIds { get; set; }
+        public decimal paidByCash { get; set; }
+        public decimal paidByGiftcard { get; set; }
+        public Guid giftcardId { get; set; }
+    }
+}

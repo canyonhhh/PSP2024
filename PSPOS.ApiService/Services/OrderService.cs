@@ -122,13 +122,13 @@ public class OrderService : IOrderService
 
         // Check if enough money is paid for all the items
         // TODO Use Stripe too
-        decimal price = 0;
-        foreach (OrderItem orderItem in orderItemsToLinkToTransaction)
-            price += orderItem.Price;
-        if (price < transactionDTO.paidByCash + transactionDTO.paidByGiftcard)
-            throw new ArgumentException($"Paid too much, expected {price}{order.OrderCurrency}.");
-        else if (price > transactionDTO.paidByCash + transactionDTO.paidByGiftcard)
-            throw new ArgumentException($"Paid too little, expected {price}{order.OrderCurrency}.");
+        //decimal price = 0;
+        //foreach (OrderItem orderItem in orderItemsToLinkToTransaction)
+        //    price += orderItem.Price;
+        //if (price < transactionDTO.paidByCash + transactionDTO.paidByGiftcard)
+        //    throw new ArgumentException($"Paid too much, expected {price}{order.OrderCurrency}.");
+        //else if (price > transactionDTO.paidByCash + transactionDTO.paidByGiftcard)
+        //    throw new ArgumentException($"Paid too little, expected {price}{order.OrderCurrency}.");
 
         // Add transaction data to database
         Transaction transaction = new(TransactionType.Purchase);
@@ -305,7 +305,7 @@ public class OrderService : IOrderService
             ?? throw new ArgumentException($"Order item '{orderItemId}' does not exist.");
 
         if (existingOrderItem.OrderId != orderItemDTO.orderId)
-            throw new ArgumentException($"Order ID '{orderItemDTO.orderId}' does not match the existing order item's Order ID '{existingOrderItem.OrderId}'.");
+            throw new ArgumentException($"Order ID '{orderItemDTO.orderId}' does not match the order item's existing Order ID '{existingOrderItem.OrderId}'.");
 
         Order? order = await _orderRepository.GetOrderByIdAsync(existingOrderItem.OrderId)
             ?? throw new ArgumentException($"Order '{existingOrderItem.OrderId}' does not exist.");
@@ -358,4 +358,5 @@ public class OrderService : IOrderService
             }
         }
     }
+
 }
