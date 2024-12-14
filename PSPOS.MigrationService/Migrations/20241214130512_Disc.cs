@@ -5,7 +5,7 @@
 namespace PSPOS.MigrationService.Migrations
 {
     /// <inheritdoc />
-    public partial class nauja1 : Migration
+    public partial class Disc : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
