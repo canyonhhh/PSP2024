@@ -175,7 +175,7 @@ public class OrderService : IOrderService
         if (transaction == null)
             return null;
 
-        var payments = await _orderRepository.GetAllPaymentsOfTransacionAsync(transactionId);
+        var payments = await _orderRepository.GetAllPaymentsOfTransactionAsync(transactionId);
         if (!payments.Any())
             return null;
 
@@ -244,7 +244,7 @@ public class OrderService : IOrderService
         });
     }
 
-    public async Task AddOrderItemToOrderAsync(Guid orderItemId, OrderItemDTO orderItemDTO)
+    public async Task AddOrderItemToOrderAsync(Guid orderId, OrderItemDTO orderItemDTO)
     {
         if (orderItemDTO.quantity < 1)
             throw new ArgumentException($"Order item quantity must be more than 0.");
@@ -255,8 +255,8 @@ public class OrderService : IOrderService
         Order? order = await _orderRepository.GetOrderByIdAsync(orderItemDTO.orderId)
             ?? throw new ArgumentException($"Order '{orderItemDTO.orderId}' does not exist.");
 
-        if (order.Id != orderItemId)
-            throw new ArgumentException($"Order ID '{orderItemId}' doesn't match with order item's order ID {orderItemDTO.orderId}.");
+        if (order.Id != orderId)
+            throw new ArgumentException($"Order ID '{orderId}' doesn't match with order item's order ID {orderItemDTO.orderId}.");
 
         if (order.Status != OrderStatus.Open)
             throw new ArgumentException($"Order '{orderItemDTO.orderId}' is not open.");

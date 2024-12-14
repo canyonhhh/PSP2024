@@ -16,7 +16,7 @@ public interface IOrderRepository
     Task AddPaymentAsync(Payment payment);
     Task AddTransactionAsync(Transaction transaction);
     Task<Transaction?> GetTransactionByIdAsync(Guid id);
-    Task<IEnumerable<Payment>> GetAllPaymentsOfTransacionAsync(Guid transactionId);
+    Task<IEnumerable<Payment>> GetAllPaymentsOfTransactionAsync(Guid transactionId);
     Task<Giftcard?> GetGiftcardByIdAsync(Guid id);
 
     // '/orders/items'

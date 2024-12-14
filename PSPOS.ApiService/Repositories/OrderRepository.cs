@@ -129,7 +129,7 @@ public class OrderRepository : IOrderRepository
         return await _context.GiftCards.FindAsync(giftcardId);
     }
 
-    public async Task<IEnumerable<Payment>> GetAllPaymentsOfTransacionAsync(Guid transactionId)
+    public async Task<IEnumerable<Payment>> GetAllPaymentsOfTransactionAsync(Guid transactionId)
     {
         return await _context.Payments.Where(p => p.TransactionId == transactionId).ToArrayAsync();
     }
