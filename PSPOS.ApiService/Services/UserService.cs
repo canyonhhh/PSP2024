@@ -55,6 +55,13 @@ public class UserService : IUserService
     {
         var userToUpdate = _mapper.Map<User>(userDto);
 
+        userToUpdate.Id = user;
+
+        if (!string.IsNullOrWhiteSpace(userDto.Password))
+        {
+            userToUpdate.PasswordHash = _authenticationService.HashPassword(userDto.Password);
+        }
+
         // update the user
         await _userRepository.UpdateUserAsync(userToUpdate);
     }
