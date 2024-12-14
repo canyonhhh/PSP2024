@@ -24,9 +24,9 @@ public class UserService : IUserService
         return await _userRepository.GetUserByIdAsync(id);
     }
 
-    public async Task<IEnumerable<User>> GetAllUsersAsync(string? role, string? name, string? surname, int limit, int skip)
+    public async Task<IEnumerable<User>> GetAllUsersAsync(string? role, string? name, string? surname, int limit, int skip, string? businessId)
     {
-        return await _userRepository.GetAllUsersAsync(role, name, surname, limit, skip);
+        return await _userRepository.GetAllUsersAsync(role, name, surname, limit, skip, businessId);
     }
 
     public async Task AddUserAsync(UserDto userDto)
@@ -54,6 +54,13 @@ public class UserService : IUserService
     public async Task UpdateUserAsync(Guid user, UserDto userDto) // used to update user from the API
     {
         var userToUpdate = _mapper.Map<User>(userDto);
+
+        userToUpdate.Id = user;
+
+        if (!string.IsNullOrWhiteSpace(userDto.Password))
+        {
+            userToUpdate.PasswordHash = _authenticationService.HashPassword(userDto.Password);
+        }
 
         // update the user
         await _userRepository.UpdateUserAsync(userToUpdate);

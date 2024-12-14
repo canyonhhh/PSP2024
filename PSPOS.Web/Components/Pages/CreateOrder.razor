@@ -1,0 +1,334 @@
+﻿@page "/createOrder"
+@using PSPOS.ServiceDefaults.DTOs
+@using PSPOS.ServiceDefaults.Schemas
+@inject IHttpClientFactory ClientFactory
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<h3>Create New Order</h3>
+
+<div class="card p-4 mb-4">
+    <form @onsubmit="OnCreateOrder" @onsubmit:preventDefault="true">
+        <div class="form-group mb-3">
+        </div>
+
+        <div class="form-group mb-3">
+            <label for="currency">Currency</label>
+            <select id="currency" @bind="newOrder.currency" class="form-select" required>
+                <option value="">-- Select Currency --</option>
+                <option value="EUR">EUR</option>
+                <option value="LITAS">LITAS</option>
+                <option value="USD">USD</option>
+            </select>
+        </div>
+
+        <div class="form-group mb-3">
+            <label for="status">Order Status</label>
+            <select id="status" @bind="newOrder.status" class="form-select" required>
+                <option value="">-- Select Status --</option>
+                <option value="OPEN">Open</option>
+                <option value="CLOSED">Closed</option>
+                <option value="CANCELED">Canceled</option>
+                <option value="REFUNDED">Refunded</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Create Order</button>
+    </form>
+
+    @if (!string.IsNullOrEmpty(ErrorMessage))
+    {
+        <div class="alert alert-danger mt-3">@ErrorMessage</div>
+    }
+
+    @if (IsSuccess)
+    {
+        <div class="alert alert-success mt-3">Order created successfully! Order ID: @CreatedOrderId</div>
+    }
+</div>
+
+@if (IsOrderCreated)
+{
+    <h3>Add Order Items</h3>
+    <div class="card p-4 mb-4">
+        <form @onsubmit="OnAddOrderItem" @onsubmit:preventDefault="true">
+            <div class="form-group mb-3">
+                <label for="stockItem">Select Product</label>
+                <select id="stockItem" @bind="selectedStockItemId" class="form-select" required>
+                    <option value="">-- Select Product --</option>
+                    @foreach (var product in StockItems)
+                    {
+                        <option value="@product.Id">
+                            @product.Name - Price: @product.Price.ToString("C") - Stock: @product.StockQuantity
+                        </option>
+                    }
+                </select>
+            </div>
+
+
+            <div class="form-group mb-3">
+                <label for="quantity">Quantity</label>
+                <input id="quantity" @bind="newOrderItem.Quantity" type="number" min="1" class="form-control" required />
+            </div>
+
+            <button type="submit" class="btn btn-success">Add Item</button>
+        </form>
+
+        @if (!string.IsNullOrEmpty(OrderItemErrorMessage))
+        {
+            <div class="alert alert-danger mt-3">@OrderItemErrorMessage</div>
+        }
+
+        @if (IsOrderItemAdded)
+        {
+            <div class="alert alert-success mt-3">Order item added successfully!</div>
+        }
+    </div>
+
+    <h4>Current Order Items</h4>
+    @if (OrderItems == null)
+    {
+        <p>Loading order items...</p>
+    }
+    else if (!OrderItems.Any())
+    {
+        <p>No items in this order yet.</p>
+    }
+    else
+    {
+        <table class="table table-striped table-hover mb-4">
+            <thead class="table-dark">
+                <tr>
+                    <th>Item ID</th>
+                    <th>Type</th>
+                    <th>Price (@orderCurrency)</th>
+                    <th>Quantity</th>
+                    <th>Total (@orderCurrency)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in OrderItems)
+                {
+                    <tr>
+                        <td>@item.Id</td>
+                        <td>@item.type</td>
+                        <td>@item.price</td>
+                        <td>@item.quantity</td>
+                        <td>@(item.price * item.quantity)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+
+@code {
+    private HttpClient Http => ClientFactory.CreateClient("ApiClient");
+
+    private OrderDTO newOrder = new OrderDTO();
+    private bool IsSuccess = false;
+    private string ErrorMessage = string.Empty;
+
+    private bool IsOrderCreated = false;
+    private Guid CreatedOrderId;
+    private List<OrderItemSchema> OrderItems = new();
+
+    private List<StockItem> StockItems = new();
+    private Guid selectedStockItemId = Guid.Empty;
+    private NewOrderItemDTO newOrderItem = new NewOrderItemDTO();
+    private bool IsOrderItemAdded = false;
+    private string OrderItemErrorMessage = string.Empty;
+
+    private string orderCurrency = string.Empty;
+    private bool ShouldLoadOrderItems = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadStockItems();
+    }
+
+    private async Task LoadStockItems()
+    {
+        try
+        {
+            // Fetch products with stock data
+            var products = await Http.GetFromJsonAsync<List<ProductSchema>>("api/products");
+
+            // Map the products to the StockItems list
+            StockItems = products?.Select(p => new StockItem
+                {
+                    Id = p.Id,
+                    Name = p.name ?? "No Name",
+                    Description = p.description ?? "No Description",
+                    Price = p.price ?? 0,
+                    StockQuantity = p.stockQuantity
+                }).ToList() ?? new List<StockItem>();
+        }
+        catch (Exception ex)
+        {
+            StockItems = new List<StockItem>();
+            OrderItemErrorMessage = $"Error loading stock items: {ex.Message}";
+        }
+    }
+
+    private async Task OnCreateOrder()
+    {
+        IsSuccess = false;
+        ErrorMessage = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(newOrder.currency))
+        {
+            ErrorMessage = "Please select a currency.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(newOrder.status))
+        {
+            ErrorMessage = "Please select a status.";
+            return;
+        }
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("orders", newOrder);
+            if (response.IsSuccessStatusCode)
+            {
+                if (response.Headers.Location != null)
+                {
+                    var segments = response.Headers.Location.Segments;
+                    var orderIdString = segments.Last().TrimEnd('/');
+                    if (Guid.TryParse(orderIdString, out Guid orderId))
+                    {
+                        CreatedOrderId = orderId;
+                        IsOrderCreated = true;
+                        IsSuccess = true;
+
+                        var createdOrderResponse = await Http.GetFromJsonAsync<OrderSchema>($"orders/{CreatedOrderId}");
+                        if (createdOrderResponse != null)
+                        {
+                            orderCurrency = createdOrderResponse.currency ?? "USD"; 
+                        }
+
+                        ShouldLoadOrderItems = true;
+                    }
+                    else
+                    {
+                        ErrorMessage = "Order created, but failed to parse Order ID.";
+                    }
+                }
+                else
+                {
+                    ErrorMessage = "Order created, but no Location header found.";
+                }
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                ErrorMessage = $"Error creating order: {response.ReasonPhrase} - {errorContent}";
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"An error occurred: {ex.Message}";
+        }
+    }
+
+    private async Task LoadOrderItems()
+    {
+        if (!ShouldLoadOrderItems || CreatedOrderId == Guid.Empty)
+            return;
+
+        try
+        {
+            OrderItems = await Http.GetFromJsonAsync<List<OrderItemSchema>>($"orders/{CreatedOrderId}/items") ?? new List<OrderItemSchema>();
+        }
+        catch (Exception ex)
+        {
+            OrderItemErrorMessage = $"Error loading order items: {ex.Message}";
+            OrderItems = new List<OrderItemSchema>();
+        }
+    }
+
+    private async Task OnAddOrderItem()
+    {
+        IsOrderItemAdded = false;
+        OrderItemErrorMessage = string.Empty;
+
+        // Check if the order is already created
+        if (CreatedOrderId == Guid.Empty)
+        {
+            OrderItemErrorMessage = "Please create an order first.";
+            return;
+        }
+
+        // Check if a stock item is selected
+        if (selectedStockItemId == Guid.Empty)
+        {
+            OrderItemErrorMessage = "Please select a stock item.";
+            return;
+        }
+
+        // Validate the quantity
+        if (newOrderItem.Quantity < 1)
+        {
+            OrderItemErrorMessage = "Quantity must be at least 1.";
+            return;
+        }
+
+        // Retrieve the selected product
+        var selectedStockItem = StockItems.FirstOrDefault(s => s.Id == selectedStockItemId);
+        if (selectedStockItem == null)
+        {
+            OrderItemErrorMessage = "Selected product not found.";
+            return;
+        }
+
+        // Prepare the order item DTO
+        var orderItemDTO = new OrderItemDTO
+            {
+                orderId = CreatedOrderId,
+                type = "PRODUCT", // Since everything is a product
+                price = selectedStockItem.Price,
+                quantity = newOrderItem.Quantity,
+                productId = selectedStockItem.Id,
+                transactionId = Guid.Empty
+            };
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync($"orders/{CreatedOrderId}/items", orderItemDTO);
+            if (response.IsSuccessStatusCode)
+            {
+                IsOrderItemAdded = true;
+                newOrderItem = new NewOrderItemDTO();
+                selectedStockItemId = Guid.Empty;
+
+                await LoadOrderItems(); // Reload current order items
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                OrderItemErrorMessage = $"Error adding order item: {response.ReasonPhrase} - {errorContent}";
+            }
+        }
+        catch (Exception ex)
+        {
+            OrderItemErrorMessage = $"An error occurred: {ex.Message}";
+        }
+    }
+
+    public class NewOrderItemDTO
+    {
+        public int Quantity { get; set; } = 1;
+    }
+
+    public class StockItem
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+        public int StockQuantity { get; set; }
+    }
+
+}

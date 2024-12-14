@@ -1,4 +1,19 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+﻿@using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@code {
+    private ClaimsPrincipal? User;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        User = authState?.User; // Ensure User is set or remains null
+    }
+}
+
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">PSPOS</a>
     </div>
@@ -14,16 +29,32 @@
             </NavLink>
         </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill" aria-hidden="true"></span> Counter
-            </NavLink>
-        </div>
+        @if (User?.FindFirst("UserRole")?.Value == "SuperAdmin")
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="admin">
+                    <span class="bi bi-list-nested" aria-hidden="true"></span> Admin
+                </NavLink>
+            </div>
+        }
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested" aria-hidden="true"></span> Weather
-            </NavLink>
-        </div>
+        @if (User?.FindFirst("UserRole")?.Value == "BusinessAdmin")
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="/business-admin/employees">
+                    <span class="bi bi-list-nested" aria-hidden="true"></span> Employees
+                </NavLink>
+            </div>
+        }
+
+
+        @if (User?.FindFirst("UserRole")?.Value == "BusinessAdmin")
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="/business-admin/taxes">
+                    <span class="bi bi-list-nested" aria-hidden="true"></span> Taxes
+                </NavLink>
+            </div>
+        }
     </nav>
 </div>

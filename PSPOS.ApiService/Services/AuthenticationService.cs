@@ -74,7 +74,7 @@ namespace PSPOS.ApiService.Services
         public string GenerateJwtToken(User user)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"] ?? throw new Exception("Jwt:Key is missing"));
+            var key = Encoding.UTF8.GetBytes(_configuration["Jwt:Key"] ?? throw new Exception("Jwt:Key is missing"));
 
 
             Console.WriteLine($"User ID: {user.Id}");

@@ -1,0 +1,316 @@
+@page "/business-admin/employees"
+@inject IHttpClientFactory ClientFactory
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@attribute [Authorize]
+
+<h2>Employee Management</h2>
+
+<!-- Create New Employee Form -->
+<div class="card mb-3">
+    <div class="card-header bg-primary text-white">Add New Employee</div>
+    <div class="card-body">
+        <div class="mb-3">
+            <label class="form-label">First Name</label>
+            <input class="form-control" @bind="newEmployee.FirstName" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Last Name</label>
+            <input class="form-control" @bind="newEmployee.LastName" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-control" @bind="newEmployee.Email" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Phone</label>
+            <input class="form-control" @bind="newEmployee.Phone" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Password</label>
+            <input type="password" class="form-control" @bind="newEmployee.Password" />
+        </div>
+        <button class="btn btn-success" @onclick="CreateEmployee">Add Employee</button>
+    </div>
+</div>
+
+<!-- Employees Table -->
+@if (employees == null)
+{
+    <p>Loading employees...</p>
+}
+else if (!employees.Any())
+{
+    <p>No employees found.</p>
+}
+else
+{
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>First Name</th>
+                <th>Last Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var employee in employees)
+            {
+                <tr class="@(SelectedEmployeeId == employee.Id ? "table-active" : "")">
+                    <td>@employee.FirstName</td>
+                    <td>@employee.LastName</td>
+                    <td>@employee.Email</td>
+                    <td>@employee.Phone</td>
+                    <td>
+                        <button class="btn btn-warning btn-sm me-2" @onclick="() => OpenEditPopup(employee)">Edit</button>
+                        <button class="btn btn-danger btn-sm" @onclick="() => DeleteEmployee(employee.Id)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<!-- Edit Employee Popup -->
+@if (isEditPopupVisible)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Employee</h5>
+                    <button type="button" class="btn-close" @onclick="CloseEditPopup"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">First Name</label>
+                        <input class="form-control" @bind="editEmployee.FirstName" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Last Name</label>
+                        <input class="form-control" @bind="editEmployee.LastName" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" @bind="editEmployee.Email" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Phone</label>
+                        <input class="form-control" @bind="editEmployee.Phone" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-control" @bind="editEmployee.Password" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseEditPopup">Close</button>
+                    <button type="button" class="btn btn-primary" @onclick="SaveEditEmployee">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Success/Error Messages -->
+@if (!string.IsNullOrEmpty(Message))
+{
+    <div class="alert alert-info">@Message</div>
+}
+
+@code {
+    private HttpClient Http => ClientFactory.CreateClient("ApiClient");
+
+    private List<Employee>? employees;
+    private Employee newEmployee = new();
+    private Employee editEmployee = new();
+    private Guid SelectedEmployeeId = Guid.Empty;
+    private string? Message;
+    private bool isEditPopupVisible = false;
+    private Guid? CurrentBusinessId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await SetCurrentBusinessId();
+        await LoadEmployees();
+    }
+
+    private async Task SetCurrentBusinessId()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var businessIdClaim = user.FindFirst("BusinessId")?.Value;
+
+        if (Guid.TryParse(businessIdClaim, out var businessId))
+        {
+            CurrentBusinessId = businessId;
+        }
+        else
+        {
+            Message = "Could not determine Business ID.";
+        }
+    }
+
+    private async Task LoadEmployees()
+    {
+        if (CurrentBusinessId == null)
+        {
+            Message = "Business ID is not available.";
+            return;
+        }
+
+        try
+        {
+            // Fetch users with the 'Employee' role and matching BusinessId
+            employees = await Http.GetFromJsonAsync<List<Employee>>($"users?role=2&businessId={CurrentBusinessId}");
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error loading employees: {ex.Message}";
+        }
+    }
+
+    private async Task CreateEmployee()
+    {
+        if (CurrentBusinessId == null)
+        {
+            Message = "Business ID is not available.";
+            return;
+        }
+
+        try
+        {
+            var newUser = new UserDto
+            {
+                FirstName = newEmployee.FirstName,
+                LastName = newEmployee.LastName,
+                Email = newEmployee.Email,
+                Phone = newEmployee.Phone,
+                Role = "2",
+                Password = newEmployee.Password,
+                BusinessId = CurrentBusinessId.Value
+            };
+
+            var response = await Http.PostAsJsonAsync("users", newUser);
+            if (response.IsSuccessStatusCode)
+            {
+                Message = "Employee added successfully.";
+                newEmployee = new();
+                await LoadEmployees();
+            }
+            else
+            {
+                Message = $"Failed to add employee: {response.ReasonPhrase}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error adding employee: {ex.Message}";
+        }
+    }
+
+    private void OpenEditPopup(Employee employee)
+    {
+        editEmployee = new Employee
+        {
+            Id = employee.Id,
+            FirstName = employee.FirstName,
+            LastName = employee.LastName,
+            Email = employee.Email,
+            Phone = employee.Phone
+        };
+        isEditPopupVisible = true;
+    }
+
+    private void CloseEditPopup()
+    {
+        isEditPopupVisible = false;
+    }
+
+private async Task SaveEditEmployee()
+{
+    if (CurrentBusinessId == null)
+    {
+        Message = "Business ID is not available.";
+        return;
+    }
+
+    try
+    {
+        var updatedUser = new UserDto
+        {
+            FirstName = editEmployee.FirstName,
+            LastName = editEmployee.LastName,
+            Email = editEmployee.Email,
+            Phone = editEmployee.Phone,
+            Role = "2",
+            Password = editEmployee.Password,
+            BusinessId = CurrentBusinessId.Value
+        };
+
+        var response = await Http.PutAsJsonAsync($"users/{editEmployee.Id}", updatedUser);
+        if (response.IsSuccessStatusCode)
+        {
+            Message = "Employee updated successfully.";
+            await LoadEmployees();
+            CloseEditPopup();
+        }
+        else
+        {
+            Message = $"Failed to update employee: {response.ReasonPhrase}";
+        }
+    }
+    catch (Exception ex)
+    {
+        Message = $"Error updating employee: {ex.Message}";
+    }
+}
+
+    private async Task DeleteEmployee(Guid employeeId)
+    {
+        try
+        {
+            var response = await Http.DeleteAsync($"users/{employeeId}");
+            if (response.IsSuccessStatusCode)
+            {
+                Message = "Employee deleted successfully.";
+                employees?.RemoveAll(e => e.Id == employeeId);
+            }
+            else
+            {
+                Message = $"Failed to delete employee: {response.ReasonPhrase}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error deleting employee: {ex.Message}";
+        }
+    }
+
+    public class Employee
+    {
+        public Guid Id { get; set; }
+        public string? FirstName { get; set; }
+        public string? LastName { get; set; }
+        public string? Email { get; set; }
+        public string? Phone { get; set; }
+        public string? Password { get; set; }
+    }
+
+    public class UserDto
+    {
+        public string? FirstName { get; set; }
+        public string? LastName { get; set; }
+        public string? Email { get; set; }
+        public string? Phone { get; set; }
+        public string? Role { get; set; }
+        public string? Password { get; set; }
+        public Guid BusinessId { get; set; }
+    }
+}

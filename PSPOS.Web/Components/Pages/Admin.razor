@@ -1,0 +1,380 @@
+@page "/admin"
+@inject IHttpClientFactory ClientFactory
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@attribute [Authorize]
+
+<h2>Business Management</h2>
+
+<!-- Create New Business Form -->
+<div class="card mb-3">
+    <div class="card-header bg-primary text-white">Add New Business</div>
+    <div class="card-body">
+        <div class="mb-3">
+            <label class="form-label">Name</label>
+            <input class="form-control" @bind="newBusiness.Name" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Phone</label>
+            <input class="form-control" @bind="newBusiness.Phone" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-control" @bind="newBusiness.Email" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Currency</label>
+            <select class="form-select" @bind="newBusiness.DefaultCurrency">
+                @foreach (var currency in Enum.GetValues<Currency>())
+                {
+                    <option value="@currency">@currency</option>
+                }
+            </select>
+        </div>
+        <button class="btn btn-success" @onclick="CreateBusiness">Create</button>
+    </div>
+</div>
+
+<!-- Businesses Table -->
+@if (businesses == null)
+{
+    <p>Loading businesses...</p>
+}
+else if (!businesses.Any())
+{
+    <p>No businesses found.</p>
+}
+else
+{
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>Email</th>
+                <th>Currency</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var business in businesses.OrderByDescending(b => !b.IsInitialized))
+            {
+                <tr class="@(SelectedBusinessId == business.Id ? "table-active" : "")" @onclick="() => SelectBusiness(business)">
+                    <td>@business.Name</td>
+                    <td>@business.Phone</td>
+                    <td>@business.Email</td>
+                    <td>@business.DefaultCurrency</td>
+                    <td>
+                        @if (!business.IsInitialized)
+                        {
+                            <span class="badge bg-danger">Uninitialized</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-success">Initialized</span>
+                        }
+                    </td>
+                    <td>
+                        <button class="btn btn-warning btn-sm me-2" @onclick="() => OpenEditPopup(business)">Edit</button>
+                        <button class="btn btn-danger btn-sm" @onclick="() => DeleteBusiness(business.Id)">Delete</button>
+                        <button class="btn btn-info btn-sm" @onclick="() => OpenAddAdminPopup(business.Id)">Add Admin</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<!-- Edit Business Popup -->
+@if (isEditPopupVisible)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Business</h5>
+                    <button type="button" class="btn-close" @onclick="CloseEditPopup"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Name</label>
+                        <input class="form-control" @bind="editBusiness.Name" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Phone</label>
+                        <input class="form-control" @bind="editBusiness.Phone" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" @bind="editBusiness.Email" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Currency</label>
+                        <select class="form-select" @bind="editBusiness.DefaultCurrency">
+                            @foreach (var currency in Enum.GetValues<Currency>())
+                            {
+                                <option value="@currency">@currency</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseEditPopup">Close</button>
+                    <button type="button" class="btn btn-primary" @onclick="SaveEditBusiness">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Add Admin Popup -->
+@if (isAddAdminPopupVisible)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Business Admin</h5>
+                    <button type="button" class="btn-close" @onclick="CloseAddAdminPopup"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">First Name</label>
+                        <input class="form-control" @bind="newAdmin.FirstName" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Last Name</label>
+                        <input class="form-control" @bind="newAdmin.LastName" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" @bind="newAdmin.Email" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Phone</label>
+                        <input class="form-control" @bind="newAdmin.Phone" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-control" @bind="newAdmin.Password" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseAddAdminPopup">Close</button>
+                    <button type="button" class="btn btn-primary" @onclick="AddBusinessAdmin">Add Admin</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Success/Error Messages -->
+@if (!string.IsNullOrEmpty(Message))
+{
+    <div class="alert alert-info">@Message</div>
+}
+
+@code {
+    private HttpClient Http => ClientFactory.CreateClient("ApiClient");
+
+    private List<Business>? businesses;
+    private Business newBusiness = new() { DefaultCurrency = Currency.Eur };
+    private Business editBusiness = new();
+    private Guid SelectedBusinessId = Guid.Empty;
+    private string? Message;
+    private bool isEditPopupVisible = false;
+    private bool isAddAdminPopupVisible = false;
+    private AdminUser newAdmin = new();
+    private Guid currentBusinessId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBusinesses();
+    }
+
+    private async Task LoadBusinesses()
+    {
+        try
+        {
+            businesses = await Http.GetFromJsonAsync<List<Business>>("api/businesses");
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error loading businesses: {ex.Message}";
+        }
+    }
+
+    private async Task CreateBusiness()
+    {
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/businesses", newBusiness);
+            if (response.IsSuccessStatusCode)
+            {
+                Message = "Business created successfully.";
+                newBusiness = new() { DefaultCurrency = Currency.Eur };
+                await LoadBusinesses();
+            }
+            else
+            {
+                Message = $"Failed to create business: {response.ReasonPhrase}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error creating business: {ex.Message}";
+        }
+    }
+
+    private void OpenEditPopup(Business business)
+    {
+        editBusiness = new Business
+        {
+            Id = business.Id,
+            Name = business.Name,
+            Phone = business.Phone,
+            Email = business.Email,
+            DefaultCurrency = business.DefaultCurrency,
+            IsInitialized = business.IsInitialized
+        };
+        isEditPopupVisible = true;
+    }
+
+    private void CloseEditPopup()
+    {
+        isEditPopupVisible = false;
+    }
+
+    private async Task SaveEditBusiness()
+    {
+        try
+        {
+            var response = await Http.PutAsJsonAsync($"api/businesses/{editBusiness.Id}", editBusiness);
+            if (response.IsSuccessStatusCode)
+            {
+                Message = "Business updated successfully.";
+                await LoadBusinesses();
+                CloseEditPopup();
+            }
+            else
+            {
+                Message = $"Failed to update business: {response.ReasonPhrase}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error updating business: {ex.Message}";
+        }
+    }
+
+    private void SelectBusiness(Business business)
+    {
+        SelectedBusinessId = business.Id;
+    }
+
+    private async Task DeleteBusiness(Guid businessId)
+    {
+        try
+        {
+            var response = await Http.DeleteAsync($"api/businesses/{businessId}");
+            if (response.IsSuccessStatusCode)
+            {
+                Message = "Business deleted successfully.";
+                businesses?.RemoveAll(b => b.Id == businessId);
+            }
+            else
+            {
+                Message = $"Failed to delete business: {response.ReasonPhrase}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error deleting business: {ex.Message}";
+        }
+    }
+
+    private void OpenAddAdminPopup(Guid businessId)
+    {
+        currentBusinessId = businessId;
+        newAdmin = new AdminUser();
+        isAddAdminPopupVisible = true;
+    }
+
+    private void CloseAddAdminPopup()
+    {
+        isAddAdminPopupVisible = false;
+    }
+
+    private async Task AddBusinessAdmin()
+    {
+        try
+        {
+            var userDto = new UserDto
+            {
+                FirstName = newAdmin.FirstName,
+                LastName = newAdmin.LastName,
+                Email = newAdmin.Email,
+                Phone = newAdmin.Phone,
+                Role = "1",
+                BusinessId = currentBusinessId,
+                Password = newAdmin.Password
+            };
+
+            var response = await Http.PostAsJsonAsync("users", userDto);
+            if (response.IsSuccessStatusCode)
+            {
+                Message = "Business admin added successfully.";
+                CloseAddAdminPopup();
+            }
+            else
+            {
+                Message = $"Failed to add business admin: {response.ReasonPhrase}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error adding business admin: {ex.Message}";
+        }
+    }
+
+    public enum Currency
+    {
+        Eur,
+        Usd,
+        Gbp
+    }
+
+    public class Business
+    {
+        public Guid Id { get; set; }
+        public string? Name { get; set; }
+        public string? Phone { get; set; }
+        public string? Email { get; set; }
+        public Currency DefaultCurrency { get; set; }
+        public bool IsInitialized { get; set; }
+    }
+
+    public class AdminUser
+    {
+        public string? FirstName { get; set; }
+        public string? LastName { get; set; }
+        public string? Email { get; set; }
+        public string? Phone { get; set; }
+        public string? Password { get; set; }
+    }
+
+    public class UserDto
+    {
+        public string? FirstName { get; set; }
+        public string? LastName { get; set; }
+        public string? Email { get; set; }
+        public string? Phone { get; set; }
+        public string? Role { get; set; }
+        public Guid BusinessId { get; set; }
+        public string? Password { get; set; }
+    }
+}

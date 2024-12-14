@@ -1,4 +1,7 @@
-﻿@inherits Microsoft.AspNetCore.Components.LayoutComponentBase
+﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+
+@inherits Microsoft.AspNetCore.Components.LayoutComponentBase
 
 <div class="page">
     <div class="sidebar">
@@ -7,7 +10,7 @@
 
     <main>
         <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+            <button class="btn btn-link" @onclick="Logout">Logout</button>
         </div>
 
         <article class="content px-4">
@@ -21,3 +24,29 @@
     <a href="" class="reload">Reload</a>
     <a class="dismiss">🗙</a>
 </div>
+
+<!-- Inline JavaScript to clear cookies -->
+<script>
+    window.clearCookies = () => {
+        console.log("Clearing cookies...");
+        const cookies = document.cookie.split(";");
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i];
+            const eqPos = cookie.indexOf("=");
+            const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+            document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;";
+        }
+        console.log("Cookies cleared.");
+    };
+</script>
+
+@code {
+    private async Task Logout()
+    {
+        // Invoke the inline JavaScript function
+        await JSRuntime.InvokeVoidAsync("clearCookies");
+
+        // Redirect to the login page
+        NavigationManager.NavigateTo("/login", forceLoad: true);
+    }
+}

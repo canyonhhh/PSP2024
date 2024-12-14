@@ -5,8 +5,7 @@ using PSPOS.ServiceDefaults.DTOs;
 using PSPOS.ServiceDefaults.Models;
 
 namespace PSPOS.ApiService.Controllers
-{  //TODO: CreateUser should not use [authorize]
-   // [Authorize]
+{
     [ApiController]
     [Route("users")]
     public class UserController : ControllerBase
@@ -24,6 +23,7 @@ namespace PSPOS.ApiService.Controllers
             [FromQuery] string? role = null,
             [FromQuery] string? name = null,
             [FromQuery] string? surname = null,
+            [FromQuery] string? businessId = null,
             [FromQuery] int limit = 10,
             [FromQuery] int skip = 0)
         {
@@ -32,7 +32,7 @@ namespace PSPOS.ApiService.Controllers
                 return BadRequest("Invalid pagination parameters.");
             }
 
-            var users = await _userService.GetAllUsersAsync(role, name, surname, limit, skip);
+            var users = await _userService.GetAllUsersAsync(role, name, surname, limit, skip, businessId);
 
             return Ok(users);
         }

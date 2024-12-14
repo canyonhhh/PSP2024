@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using PSPOS.ServiceDefaults.DTOs;
+using PSPOS.ServiceDefaults.Models;
 using System.Security.Claims;
 
 namespace PSPOS.BlazorApp.Controllers
@@ -42,10 +43,16 @@ namespace PSPOS.BlazorApp.Controllers
             await HttpContext.SignInAsync("Cookies", principal, new AuthenticationProperties
             {
                 IsPersistent = true,
-                ExpiresUtc = authResponse.Expiration
+                ExpiresUtc = authResponse.Expiration,
+                IssuedUtc = DateTime.UtcNow
             });
 
-            return Redirect("/");
+            if (authResponse.Role == UserRole.SuperAdmin.ToString())
+                return Redirect("/admin");
+            if (authResponse.Role == UserRole.BusinessAdmin.ToString())
+                return Redirect("/business-admin/employees");
+            else
+                return Redirect("/");
         }
     }
 }
