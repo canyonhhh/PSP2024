@@ -1,0 +1,265 @@
+@page "/business-admin/taxes"
+@inject IHttpClientFactory ClientFactory
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+
+<h2>Tax Management</h2>
+
+<!-- Create New Tax Form -->
+<div class="card mb-3">
+    <div class="card-header bg-primary text-white">Add New Tax</div>
+    <div class="card-body">
+        <div class="mb-3">
+            <label class="form-label">Name</label>
+            <input class="form-control" @bind="newTax.Name" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Description</label>
+            <input class="form-control" @bind="newTax.Description" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Percentage (%)</label>
+            <input type="number" class="form-control" @bind="newTax.Percentage" />
+        </div>
+        <div class="mb-3 form-check">
+            <input type="checkbox" class="form-check-input" @bind="newTax.Active" />
+            <label class="form-check-label">Active</label>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Product Group</label>
+            <select class="form-select" @bind="newTax.ProductOrServiceGroupId">
+                <option value="@Guid.Empty">Select a Product Group</option>
+                @foreach (var group in productGroups)
+                {
+                <option value="@group.Id">@group.Name</option>
+                }
+            </select>
+        </div>
+        <button class="btn btn-success" @onclick="CreateTax">Add Tax</button>
+    </div>
+</div>
+
+<!-- Taxes Table -->
+@if (taxes == null)
+{
+<p>Loading taxes...</p>
+}
+else if (!taxes.Any())
+{
+<p>No taxes found.</p>
+}
+else
+{
+<table class="table table-striped table-hover">
+    <thead class="table-dark">
+        <tr>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Percentage</th>
+            <th>Status</th>
+            <th>Product Group</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var tax in taxes)
+        {
+        <tr>
+            <td>@tax.Name</td>
+            <td>@tax.Description</td>
+            <td>@tax.Percentage%</td>
+            <td>@(tax.Active ? "Active" : "Inactive")</td>
+            <td>@productGroups.FirstOrDefault(g => g.Id == tax.ProductOrServiceGroupId)?.Name ?? "None"</td>
+            <td>
+                <button class="btn btn-warning btn-sm me-2" @onclick="() => OpenEditPopup(tax)">Edit</button>
+                <button class="btn btn-danger btn-sm" @onclick="() => DeleteTax(tax.Id)">Delete</button>
+            </td>
+        </tr>
+        }
+    </tbody>
+</table>
+}
+
+<!-- Edit Tax Popup -->
+@if (isEditPopupVisible)
+{
+<div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Tax</h5>
+                <button type="button" class="btn-close" @onclick="CloseEditPopup"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Name</label>
+                    <input class="form-control" @bind="editTax.Name" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    <input class="form-control" @bind="editTax.Description" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Percentage (%)</label>
+                    <input type="number" class="form-control" @bind="editTax.Percentage" />
+                </div>
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" @bind="editTax.Active" />
+                    <label class="form-check-label">Active</label>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Product Group</label>
+                    <select class="form-select" @bind="editTax.ProductOrServiceGroupId">
+                        <option value="@Guid.Empty">Select a Product Group</option>
+                        @foreach (var group in productGroups)
+                        {
+                        <option value="@group.Id">@group.Name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" @onclick="CloseEditPopup">Close</button>
+                <button type="button" class="btn btn-primary" @onclick="SaveEditTax">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+}
+
+<!-- Success/Error Messages -->
+@if (!string.IsNullOrEmpty(Message))
+{
+<div class="alert alert-info">@Message</div>
+}
+
+@code {
+private HttpClient Http => ClientFactory.CreateClient("ApiClient");
+
+private List<Tax>? taxes;
+    private List<ProductGroup> productGroups = new();
+        private Tax newTax = new();
+        private Tax editTax = new();
+        private string? Message;
+        private bool isEditPopupVisible = false;
+
+        protected override async Task OnInitializedAsync()
+        {
+        await LoadProductGroups();
+        await LoadTaxes();
+        }
+
+        private async Task LoadProductGroups()
+        {
+        try
+        {
+        productGroups = await Http.GetFromJsonAsync<List<ProductGroup>>("api/categories") ?? new List<ProductGroup>();
+                }
+                catch (Exception ex)
+                {
+                Message = $"Error loading product groups: {ex.Message}";
+                }
+                }
+
+                private async Task LoadTaxes()
+                {
+                try
+                {
+                taxes = await Http.GetFromJsonAsync<List<Tax>>("tax");
+                    }
+                    catch (Exception ex)
+                    {
+                    Message = $"Error loading taxes: {ex.Message}";
+                    }
+                    }
+
+                    private async Task CreateTax()
+                    {
+                    try
+                    {
+                    var response = await Http.PostAsJsonAsync("tax", newTax);
+                    if (response.IsSuccessStatusCode)
+                    {
+                    Message = "Tax created successfully.";
+                    newTax = new();
+                    await LoadTaxes();
+                    }
+                    }
+                    catch (Exception ex)
+                    {
+                    Message = $"Error creating tax: {ex.Message}";
+                    }
+                    }
+
+                    private void OpenEditPopup(Tax tax)
+                    {
+                    editTax = new Tax
+                    {
+                    Id = tax.Id,
+                    Name = tax.Name,
+                    Description = tax.Description,
+                    Percentage = tax.Percentage,
+                    Active = tax.Active,
+                    ProductOrServiceGroupId = tax.ProductOrServiceGroupId
+                    };
+                    isEditPopupVisible = true;
+                    }
+
+                    private async Task SaveEditTax()
+                    {
+                    try
+                    {
+                    var response = await Http.PutAsJsonAsync($"tax/{editTax.Id}", editTax);
+                    if (response.IsSuccessStatusCode)
+                    {
+                    Message = "Tax updated successfully.";
+                    await LoadTaxes();
+                    CloseEditPopup();
+                    }
+                    }
+                    catch (Exception ex)
+                    {
+                    Message = $"Error updating tax: {ex.Message}";
+                    }
+                    }
+
+                    private async Task DeleteTax(Guid taxId)
+                    {
+                    try
+                    {
+                    var response = await Http.DeleteAsync($"tax/{taxId}");
+                    if (response.IsSuccessStatusCode)
+                    {
+                    Message = "Tax deleted successfully.";
+                    taxes?.RemoveAll(t => t.Id == taxId);
+                    }
+                    }
+                    catch (Exception ex)
+                    {
+                    Message = $"Error deleting tax: {ex.Message}";
+                    }
+                    }
+
+                    private void CloseEditPopup() => isEditPopupVisible = false;
+
+                    public class Tax
+                    {
+                    public Guid Id { get; set; }
+                    public string? Name { get; set; }
+                    public string? Description { get; set; }
+                    public float Percentage { get; set; }
+                    public bool Active { get; set; }
+                    public Guid? ProductOrServiceGroupId { get; set; }
+                    }
+
+                    public class ProductGroup
+                    {
+                    public Guid Id { get; set; }
+                    public string Name { get; set; } = string.Empty;
+                    }
+                    }

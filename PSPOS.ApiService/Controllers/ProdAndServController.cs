@@ -1,13 +1,9 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using PSPOS.ApiService.Services;
+﻿using Microsoft.AspNetCore.Mvc;
 using PSPOS.ApiService.Services.Interfaces;
 using PSPOS.ServiceDefaults.Models;
-using PSPOS.ServiceDefaults.Schemas;
 
 namespace PSPOS.ApiService.Controllers
 {
-    [Authorize]
     [ApiController]
     [Route("api")]
     public class ProdAndServController : ControllerBase
