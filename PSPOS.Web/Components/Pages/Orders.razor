@@ -41,12 +41,16 @@ else
         </tbody>
     </table>
 
-    @if (SelectedOrderId != Guid.Empty)
-    {
-        <div class="text-center mt-3">
+    <div class="text-center mt-3">
+        @if (SelectedOrderId != Guid.Empty && SelectedOrder?.Status?.ToUpper() == "OPEN")
+        {
             <button class="btn btn-primary" @onclick="NavigateToCheckout">Checkout</button>
-        </div>
-    }
+        }
+        else
+        {
+            <button class="btn btn-primary" disabled>Checkout</button>
+        }
+    </div>
 }
 
 <!-- Success/Error Messages -->
@@ -61,6 +65,8 @@ else
     private string? Message;
     private Guid SelectedOrderId = Guid.Empty;
 
+    private OrderSchema? SelectedOrder { get; set; }
+
     // Fetch orders when the page is loaded
     protected override async Task OnInitializedAsync()
     {
@@ -70,7 +76,7 @@ else
     private void SelectOrder(OrderSchema order)
     {
         SelectedOrderId = order.Id;
-        Console.WriteLine($"Selected Order ID: {SelectedOrderId}");
+        SelectedOrder = order;
     }
 
     private void NavigateToCheckout()

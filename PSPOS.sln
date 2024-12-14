@@ -1,19 +1,19 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.12.35527.113 d17.12
+VisualStudioVersion = 17.12.35527.113
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PSPOS.ApiService", "PSPOS.ApiService\PSPOS.ApiService.csproj", "{FE26E373-0071-4EB8-89FE-CA45E21AF179}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PSPOS.ApiService", "PSPOS.ApiService\PSPOS.ApiService.csproj", "{FE26E373-0071-4EB8-89FE-CA45E21AF179}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PSPOS.AppHost", "PSPOS.AppHost\PSPOS.AppHost.csproj", "{ED819240-7D67-45B9-9E9C-43A07D6E72D6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PSPOS.AppHost", "PSPOS.AppHost\PSPOS.AppHost.csproj", "{ED819240-7D67-45B9-9E9C-43A07D6E72D6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PSPOS.ServiceDefaults", "PSPOS.ServiceDefaults\PSPOS.ServiceDefaults.csproj", "{A803B12E-C2A8-4FAE-81C5-F01352E43EE7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PSPOS.ServiceDefaults", "PSPOS.ServiceDefaults\PSPOS.ServiceDefaults.csproj", "{A803B12E-C2A8-4FAE-81C5-F01352E43EE7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PSPOS.Tests", "PSPOS.Tests\PSPOS.Tests.csproj", "{C8E9ED51-5F00-4D4F-B7C5-96A34C60F02F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PSPOS.Tests", "PSPOS.Tests\PSPOS.Tests.csproj", "{C8E9ED51-5F00-4D4F-B7C5-96A34C60F02F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PSPOS.Web", "PSPOS.Web\PSPOS.Web.csproj", "{980096AE-91F0-43DE-A612-808AA7FB308D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PSPOS.Web", "PSPOS.Web\PSPOS.Web.csproj", "{980096AE-91F0-43DE-A612-808AA7FB308D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PSPOS.MigrationService", "PSPOS.MigrationService\PSPOS.MigrationService.csproj", "{2AADF8F5-08FF-4E8D-AEEC-AEFB48A380A6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PSPOS.MigrationService", "PSPOS.MigrationService\PSPOS.MigrationService.csproj", "{2AADF8F5-08FF-4E8D-AEEC-AEFB48A380A6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -119,13 +119,13 @@ public class OrderService : IOrderService
 
         // Check if enough money is paid for all the items
         // TODO Use Stripe too
-        decimal price = 0;
-        foreach (OrderItem orderItem in orderItemsToLinkToTransaction)
-            price += orderItem.Price;
-        if (price < transactionDTO.paidByCash + transactionDTO.paidByGiftcard)
-            throw new ArgumentException($"Paid too much, expected {price}{order.OrderCurrency}.");
-        else if (price > transactionDTO.paidByCash + transactionDTO.paidByGiftcard)
-            throw new ArgumentException($"Paid too little, expected {price}{order.OrderCurrency}.");
+        //decimal price = 0;
+        //foreach (OrderItem orderItem in orderItemsToLinkToTransaction)
+        //    price += orderItem.Price;
+        //if (price < transactionDTO.paidByCash + transactionDTO.paidByGiftcard)
+        //    throw new ArgumentException($"Paid too much, expected {price}{order.OrderCurrency}.");
+        //else if (price > transactionDTO.paidByCash + transactionDTO.paidByGiftcard)
+        //    throw new ArgumentException($"Paid too little, expected {price}{order.OrderCurrency}.");
 
         // Add transaction data to database
         Transaction transaction = new(TransactionType.Purchase);
