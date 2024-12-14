@@ -168,7 +168,7 @@ else
         try
         {
             // Fetch users with the 'Employee' role and matching BusinessId
-            employees = await Http.GetFromJsonAsync<List<Employee>>($"users?role=1&businessId={CurrentBusinessId}");
+            employees = await Http.GetFromJsonAsync<List<Employee>>($"users?role=2&businessId={CurrentBusinessId}");
         }
         catch (Exception ex)
         {
@@ -192,7 +192,7 @@ else
                 LastName = newEmployee.LastName,
                 Email = newEmployee.Email,
                 Phone = newEmployee.Phone,
-                Role = "Employee",
+                Role = "2",
                 Password = newEmployee.Password,
                 BusinessId = CurrentBusinessId.Value
             };
@@ -249,7 +249,7 @@ private async Task SaveEditEmployee()
             LastName = editEmployee.LastName,
             Email = editEmployee.Email,
             Phone = editEmployee.Phone,
-            Role = "1",
+            Role = "2",
             Password = editEmployee.Password,
             BusinessId = CurrentBusinessId.Value
         };

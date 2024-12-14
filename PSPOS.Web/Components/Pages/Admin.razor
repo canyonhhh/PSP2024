@@ -319,7 +319,7 @@ else
                 LastName = newAdmin.LastName,
                 Email = newAdmin.Email,
                 Phone = newAdmin.Phone,
-                Role = UserRole.BusinessAdmin,
+                Role = "1",
                 BusinessId = currentBusinessId,
                 Password = newAdmin.Password
             };
@@ -373,15 +373,8 @@ else
         public string? LastName { get; set; }
         public string? Email { get; set; }
         public string? Phone { get; set; }
-        public UserRole Role { get; set; }
+        public string? Role { get; set; }
         public Guid BusinessId { get; set; }
         public string? Password { get; set; }
-    }
-
-    public enum UserRole
-    {
-        SuperAdmin,
-        BusinessAdmin,
-        Employee
     }
 }
