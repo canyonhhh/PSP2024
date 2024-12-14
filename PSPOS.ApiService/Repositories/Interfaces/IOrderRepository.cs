@@ -16,11 +16,12 @@ public interface IOrderRepository
     Task AddPaymentAsync(Payment payment);
     Task AddTransactionAsync(Transaction transaction);
     Task<Transaction?> GetTransactionByIdAsync(Guid id);
-    Task<IEnumerable<Payment>> GetAllPaymentsOfTransacionAsync(Guid transactionId);
+    Task<IEnumerable<Payment>> GetAllPaymentsOfTransactionAsync(Guid transactionId);
     Task<Giftcard?> GetGiftcardByIdAsync(Guid id);
 
     // '/orders/items'
     Task<IEnumerable<OrderItem>> GetAllItemsOfOrderAsync(Guid id);
     Task AddOrderItemToOrderAsync(OrderItem orderItem);
+    Task<OrderItem?> GetOrderItemByIdAsync(Guid orderItemId);
     Task UpdateOrderItemAsync(OrderItem orderItem);
 }

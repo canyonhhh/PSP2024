@@ -17,7 +17,7 @@ public class OrderRepository : IOrderRepository
 
     public async Task<Order?> GetOrderByIdAsync(Guid id)
     {
-        return await _context.Orders.FindAsync(id);
+        return await _context.Orders.FirstOrDefaultAsync(o => o.Id == id);
     }
 
     public async Task UpdateOrder(Order order)
@@ -129,7 +129,7 @@ public class OrderRepository : IOrderRepository
         return await _context.GiftCards.FindAsync(giftcardId);
     }
 
-    public async Task<IEnumerable<Payment>> GetAllPaymentsOfTransacionAsync(Guid transactionId)
+    public async Task<IEnumerable<Payment>> GetAllPaymentsOfTransactionAsync(Guid transactionId)
     {
         return await _context.Payments.Where(p => p.TransactionId == transactionId).ToArrayAsync();
     }
@@ -156,12 +156,14 @@ public class OrderRepository : IOrderRepository
         await _context.OrderItems.AddAsync(orderItem);
         await _context.SaveChangesAsync();
     }
-
+    public async Task<OrderItem?> GetOrderItemByIdAsync(Guid orderItemId)
+    {
+        return await _context.OrderItems.FindAsync(orderItemId);
+    }
     public async Task UpdateOrderItemAsync(OrderItem orderItem)
     {
-        // Ensure the order exists
-        if ((await GetOrderByIdAsync(orderItem.OrderId)) == null)
-            throw new ArgumentException($"Order with ID '{orderItem.OrderId}' does not exist.");
+        if ((await GetOrderItemByIdAsync(orderItem.Id)) == null)
+            throw new ArgumentException($"Order item with ID '{orderItem.Id}' does not exist.");
 
         _context.OrderItems.Update(orderItem);
         await _context.SaveChangesAsync();

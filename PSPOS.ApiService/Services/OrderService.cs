@@ -9,10 +9,12 @@ namespace PSPOS.ApiService.Services;
 public class OrderService : IOrderService
 {
     private readonly IOrderRepository _orderRepository;
+    private readonly IProdAndServRepository _prodAndServRepository;
 
-    public OrderService(IOrderRepository orderRepository)
+    public OrderService(IOrderRepository orderRepository, IProdAndServRepository prodAndServRepository)
     {
         _orderRepository = orderRepository;
+        _prodAndServRepository = prodAndServRepository;
     }
 
     public async Task<Order?> GetOrderByIdAsync(Guid id)
@@ -63,6 +65,7 @@ public class OrderService : IOrderService
 
     public async Task DeleteOrderAsync(Guid id)
     {
+        await DuplicateAllItemsOfOrderToInventory(id);
         await _orderRepository.DeleteOrderAsync(id);
     }
 
@@ -172,7 +175,7 @@ public class OrderService : IOrderService
         if (transaction == null)
             return null;
 
-        var payments = await _orderRepository.GetAllPaymentsOfTransacionAsync(transactionId);
+        var payments = await _orderRepository.GetAllPaymentsOfTransactionAsync(transactionId);
         if (!payments.Any())
             return null;
 
@@ -241,8 +244,7 @@ public class OrderService : IOrderService
         });
     }
 
-    // TODO Check item availability in inventory
-    public async Task AddOrderItemToOrderAsync(Guid orderItemId, OrderItemDTO orderItemDTO)
+    public async Task AddOrderItemToOrderAsync(Guid orderId, OrderItemDTO orderItemDTO)
     {
         if (orderItemDTO.quantity < 1)
             throw new ArgumentException($"Order item quantity must be more than 0.");
@@ -250,14 +252,32 @@ public class OrderService : IOrderService
         if (!Enum.TryParse(orderItemDTO.type, true, out OrderItemType orderItemType))
             throw new ArgumentException($"Order item type '{orderItemDTO.type}' does not exist.");
 
-        Order? order = await _orderRepository.GetOrderByIdAsync(orderItemDTO.orderId) ?? throw new ArgumentException($"Order '{orderItemDTO.orderId}' does not exist.");
-        if (order.Id != orderItemId)
-            throw new ArgumentException($"Order id '{orderItemId}' doesn't match with order item's order id {orderItemDTO.orderId}.");
+        Order? order = await _orderRepository.GetOrderByIdAsync(orderItemDTO.orderId)
+            ?? throw new ArgumentException($"Order '{orderItemDTO.orderId}' does not exist.");
+
+        if (order.Id != orderId)
+            throw new ArgumentException($"Order ID '{orderId}' doesn't match with order item's order ID {orderItemDTO.orderId}.");
+
         if (order.Status != OrderStatus.Open)
             throw new ArgumentException($"Order '{orderItemDTO.orderId}' is not open.");
 
         if (orderItemDTO.transactionId != Guid.Empty && (await _orderRepository.GetTransactionByIdAsync(orderItemDTO.transactionId)) == null)
             throw new ArgumentException($"Transaction '{orderItemDTO.transactionId}' does not exist.");
+
+        // Product quantity
+        if (orderItemType == OrderItemType.Product)
+        {
+            // Checking
+            var productStock = await _prodAndServRepository.GetProductStockAsync(orderItemDTO.productId)
+                ?? throw new ArgumentException($"Product '{orderItemDTO.productId}' does not exist.");
+
+            if (productStock.Quantity < orderItemDTO.quantity)
+                throw new ArgumentException($"Insufficient quantity of product '{orderItemDTO.productId}' in stock.");
+
+            // Updating
+            productStock.Quantity -= orderItemDTO.quantity;
+            await _prodAndServRepository.UpdateProductStockAsync(productStock);
+        }
 
         OrderItem orderItem = new
         (
@@ -273,7 +293,6 @@ public class OrderService : IOrderService
         await _orderRepository.AddOrderItemToOrderAsync(orderItem);
     }
 
-    // TODO Check item availability in inventory
     public async Task UpdateOrderItemAsync(Guid orderItemId, OrderItemDTO orderItemDTO)
     {
         if (orderItemDTO.quantity < 1)
@@ -282,29 +301,61 @@ public class OrderService : IOrderService
         if (!Enum.TryParse(orderItemDTO.type, true, out OrderItemType orderItemType))
             throw new ArgumentException($"Order item type '{orderItemDTO.type}' does not exist.");
 
-        Order? order = await _orderRepository.GetOrderByIdAsync(orderItemDTO.orderId) ?? throw new ArgumentException($"Order '{orderItemDTO.orderId}' does not exist.");
-        if (order.Id != orderItemId)
-            throw new ArgumentException($"Order id '{orderItemId}' doesn't match with order item's order id {orderItemDTO.orderId}.");
+        var existingOrderItem = await _orderRepository.GetOrderItemByIdAsync(orderItemId)
+            ?? throw new ArgumentException($"Order item '{orderItemId}' does not exist.");
+
+        if (existingOrderItem.OrderId != orderItemDTO.orderId)
+            throw new ArgumentException($"Order ID '{orderItemDTO.orderId}' does not match the existing order item's Order ID '{existingOrderItem.OrderId}'.");
+
+        Order? order = await _orderRepository.GetOrderByIdAsync(existingOrderItem.OrderId)
+            ?? throw new ArgumentException($"Order '{existingOrderItem.OrderId}' does not exist.");
+
         if (order.Status != OrderStatus.Open)
-            throw new ArgumentException($"Order '{orderItemDTO.orderId}' is not open.");
+            throw new ArgumentException($"Order '{existingOrderItem.OrderId}' is not open.");
 
-        if (orderItemDTO.transactionId != Guid.Empty && (await _orderRepository.GetTransactionByIdAsync(orderItemDTO.transactionId)) == null)
-            throw new ArgumentException($"Transaction '{orderItemDTO.transactionId}' does not exist.");
-
-        OrderItem orderItem = new
-        (
-            orderItemType,
-            orderItemDTO.price,
-            orderItemDTO.quantity,
-            orderItemDTO.orderId,
-            orderItemDTO.serviceId,
-            orderItemDTO.productId,
-            orderItemDTO.transactionId
-        )
+        // Product quantity
+        if (orderItemType == OrderItemType.Product)
         {
-            Id = orderItemId
-        };
+            // Checking
+            var productStock = await _prodAndServRepository.GetProductStockAsync(orderItemDTO.productId)
+                ?? throw new ArgumentException($"Product '{orderItemDTO.productId}' does not exist.");
 
-        await _orderRepository.UpdateOrderItemAsync(orderItem);
+            int quantityDifferenceInNewOrderItem = orderItemDTO.quantity - existingOrderItem.Quantity;
+            if (productStock.Quantity < quantityDifferenceInNewOrderItem)
+                throw new ArgumentException($"Insufficient quantity of product '{orderItemDTO.productId}' in stock.");
+
+            // Updating
+            productStock.Quantity -= quantityDifferenceInNewOrderItem;
+            await _prodAndServRepository.UpdateProductStockAsync(productStock);
+        }
+
+        // Update the order item
+        existingOrderItem.Type = orderItemType;
+        existingOrderItem.Price = orderItemDTO.price;
+        existingOrderItem.Quantity = orderItemDTO.quantity;
+        existingOrderItem.ServiceId = orderItemDTO.serviceId;
+        existingOrderItem.ProductId = orderItemDTO.productId;
+        existingOrderItem.TransactionId = orderItemDTO.transactionId;
+
+        await _orderRepository.UpdateOrderItemAsync(existingOrderItem);
+    }
+
+    public async Task DuplicateAllItemsOfOrderToInventory(Guid orderId)
+    {
+        IEnumerable<OrderItem> orderItems = await _orderRepository.GetAllItemsOfOrderAsync(orderId);
+
+        foreach (OrderItem item in orderItems)
+        {
+            if (item.Type == OrderItemType.Product)
+            {
+                var productStock = await _prodAndServRepository.GetProductStockAsync(item.ProductId);
+
+                if (productStock != null)
+                {
+                    productStock.Quantity += item.Quantity;
+                    await _prodAndServRepository.UpdateProductStockAsync(productStock);
+                }
+            }
+        }
     }
 }

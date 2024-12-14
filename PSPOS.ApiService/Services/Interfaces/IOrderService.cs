@@ -22,6 +22,6 @@ public interface IOrderService
 
     // '/orders/items'
     Task<IEnumerable<OrderItemSchema>> GetAllItemsOfOrderAsync(Guid id);
-    Task AddOrderItemToOrderAsync(Guid orderItemId, OrderItemDTO orderItem);
+    Task AddOrderItemToOrderAsync(Guid orderId, OrderItemDTO orderItem);
     Task UpdateOrderItemAsync(Guid orderItemId, OrderItemDTO orderItem);
 }
