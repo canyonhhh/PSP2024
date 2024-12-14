@@ -9,7 +9,7 @@ namespace PSPOS.ServiceDefaults.Schemas
 {
     public class ProductCategorySchema : BaseClass
     {
-       
+
         public string? name { get; set; }
         public string? description { get; set; }
         public Guid[]? productOrServiceIds { get; set; }
