@@ -12,8 +12,8 @@ using PSPOS.ApiService.Data;
 namespace PSPOS.MigrationService.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20241209190436_ProdAndServices")]
-    partial class ProdAndServices
+    [Migration("20241214140331_Fix")]
+    partial class Fix
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -549,13 +549,11 @@ namespace PSPOS.MigrationService.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("PasswordHash")
+                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("Phone")
                         .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("PinHash")
                         .HasColumnType("text");
 
                     b.Property<int>("Role")
