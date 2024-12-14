@@ -6,7 +6,7 @@ using System;
 namespace PSPOS.MigrationService.Migrations
 {
     /// <inheritdoc />
-    public partial class Fix : Migration
+    public partial class Newest : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
