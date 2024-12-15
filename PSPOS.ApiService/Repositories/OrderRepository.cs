@@ -176,13 +176,95 @@ public class OrderRepository : IOrderRepository
 
     public async Task AddOrderItemToOrderAsync(OrderItem orderItem)
     {
-        // Ensure the order exists
-        if ((await GetOrderByIdAsync(orderItem.OrderId)) == null)
+        // Step 1: Validate the order exists
+        var order = await GetOrderByIdAsync(orderItem.OrderId);
+        if (order == null)
             throw new ArgumentException($"Order with ID '{orderItem.OrderId}' does not exist.");
 
+        // Step 2: Add the OrderItem
         await _context.OrderItems.AddAsync(orderItem);
         await _context.SaveChangesAsync();
+
+        // Step 3: Fetch product group (categories) mapping
+        var productGroups = await _context.ProductGroups.ToListAsync();
+        var productGroupDict = new Dictionary<Guid, Guid>();
+
+        foreach (var group in productGroups)
+        {
+            foreach (var productId in group.productOrServiceIds) // Assuming it's List<Guid>
+            {
+                if (!productGroupDict.ContainsKey(productId))
+                {
+                    productGroupDict[productId] = group.Id;
+                }
+            }
+        }
+
+        // Step 4: Determine applicable category for the product
+        if (!productGroupDict.TryGetValue(orderItem.ProductId, out var productGroupId))
+        {
+            // No category found; return early
+            return;
+        }
+
+        // Step 5: Fetch and apply discounts
+        var discount = await _context.Discounts
+            .Where(d => d.Active && d.EndDate > DateTime.UtcNow && d.ProductOrServiceGroupId == productGroupId)
+            .OrderByDescending(d => d.Amount) // Prioritize the largest discount
+            .FirstOrDefaultAsync();
+
+        if (discount != null)
+        {
+            decimal discountAmount = 0;
+
+            // Calculate the discount amount
+            if (discount.Method.ToUpper() == "FIXED")
+            {
+                discountAmount = Math.Min(discount.Amount, orderItem.Price * orderItem.Quantity);
+            }
+            else if (discount.Method.ToUpper() == "PERCENTAGE")
+            {
+                discountAmount = (orderItem.Price * orderItem.Quantity) * (discount.Percentage / 100);
+            }
+
+            // Create an AppliedDiscount record
+            var appliedDiscount = new AppliedDiscount(
+                method: discount.Method == "FIXED" ? DiscountMethod.Fixed : DiscountMethod.PercentageFromTotal,
+                amount: discountAmount,
+                percentage: discount.Percentage,
+                discountId: discount.Id,
+                orderItemId: orderItem.Id,
+                orderId: orderItem.OrderId
+            );
+
+            await _context.AppliedDiscounts.AddAsync(appliedDiscount);
+        }
+
+        // Step 6: Fetch and apply taxes
+        var tax = await _context.Taxes
+            .Where(t => t.ProductOrServiceGroupId == productGroupId)
+            .FirstOrDefaultAsync();
+
+        if (tax != null)
+        {
+            decimal taxAmount = (orderItem.Price * orderItem.Quantity) * ((decimal)tax.Percentage / 100);
+
+            // Create an AppliedTax record
+            var appliedTax = new AppliedTax(
+                percentage: (decimal)tax.Percentage,
+                taxId: tax.Id,
+                orderItemId: orderItem.Id,
+                orderId: orderItem.OrderId
+            );
+
+            await _context.AppliedTax.AddAsync(appliedTax);
+        }
+
+        // Step 7: Save all changes (OrderItem, AppliedDiscount, AppliedTax)
+        await _context.SaveChangesAsync();
     }
+
+
     public async Task<OrderItem?> GetOrderItemByIdAsync(Guid orderItemId)
     {
         return await _context.OrderItems.FindAsync(orderItemId);
