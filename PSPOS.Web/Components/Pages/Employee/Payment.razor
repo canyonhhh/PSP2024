@@ -1,11 +1,15 @@
 ﻿@page "/Payment/{OrderId:guid}"
 @using PSPOS.ServiceDefaults.Schemas
 @using System.Net.Http.Json
+@using System.Text.Json
+@inject IJSRuntime JSRuntime
 @inject IHttpClientFactory ClientFactory
 @inject NavigationManager Navigation
 @rendermode InteractiveServer
 
 <h3>Payment</h3>
+
+<script src="https://js.stripe.com/v3/"></script>
 
 @if (IsLoading)
 {
@@ -221,13 +225,16 @@ else
                 Add Discount
             </button>
         </div>
-
-
     }
 
     <button class="btn btn-primary" @onclick="ProcessPayment">Process Payment</button>
     <button class="btn btn-secondary ms-2" @onclick="GoBack">Back</button>
 }
+
+
+<div id="card-element" style="border: 1px solid #ccc; padding: 10px; border-radius: 4px; margin-bottom: 10px;"></div>
+<p id="card-errors" style="color: red; margin-top: 10px;"></p>
+
 
 @code {
     [Parameter]
@@ -250,6 +257,12 @@ else
     private string SelectedDiscountId = string.Empty;
     private Discount? SelectedOrderDiscount = null;
 
+
+    // stripe stuff
+    private IJSObjectReference? stripeJs;
+    private string? _clientSecret;
+    private bool _isInitialized = false;
+
     // Fetch discounts during initialization
     protected override async Task OnInitializedAsync()
     {
@@ -259,6 +272,16 @@ else
         await LoadAvailableDiscounts(); 
         CalculateTotalAmount();
         IsLoading = false;
+    }
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_isInitialized)
+        {
+            await InitializeStripe();
+            _isInitialized = true;
+        }
     }
 
     // Load discounts for the dropdown
@@ -433,7 +456,7 @@ else
     }
 
 
-    private async Task SendTransactionToServer(List<OrderItemSchema> selectedItems, decimal paidByCash)
+    private async Task SendTransactionToServer(List<OrderItemSchema> selectedItems, decimal paidByCash = 0, decimal paidByGiftcard = 0, decimal paidByBankcard = 0, string externalTransactionId = "")
     {
         try
         {
@@ -442,6 +465,8 @@ else
                     itemIds = selectedItems.Select(si => si.Id),
                     paidByCash = paidByCash,
                     paidByGiftcard = 0,
+                    paidByBankcard = 0,
+                    externalTransactionId = externalTransactionId,
                     giftcardId = Guid.Empty
                 };
 
@@ -498,32 +523,84 @@ else
 
             decimal sumOfSelected = selectedItems.Sum(i => CalculateLineTotal(i));
 
-            if (SelectedPaymentMethod == "Cash")
+	    switch (SelectedPaymentMethod)
+	    {
+		    case "Cash":
+			    if (PaymentAmount <= 0)
+			    {
+				    ErrorMessage = $"Payment amount must be greater than 0.";
+				    return;
+			    }
+
+			    if (PaymentAmount < sumOfSelected)
+			    {
+				    ErrorMessage = $"Not enough money, need at least {sumOfSelected.ToString("C", GetCultureInfo(OrderDetails?.currency))}.";
+				    return;
+			    }
+
+			    decimal change = PaymentAmount - sumOfSelected;
+
+			    await SendTransactionToServer(selectedItems, paidByCash: sumOfSelected);
+
+			    ErrorMessage = change > 0
+				    ? $"Payment accepted. Give back change: {change.ToString("C", GetCultureInfo(OrderDetails?.currency))}."
+				    : "Payment accepted.";
+			    break;
+		    case "Card":
+                            await SubmitStripePayment(sumOfSelected);
+			    break;
+		    case "GiftCard":
+			    break;
+		    default:
+			    ErrorMessage = "Invalid payment method selected.";
+			    break;
+	    }
+	}
+	catch (Exception ex)
+	{
+		ErrorMessage = $"Error processing payment: {ex.Message}";
+	}
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo($"/Checkout/{OrderId}");
+    }
+
+    private async Task InitializeStripe()
+    {
+        try
+        {
+            stripeJs = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./stripeHandler.js");
+            await stripeJs.InvokeVoidAsync("initializeStripe", "pk_test_51QUWBYGUMof1EohPLwH4KQZj1wbLTJf8o8kzruKACLFgDeiH7SLxAAGN8dYUxP0Ku85bqSow0hEHGthPuPATzfCP00sDDvnD8L");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to load Stripe.js: {ex.Message}");
+        }
+    }
+
+    private async Task SubmitStripePayment(decimal SumOfSelected)
+    {
+
+        // convert to cents
+        var amountInCents = (int)(SumOfSelected * 100);
+        try
+        {
+            // fetch secret from server
+            var response = await Http.PostAsJsonAsync($"api/payment/create-intent", new { amount = amountInCents, currency = OrderDetails?.currency });
+            var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+            _clientSecret = json.GetProperty("clientSecret").GetString();
+
+            var result = await stripeJs!.InvokeAsync<StripeResult>("confirmPayment", _clientSecret);
+
+            if (result.Success)
             {
-                if (PaymentAmount <= 0)
-                {
-                    ErrorMessage = $"Payment amount must be greater than 0.";
-                    return;
-                }
-
-                if (PaymentAmount < sumOfSelected)
-                {
-                    ErrorMessage = $"Not enough money, need at least {sumOfSelected.ToString("C", GetCultureInfo(OrderDetails?.currency))}.";
-                    return;
-                }
-
-                decimal change = PaymentAmount - sumOfSelected;
-
-                await SendTransactionToServer(selectedItems, sumOfSelected);
-
-                if (change > 0)
-                {
-                    ErrorMessage = $"Payment accepted. Give back change: {change.ToString("C", GetCultureInfo(OrderDetails?.currency))}.";
-                }
-                else
-                {
-                    ErrorMessage = "Payment accepted.";
-                }
+                await SendTransactionToServer(OrderItems, paidByBankcard: SumOfSelected, externalTransactionId: result.Id);
+            }
+            else
+            {
+                ErrorMessage = $"Error processing payment: {result.Message}";
             }
         }
         catch (Exception ex)
@@ -532,9 +609,11 @@ else
         }
     }
 
-    private void GoBack()
+    private class StripeResult
     {
-        Navigation.NavigateTo($"/Checkout/{OrderId}");
+        public bool Success { get; set; }
+        public string? Id { get; set; }
+        public string? Message { get; set; }
     }
 
 
@@ -621,6 +700,8 @@ else
         public IEnumerable<Guid>? itemIds { get; set; }
         public decimal paidByCash { get; set; }
         public decimal paidByGiftcard { get; set; }
+        public decimal paidByBankcard { get; set; }
+        public string? externalTransactionId { get; set; } // for stripe
         public Guid giftcardId { get; set; }
     }
 }
