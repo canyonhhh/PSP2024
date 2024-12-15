@@ -436,6 +436,9 @@ namespace PSPOS.MigrationService.Migrations
                     b.Property<Guid>("UpdatedBy")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid[]>("productOrServiceIds")
+                        .HasColumnType("uuid[]");
+
                     b.HasKey("Id");
 
                     b.ToTable("ServiceGroups");

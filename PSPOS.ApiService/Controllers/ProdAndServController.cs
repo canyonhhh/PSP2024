@@ -35,26 +35,44 @@ namespace PSPOS.ApiService.Controllers
         [HttpPost("categories")]
         public async Task<IActionResult> AddCategory([FromBody] CategoryDTO categoryDto)
         {
-            var category = await _service.AddCategoryAsync(categoryDto);
-            return CreatedAtAction(nameof(GetCategoryById), new { id = category.Id }, category);
+            try
+            {
+                var category = await _service.AddCategoryAsync(categoryDto);
+                return CreatedAtAction(nameof(GetCategoryById), new { id = category.Id }, category);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpPut("categories/{id:guid}")]
         public async Task<IActionResult> UpdateCategory(Guid id, [FromBody] CategoryDTO categoryDto)
         {
-            if (!ModelState.IsValid)
+            try
             {
-                return BadRequest(ModelState);
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                var result = await _service.UpdateCategoryAsync(id, categoryDto);
+
+                if (result == null)
+                {
+                    return NotFound();
+                }
+
+                return Ok(result);
             }
-
-            var result = await _service.UpdateCategoryAsync(id, categoryDto);
-
-            if (result == null)
+            catch (InvalidOperationException ex)
             {
-                return NotFound();
+                return BadRequest(new { message = ex.Message });
             }
-
-            return Ok(result);
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpDelete("categories/{id:guid}")]
