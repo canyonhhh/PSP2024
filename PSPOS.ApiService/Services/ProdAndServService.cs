@@ -232,6 +232,8 @@ namespace PSPOS.ApiService.Services
                 await _repository.DeleteProductStockAsync(productStock);
             }
 
+            await _repository.RemoveProductFromGroupAsync(id);
+
             return await _repository.DeleteProductAsync(id);
         }
 
@@ -326,6 +328,8 @@ namespace PSPOS.ApiService.Services
 
         public async Task<bool> DeleteServiceAsync(Guid id)
         {
+            await _repository.RemoveServiceFromGroupAsync(id);
+
             return await _repository.DeleteServiceAsync(id);
         }
 
@@ -469,12 +473,27 @@ namespace PSPOS.ApiService.Services
             var productGroup = await _repository.GetProductGroupByIdAsync(categoryId);
             if (productGroup != null)
             {
-                // Validate that all IDs are products
-                foreach (var id in categoryDto.ProductOrServiceIds)
+                // Check if the product group is empty
+                if (productGroup.productOrServiceIds == null || productGroup.productOrServiceIds.Length == 0)
                 {
-                    if (!await _repository.IsProductAsync(id))
+                    // Allow adding either products or services
+                    foreach (var id in categoryDto.ProductOrServiceIds)
                     {
-                        throw new InvalidOperationException("Cannot add a service to a product group.");
+                        if (!await _repository.IsProductAsync(id) && !await _repository.IsServiceAsync(id))
+                        {
+                            throw new InvalidOperationException("Invalid ID. It must be either a product or a service.");
+                        }
+                    }
+                }
+                else
+                {
+                    // Validate that all IDs are products
+                    foreach (var id in categoryDto.ProductOrServiceIds)
+                    {
+                        if (!await _repository.IsProductAsync(id))
+                        {
+                            throw new InvalidOperationException("Cannot add a service to a product group.");
+                        }
                     }
                 }
 
@@ -503,12 +522,27 @@ namespace PSPOS.ApiService.Services
             var serviceGroup = await _repository.GetServiceGroupByIdAsync(categoryId);
             if (serviceGroup != null)
             {
-                // Validate that all IDs are services
-                foreach (var id in categoryDto.ProductOrServiceIds)
+                // Check if the service group is empty
+                if (serviceGroup.productOrServiceIds == null || serviceGroup.productOrServiceIds.Length == 0)
                 {
-                    if (!await _repository.IsServiceAsync(id))
+                    // Allow adding either products or services
+                    foreach (var id in categoryDto.ProductOrServiceIds)
                     {
-                        throw new InvalidOperationException("Cannot add a product to a service group.");
+                        if (!await _repository.IsProductAsync(id) && !await _repository.IsServiceAsync(id))
+                        {
+                            throw new InvalidOperationException("Invalid ID. It must be either a product or a service.");
+                        }
+                    }
+                }
+                else
+                {
+                    // Validate that all IDs are services
+                    foreach (var id in categoryDto.ProductOrServiceIds)
+                    {
+                        if (!await _repository.IsServiceAsync(id))
+                        {
+                            throw new InvalidOperationException("Cannot add a product to a service group.");
+                        }
                     }
                 }
 
