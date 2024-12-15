@@ -3,7 +3,11 @@
 @using PSPOS.ServiceDefaults.Schemas
 @inject IHttpClientFactory ClientFactory
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
 
 <h3>Create New Order</h3>
 
@@ -141,9 +145,12 @@
 
     private string orderCurrency = string.Empty;
     private bool ShouldLoadOrderItems = false;
+    private Guid CurrentBusinessId;
+
 
     protected override async Task OnInitializedAsync()
     {
+        await SetCurrentBusinessId();
         await LoadStockItems();
     }
 
@@ -170,6 +177,21 @@
             OrderItemErrorMessage = $"Error loading stock items: {ex.Message}";
         }
     }
+    private async Task SetCurrentBusinessId()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var businessIdClaim = user.FindFirst("BusinessId")?.Value;
+
+        if (Guid.TryParse(businessIdClaim, out var businessId))
+        {
+            CurrentBusinessId = businessId;
+        }
+        else
+        {
+            ErrorMessage = "Could not determine Business ID.";
+        }
+    }
 
     private async Task OnCreateOrder()
     {
@@ -190,6 +212,7 @@
 
         try
         {
+            newOrder.businessId = CurrentBusinessId; // Set the businessId here
             var response = await Http.PostAsJsonAsync("orders", newOrder);
             if (response.IsSuccessStatusCode)
             {

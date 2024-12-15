@@ -1,7 +1,11 @@
 ﻿@page "/orders"
 @inject IHttpClientFactory ClientFactory
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
 
 <h2>Order Management</h2>
 
@@ -64,13 +68,30 @@ else
     private List<OrderSchema>? orders;
     private string? Message;
     private Guid SelectedOrderId = Guid.Empty;
+    private Guid CurrentBusinessId;
 
     private OrderSchema? SelectedOrder { get; set; }
 
     // Fetch orders when the page is loaded
     protected override async Task OnInitializedAsync()
     {
+        await SetCurrentBusinessId();
         await LoadOrders();
+    }
+    private async Task SetCurrentBusinessId()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var businessIdClaim = user.FindFirst("BusinessId")?.Value;
+
+        if (Guid.TryParse(businessIdClaim, out var businessId))
+        {
+            CurrentBusinessId = businessId;
+        }
+        else
+        {
+            Message = "Could not determine Business ID.";
+        }
     }
 
     private void SelectOrder(OrderSchema order)
@@ -87,18 +108,29 @@ else
         }
     }
 
-    // Load orders from the API
     private async Task LoadOrders()
     {
         try
         {
-            orders = await Http.GetFromJsonAsync<List<OrderSchema>>("orders");
+            // Fetch all orders from the API
+            var allOrders = await Http.GetFromJsonAsync<List<OrderSchema>>("orders");
+
+            // Filter orders for the current BusinessId
+            if (allOrders != null)
+            {
+                orders = allOrders.Where(o => o.BusinessId == CurrentBusinessId).ToList();
+            }
+            else
+            {
+                orders = new List<OrderSchema>();
+            }
         }
         catch (Exception ex)
         {
             Message = $"Error loading orders: {ex.Message}";
         }
     }
+
 
     
     // Delete order logic
@@ -135,6 +167,7 @@ else
         public Guid Id { get; set; }
         public string? Status { get; set; }
         public string? Currency { get; set; }
+        public Guid BusinessId { get; set; }
     }
 
     public class OrderDTO
