@@ -10,7 +10,5 @@
         public decimal Percentage { get; set; }
         public DateTime EndDate { get; set; }
         public Guid BusinessId { get; set; }
-        public Guid ProductOrServiceGroupId { get; set; }
-        public Guid ProductOrServiceId { get; set; }
     }
 }
