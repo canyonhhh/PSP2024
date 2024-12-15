@@ -34,10 +34,65 @@ else
 
     @if (SelectedPaymentMethod == "GiftCard")
     {
+        <h5>Select Items to Pay</h5>
+        <div class="table-responsive mb-4">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Select</th>
+                        <th>Product</th>
+                        <th>Final Price (after discounts & tax)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in OrderItems)
+                    {
+                        var lineTotal = CalculateLineTotal(item);
+                        <tr>
+                            <td>
+                                <input type="checkbox" @bind="item.SelectedForPayment" />
+                            </td>
+                            <td>@item.ProductName</td>
+                            <td>@lineTotal.ToString("C", GetCultureInfo(OrderDetails?.currency))</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (OrderLevelDiscount > 0 && SelectedOrderDiscount != null)
+        {
+            <table class="table table-striped table-hover mb-4">
+                <tfoot>
+                    <tr class="table-danger">
+                        <td colspan="2"><strong>Order Level Discount:</strong></td>
+                        <td colspan="2">@SelectedOrderDiscount.Name</td>
+                        <td colspan="2">-@OrderLevelDiscount.ToString("C", GetCultureInfo(OrderDetails?.currency))</td>
+                    </tr>
+                </tfoot>
+            </table>
+        }
+
+        <h4>Select Available Discount</h4>
+        <div class="mb-3 d-flex">
+            <select @bind="SelectedDiscountId" class="form-select me-2" style="max-width: 300px;">
+                <option value="">-- Select Discount --</option>
+                @foreach (var discount in AvailableDiscounts)
+                {
+                    <option value="@discount.Id">
+                        @discount.Name (@(discount.Method?.ToUpper() == "FIXED" ? $"{discount.Amount:C}" : $"{discount.Percentage}%"))
+                    </option>
+                }
+            </select>
+            <button class="btn btn-success" @onclick="ApplyDiscountToOrder" disabled="@(string.IsNullOrEmpty(SelectedDiscountId))">
+                Add Discount
+            </button>
+        </div>
+
         <div class="mb-3">
             <label>Gift Card Code:</label>
             <input type="text" @bind="GiftCardCode" class="form-control" placeholder="Enter Gift Card Code" />
         </div>
+
     }
 
     @if (SelectedPaymentMethod == "Cash")
@@ -67,40 +122,40 @@ else
                 </tbody>
             </table>
         </div>
+        @if (OrderLevelDiscount > 0 && SelectedOrderDiscount != null)
+        {
+            <table class="table table-striped table-hover mb-4">
+                <tfoot>
+                    <tr class="table-danger">
+                        <td colspan="2"><strong>Order Level Discount:</strong></td>
+                        <td colspan="2">@SelectedOrderDiscount.Name</td>
+                        <td colspan="2">-@OrderLevelDiscount.ToString("C", GetCultureInfo(OrderDetails?.currency))</td>
+                    </tr>
+                </tfoot>
+            </table>
+        }
+        <h4>Select Available Discount</h4>
+        <div class="mb-3 d-flex">
+            <select @bind="SelectedDiscountId" class="form-select me-2" style="max-width: 300px;">
+                <option value="">-- Select Discount --</option>
+                @foreach (var discount in AvailableDiscounts)
+                {
+                    <option value="@discount.Id">
+                        @discount.Name (@(discount.Method?.ToUpper() == "FIXED" ? $"{discount.Amount:C}" : $"{discount.Percentage}%"))
+                    </option>
+                }
+            </select>
+            <button class="btn btn-success" @onclick="ApplyDiscountToOrder" disabled="@(string.IsNullOrEmpty(SelectedDiscountId))">
+                Add Discount
+            </button>
+        </div>
 
         <div class="mb-3">
             <label>Payment Amount:</label>
             <input type="number" step="0.01" @bind="PaymentAmount" class="form-control" />
         </div>
     }
-    else if (SelectedPaymentMethod == "GiftCard")
-    {
-        <h5>Select Items to Pay</h5>
-        <div class="table-responsive mb-4">
-            <table class="table table-striped table-hover">
-                <thead class="table-dark">
-                    <tr>
-                        <th>Select</th>
-                        <th>Product</th>
-                        <th>Final Price (after discounts & tax)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var item in OrderItems)
-                    {
-                        var lineTotal = CalculateLineTotal(item);
-                        <tr>
-                            <td>
-                                <input type="checkbox" @bind="item.SelectedForPayment" />
-                            </td>
-                            <td>@item.ProductName</td>
-                            <td>@lineTotal.ToString("C", GetCultureInfo(OrderDetails?.currency))</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-    }
+
     else if (SelectedPaymentMethod == "Card")
     {
         <h5>Select Items to Pay</h5>
@@ -139,6 +194,34 @@ else
         {
             <div class="alert alert-danger">@ErrorMessage</div>
         }
+        @if (OrderLevelDiscount > 0 && SelectedOrderDiscount != null)
+        {
+            <table class="table table-striped table-hover mb-4">
+                <tfoot>
+                    <tr class="table-danger">
+                        <td colspan="2"><strong>Order Level Discount:</strong></td>
+                        <td colspan="2">@SelectedOrderDiscount.Name</td>
+                        <td colspan="2">-@OrderLevelDiscount.ToString("C", GetCultureInfo(OrderDetails?.currency))</td>
+                    </tr>
+                </tfoot>
+            </table>
+        }
+        <h4>Select Available Discount</h4>
+        <div class="mb-3 d-flex">
+            <select @bind="SelectedDiscountId" class="form-select me-2" style="max-width: 300px;">
+                <option value="">-- Select Discount --</option>
+                @foreach (var discount in AvailableDiscounts)
+                {
+                    <option value="@discount.Id">
+                        @discount.Name (@(discount.Method?.ToUpper() == "FIXED" ? $"{discount.Amount:C}" : $"{discount.Percentage}%"))
+                    </option>
+                }
+            </select>
+            <button class="btn btn-success" @onclick="ApplyDiscountToOrder" disabled="@(string.IsNullOrEmpty(SelectedDiscountId))">
+                Add Discount
+            </button>
+        </div>
+
 
     }
 
@@ -156,7 +239,6 @@ else
     private List<OrderItemSchema> OrderItems = new();
     private decimal TotalAmount = 0;
     private decimal OrderLevelDiscount = 0;
-    private Discount? FoundOrderLevelDiscount = null;
 
     private string SelectedPaymentMethod = "Cash";
     private string GiftCardCode = string.Empty;
@@ -164,15 +246,77 @@ else
 
     private string ErrorMessage = string.Empty;
     private bool IsLoading = true;
+    private List<Discount> AvailableDiscounts = new();
+    private string SelectedDiscountId = string.Empty;
+    private Discount? SelectedOrderDiscount = null;
 
+    // Fetch discounts during initialization
     protected override async Task OnInitializedAsync()
     {
         await LoadOrderDetails();
         await LoadOrderItems();
         await ApplyDiscountLogic();
+        await LoadAvailableDiscounts(); 
         CalculateTotalAmount();
         IsLoading = false;
     }
+
+    // Load discounts for the dropdown
+    private async Task LoadAvailableDiscounts()
+    {
+        try
+        {
+            AvailableDiscounts = await Http.GetFromJsonAsync<List<Discount>>("api/discounts") ?? new List<Discount>();
+           
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error loading discounts: {ex.Message}";
+        }
+    }
+
+    // Apply selected discount
+    private void ApplyDiscountToOrder()
+    {
+        if (Guid.TryParse(SelectedDiscountId, out Guid discountId))
+        {
+            SelectedOrderDiscount = AvailableDiscounts.FirstOrDefault(d => d.Id == discountId);
+            if (SelectedOrderDiscount != null)
+            {
+                if (SelectedOrderDiscount.Method?.ToUpper() == "FIXED")
+                {
+                    OrderLevelDiscount = Math.Min(SelectedOrderDiscount.Amount, TotalAmount);
+                }
+                else if (SelectedOrderDiscount.Method?.ToUpper() == "PERCENTAGE")
+                {
+                    OrderLevelDiscount = TotalAmount * (SelectedOrderDiscount.Percentage / 100);
+                }
+                CalculateTotalAmount();
+            }
+        }
+    }
+
+    // Update the TotalAmount calculation
+    private void CalculateTotalAmount()
+    {
+        decimal subtotalWithTax = 0;
+        foreach (var item in OrderItems)
+        {
+            decimal baseAfterDiscount = (item.price * item.quantity) - item.DiscountAmount;
+            if (baseAfterDiscount < 0) baseAfterDiscount = 0;
+            var lineTotal = baseAfterDiscount * (1 + (item.tax / 100));
+            subtotalWithTax += lineTotal;
+        }
+
+        if (SelectedOrderDiscount != null)
+        {
+            subtotalWithTax -= OrderLevelDiscount;
+            if (subtotalWithTax < 0) subtotalWithTax = 0;
+        }
+
+        TotalAmount = subtotalWithTax;
+    }
+
 
     private async Task LoadOrderDetails()
     {
@@ -281,14 +425,6 @@ else
                 }
             }
 
-            var orderLevelDiscounts = discounts.Where(d =>
-                d.Active &&
-                d.EndDate > DateTime.UtcNow &&
-                d.ProductOrServiceId == Guid.Empty &&
-                d.ProductOrServiceGroupId == Guid.Empty
-            ).ToList();
-
-            FoundOrderLevelDiscount = orderLevelDiscounts.FirstOrDefault();
         }
         catch (Exception)
         {
@@ -296,37 +432,7 @@ else
         }
     }
 
-    private void CalculateTotalAmount()
-    {
-        decimal subtotalWithTax = 0;
-        foreach (var item in OrderItems)
-        {
-            decimal baseAfterDiscount = (item.price * item.quantity) - item.DiscountAmount;
-            if (baseAfterDiscount < 0) baseAfterDiscount = 0;
-            var lineTotal = baseAfterDiscount * (1 + (item.tax / 100));
-            subtotalWithTax += lineTotal;
-        }
 
-        if (FoundOrderLevelDiscount != null)
-        {
-            decimal discountValue = 0;
-            if (FoundOrderLevelDiscount.Method?.ToUpper() == "FIXED")
-            {
-                discountValue = FoundOrderLevelDiscount.Amount;
-                if (discountValue > subtotalWithTax) discountValue = subtotalWithTax;
-            }
-            else if (FoundOrderLevelDiscount.Method?.ToUpper() == "PERCENTAGE")
-            {
-                discountValue = subtotalWithTax * (FoundOrderLevelDiscount.Percentage / 100);
-            }
-
-            OrderLevelDiscount = discountValue;
-            subtotalWithTax -= discountValue;
-            if (subtotalWithTax < 0) subtotalWithTax = 0;
-        }
-
-        TotalAmount = subtotalWithTax;
-    }
     private async Task SendTransactionToServer(List<OrderItemSchema> selectedItems, decimal paidByCash)
     {
         try
@@ -371,6 +477,11 @@ else
         decimal discountedBase = basePrice - item.DiscountAmount;
         if (discountedBase < 0) discountedBase = 0;
         var lineTotal = discountedBase * (1 + (item.tax / 100));
+        if (SelectedOrderDiscount != null)
+        {
+            lineTotal -= OrderLevelDiscount;
+            if (lineTotal < 0) lineTotal = 0;
+        }
         return lineTotal;
     }
 
