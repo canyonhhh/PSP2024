@@ -329,6 +329,8 @@ namespace PSPOS.ApiService.Services
             return await _repository.DeleteServiceAsync(id);
         }
 
+        // **Categories**
+
         public async Task<(IEnumerable<ProductCategorySchema> Categories, int TotalCount)> GetAllCategoriesAsync(int skip = 0, int limit = 10)
         {
             var (productGroups, productCount) = await _repository.GetAllProductGroupsAsync(skip, limit);
@@ -406,7 +408,15 @@ namespace PSPOS.ApiService.Services
                 throw new ArgumentException("Category must include product or service IDs.");
             }
 
-            var isProduct = categoryDto.ProductOrServiceIds.All(id => /* Check if ID is a product */ true);
+            var isProduct = true;
+            foreach (var id in categoryDto.ProductOrServiceIds)
+            {
+                if (!await _repository.IsProductAsync(id))
+                {
+                    isProduct = false;
+                    break;
+                }
+            }
 
             if (isProduct)
             {
@@ -441,6 +451,7 @@ namespace PSPOS.ApiService.Services
                 productOrServiceIds = categoryDto.ProductOrServiceIds
             };
         }
+
 
         public async Task<ProductCategorySchema?> UpdateCategoryAsync(Guid categoryId, CategoryDTO categoryDto)
         {

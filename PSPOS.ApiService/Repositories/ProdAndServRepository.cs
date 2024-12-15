@@ -303,4 +303,18 @@ public class ProdAndServRepository : IProdAndServRepository
         await _context.SaveChangesAsync();
         return true;
     }
+
+    public async Task<bool> IsProductAsync(Guid id)
+    {
+        // Logic to check if the ID corresponds to a product
+        var product = await _context.Products.FindAsync(id);
+        return product != null;
+    }
+
+    public async Task<bool> IsServiceAsync(Guid id)
+    {
+        // Logic to check if the ID corresponds to a service
+        var service = await _context.Services.FindAsync(id);
+        return service != null;
+    }
 }

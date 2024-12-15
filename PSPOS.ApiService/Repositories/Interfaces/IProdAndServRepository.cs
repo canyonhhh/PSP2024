@@ -34,4 +34,8 @@ public interface IProdAndServRepository
     Task<ServiceGroup?> UpdateServiceGroupAsync(ServiceGroup group);
     Task<bool> DeleteProductGroupAsync(Guid id);
     Task<bool> DeleteServiceGroupAsync(Guid id);
+
+    // **MISC**
+    Task<bool> IsProductAsync(Guid id);
+    Task<bool> IsServiceAsync(Guid id);
 }
