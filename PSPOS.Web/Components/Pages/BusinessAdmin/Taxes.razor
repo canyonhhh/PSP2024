@@ -33,7 +33,6 @@
         <div class="mb-3">
             <label class="form-label">Product Group</label>
             <select class="form-select" @bind="newTax.ProductOrServiceGroupId">
-                <option value="@Guid.Empty">Select a Product Group</option>
                 @foreach (var group in productGroups)
                 {
                 <option value="@group.Id">@group.Name</option>
@@ -74,7 +73,7 @@ else
             <td>@tax.Description</td>
             <td>@tax.Percentage%</td>
             <td>@(tax.Active ? "Active" : "Inactive")</td>
-            <td>@productGroups.FirstOrDefault(g => g.Id == tax.ProductOrServiceGroupId)?.Name ?? "None"</td>
+            <td>@(productGroups.FirstOrDefault(g => g.Id == tax.ProductOrServiceGroupId)?.Name ?? "None")</td>
             <td>
                 <button class="btn btn-warning btn-sm me-2" @onclick="() => OpenEditPopup(tax)">Edit</button>
                 <button class="btn btn-danger btn-sm" @onclick="() => DeleteTax(tax.Id)">Delete</button>

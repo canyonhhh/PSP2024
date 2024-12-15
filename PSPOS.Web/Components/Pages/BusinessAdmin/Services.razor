@@ -1,0 +1,238 @@
+@page "/business-admin/services"
+@inject IHttpClientFactory ClientFactory
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+
+<h2>Service Management</h2>
+
+<!-- Create New Service Form -->
+<div class="card mb-3">
+    <div class="card-header bg-primary text-white">Add New Service</div>
+    <div class="card-body">
+        <div class="mb-3">
+            <label class="form-label">Name</label>
+            <input class="form-control" @bind="newService.Name" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Description</label>
+            <input class="form-control" @bind="newService.Description" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Price</label>
+            <input type="number" step="0.01" class="form-control" @bind="newService.Price" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Interval</label>
+            <input class="form-control" @bind="newService.Interval" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Duration (in minutes)</label>
+            <input type="number" class="form-control" @bind="newService.DurationMinutes" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Employee</label>
+            <select class="form-control" @bind="newService.EmployeeId">
+                <option value="" disabled selected>Select an employee</option>
+                @foreach (var employee in employees)
+                {
+                    <option value="@employee.Id">@employee.FirstName @employee.LastName</option>
+                }
+            </select>
+        </div>
+        <button class="btn btn-success" @onclick="CreateService">Add Service</button>
+    </div>
+</div>
+
+<!-- Services Table -->
+@if (services == null)
+{
+    <p>Loading services...</p>
+}
+else if (!services.Any())
+{
+    <p>No services found.</p>
+}
+else
+{
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Price</th>
+                <th>Interval</th>
+                <th>Duration</th>
+                <th>Employee</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var service in services)
+            {
+                <tr>
+                    <td>@service.Name</td>
+                    <td>@service.Description</td>
+                    <td>@service.Price.ToString("C")</td>
+                    <td>@service.Interval</td>
+                    <td>@service.Duration.ToString("c")</td>
+                    <td>@service.EmployeeName</td>
+                    <td>
+                        <button class="btn btn-warning btn-sm me-2" @onclick="() => OpenEditPopup(service)">Edit</button>
+                        <button class="btn btn-danger btn-sm" @onclick="() => DeleteService(service.Id)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<!-- Success/Error Messages -->
+@if (!string.IsNullOrEmpty(Message))
+{
+    <div class="alert alert-info">@Message</div>
+}
+
+@code {
+    private HttpClient Http => ClientFactory.CreateClient("ApiClient");
+
+    private List<Service>? services;
+    private List<Employee> employees = new();
+    private Service newService = new();
+    private Service editService = new();
+    private string? Message;
+    private Guid? CurrentBusinessId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadServices();
+        await LoadEmployees();
+    }
+
+    private async Task LoadServices()
+    {
+        try
+        {
+            services = await Http.GetFromJsonAsync<List<Service>>("api/services");
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error loading services: {ex.Message}";
+        }
+    }
+
+    private async Task LoadEmployees()
+    {
+        try
+        {
+            employees = await Http.GetFromJsonAsync<List<Employee>>($"users?role=2&businessId={CurrentBusinessId}") ?? [];
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error loading employees: {ex.Message}";
+        }
+    }
+
+    private async Task CreateService()
+    {
+        try
+        {
+            var businessIdClaim = (await AuthenticationStateProvider.GetAuthenticationStateAsync())
+                .User?.FindFirst("businessId")?.Value;
+
+            if (Guid.TryParse(businessIdClaim, out Guid businessId))
+            {
+		CurrentBusinessId = businessId;
+                newService.BusinessId = businessId;
+                newService.Duration = TimeSpan.FromMinutes(newService.DurationMinutes);
+
+                var response = await Http.PostAsJsonAsync("api/services", newService);
+                if (response.IsSuccessStatusCode)
+                {
+                    Message = "Service created successfully.";
+                    newService = new();
+                    await LoadServices();
+                }
+                else
+                {
+                    Message = $"Failed to create service: {response.ReasonPhrase}";
+                }
+            }
+            else
+            {
+                Message = "Error: Could not determine BusinessId from user claims.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error creating service: {ex.Message}";
+        }
+    }
+
+    private void OpenEditPopup(Service service)
+    {
+        editService = new Service(service);
+    }
+
+    private async Task DeleteService(Guid serviceId)
+    {
+        try
+        {
+            var response = await Http.DeleteAsync($"api/services/{serviceId}");
+            if (response.IsSuccessStatusCode)
+            {
+                Message = "Service deleted successfully.";
+                await LoadServices();
+            }
+            else
+            {
+                Message = $"Failed to delete service: {response.ReasonPhrase}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error deleting service: {ex.Message}";
+        }
+    }
+
+    public class Service
+    {
+        public Guid Id { get; set; }
+        public string? Name { get; set; }
+        public string? Description { get; set; }
+        public decimal Price { get; set; }
+        public string Interval { get; set; } = string.Empty;
+        public Guid BusinessId { get; set; }
+        public Guid EmployeeId { get; set; }
+        public TimeSpan Duration { get; set; }
+        public double DurationMinutes { get; set; } // For easier binding
+        public string? EmployeeName { get; set; } // For table display
+
+        public Service() { }
+
+        public Service(Service service)
+        {
+            Id = service.Id;
+            Name = service.Name;
+            Description = service.Description;
+            Price = service.Price;
+            Interval = service.Interval;
+            BusinessId = service.BusinessId;
+            EmployeeId = service.EmployeeId;
+            Duration = service.Duration;
+            DurationMinutes = service.Duration.TotalMinutes;
+            EmployeeName = service.EmployeeName;
+        }
+    }
+
+    public class Employee
+    {
+        public Guid Id { get; set; }
+        public required string FirstName { get; set; }
+        public required string LastName { get; set; }
+    }
+}

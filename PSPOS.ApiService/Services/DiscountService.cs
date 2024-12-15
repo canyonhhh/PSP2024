@@ -1,11 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
-using PSPOS.ApiService.Repositories;
-using PSPOS.ApiService.Repositories.Interfaces;
+﻿using PSPOS.ApiService.Repositories.Interfaces;
 using PSPOS.ApiService.Services.Interfaces;
 using PSPOS.ServiceDefaults.Models;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace PSPOS.ApiService.Services
 {
@@ -50,8 +45,6 @@ namespace PSPOS.ApiService.Services
             existingDiscount.Percentage = updatedDiscount.Percentage;
             existingDiscount.EndDate = updatedDiscount.EndDate;
             existingDiscount.BusinessId = updatedDiscount.BusinessId;
-            existingDiscount.ProductOrServiceGroupId = updatedDiscount.ProductOrServiceGroupId;
-            existingDiscount.ProductOrServiceId = updatedDiscount.ProductOrServiceId;
 
             await _discountRepository.UpdateDiscountAsync(existingDiscount);
         }

@@ -1,0 +1,278 @@
+@page "/business-admin/discounts"
+@inject IHttpClientFactory ClientFactory
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+
+<h2>Discount Management</h2>
+
+<!-- Create New Discount Form -->
+<div class="card mb-3">
+    <div class="card-header bg-primary text-white">Add New Discount</div>
+    <div class="card-body">
+        <div class="mb-3">
+            <label class="form-label">Name</label>
+            <input class="form-control" @bind="newDiscount.Name" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Description</label>
+            <input class="form-control" @bind="newDiscount.Description" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Method</label>
+            <select class="form-control" @bind="newDiscount.Method">
+                <option value="amount">Amount</option>
+                <option value="percentage">Percentage</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Amount</label>
+            <input type="number" step="0.01" class="form-control" @bind="newDiscount.Amount" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Percentage</label>
+            <input type="number" step="0.01" class="form-control" @bind="newDiscount.Percentage" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">End Date</label>
+            <input type="date" class="form-control" @bind="newDiscount.EndDate" />
+        </div>
+        <div class="form-check mb-3">
+            <input type="checkbox" class="form-check-input" @bind="newDiscount.Active" />
+            <label class="form-check-label">Active</label>
+        </div>
+        <button class="btn btn-success" @onclick="CreateDiscount">Add Discount</button>
+    </div>
+</div>
+
+<!-- Discounts Table -->
+@if (discounts == null)
+{
+    <p>Loading discounts...</p>
+}
+else if (!discounts.Any())
+{
+    <p>No discounts found.</p>
+}
+else
+{
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Method</th>
+                <th>Amount</th>
+                <th>Percentage</th>
+                <th>End Date</th>
+                <th>Active</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var discount in discounts)
+            {
+                <tr>
+                    <td>@discount.Name</td>
+                    <td>@discount.Description</td>
+                    <td>@discount.Method</td>
+                    <td>@discount.Amount.ToString("C")</td>
+                    <td>@discount.Percentage%</td>
+                    <td>@discount.EndDate.ToShortDateString()</td>
+                    <td>@(discount.Active ? "Yes" : "No")</td>
+                    <td>
+                        <button class="btn btn-warning btn-sm me-2" @onclick="() => OpenEditPopup(discount)">Edit</button>
+                        <button class="btn btn-danger btn-sm" @onclick="() => DeleteDiscount(discount.Id)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<!-- Success/Error Messages -->
+@if (!string.IsNullOrEmpty(Message))
+{
+    <div class="alert alert-info">@Message</div>
+}
+
+<!-- Edit Discount Popup -->
+@if (isEditPopupVisible)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Discount</h5>
+                    <button type="button" class="btn-close" @onclick="CloseEditPopup"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Name</label>
+                        <input class="form-control" @bind="editDiscount.Name" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <input class="form-control" @bind="editDiscount.Description" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">End Date</label>
+                        <input type="date" class="form-control" @bind="editDiscount.EndDate" />
+                    </div>
+                    <div class="form-check mb-3">
+                        <input type="checkbox" class="form-check-input" @bind="editDiscount.Active" />
+                        <label class="form-check-label">Active</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseEditPopup">Close</button>
+                    <button type="button" class="btn btn-primary" @onclick="SaveEditDiscount">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private HttpClient Http => ClientFactory.CreateClient("ApiClient");
+
+    private List<Discount>? discounts;
+    private Discount newDiscount = new();
+    private Discount editDiscount = new();
+    private string? Message;
+    private bool isEditPopupVisible = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDiscounts();
+    }
+
+    private async Task LoadDiscounts()
+    {
+        try
+        {
+            discounts = await Http.GetFromJsonAsync<List<Discount>>("api/discounts");
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error loading discounts: {ex.Message}";
+        }
+    }
+
+    private async Task CreateDiscount()
+    {
+        try
+        {
+            var businessIdClaim = (await AuthenticationStateProvider.GetAuthenticationStateAsync())
+                .User?.FindFirst("businessId")?.Value;
+
+            if (Guid.TryParse(businessIdClaim, out Guid businessId))
+            {
+                newDiscount.BusinessId = businessId;
+
+                var response = await Http.PostAsJsonAsync("api/discounts", newDiscount);
+                if (response.IsSuccessStatusCode)
+                {
+                    Message = "Discount created successfully.";
+                    newDiscount = new();
+                    await LoadDiscounts();
+                }
+                else
+                {
+                    Message = $"Failed to create discount: {response.ReasonPhrase}";
+                }
+            }
+            else
+            {
+                Message = "Error: Could not determine BusinessId from user claims.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error creating discount: {ex.Message}";
+        }
+    }
+
+    private void OpenEditPopup(Discount discount)
+    {
+        editDiscount = new Discount(discount);
+        isEditPopupVisible = true;
+    }
+
+    private async Task SaveEditDiscount()
+    {
+        try
+        {
+            var response = await Http.PutAsJsonAsync($"api/discounts/{editDiscount.Id}", editDiscount);
+            if (response.IsSuccessStatusCode)
+            {
+                Message = "Discount updated successfully.";
+                await LoadDiscounts();
+                CloseEditPopup();
+            }
+            else
+            {
+                Message = $"Failed to update discount: {response.ReasonPhrase}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error updating discount: {ex.Message}";
+        }
+    }
+
+    private async Task DeleteDiscount(Guid discountId)
+    {
+        try
+        {
+            var response = await Http.DeleteAsync($"api/discounts/{discountId}");
+            if (response.IsSuccessStatusCode)
+            {
+                Message = "Discount deleted successfully.";
+                await LoadDiscounts();
+            }
+            else
+            {
+                Message = $"Failed to delete discount: {response.ReasonPhrase}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error deleting discount: {ex.Message}";
+        }
+    }
+
+    private void CloseEditPopup() => isEditPopupVisible = false;
+
+    public class Discount
+    {
+        public Guid Id { get; set; }
+        public string? Name { get; set; }
+        public string? Description { get; set; }
+        public string? Method { get; set; }
+        public bool Active { get; set; }
+        public decimal Amount { get; set; }
+        public decimal Percentage { get; set; }
+        public DateTime EndDate { get; set; }
+        public Guid BusinessId { get; set; }
+
+        public Discount() { }
+
+        public Discount(Discount discount)
+        {
+            Id = discount.Id;
+            Name = discount.Name;
+            Description = discount.Description;
+            Method = discount.Method;
+            Active = discount.Active;
+            Amount = discount.Amount;
+            Percentage = discount.Percentage;
+            EndDate = discount.EndDate;
+            BusinessId = discount.BusinessId;
+        }
+    }
+}
