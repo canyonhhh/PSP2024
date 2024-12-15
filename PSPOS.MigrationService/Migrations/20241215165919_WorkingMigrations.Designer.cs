@@ -12,8 +12,8 @@ using PSPOS.ApiService.Data;
 namespace PSPOS.MigrationService.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20241215144453_UpdateDiscounts")]
-    partial class UpdateDiscounts
+    [Migration("20241215165919_WorkingMigrations")]
+    partial class WorkingMigrations
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -438,6 +438,9 @@ namespace PSPOS.MigrationService.Migrations
 
                     b.Property<Guid>("UpdatedBy")
                         .HasColumnType("uuid");
+
+                    b.Property<Guid[]>("productOrServiceIds")
+                        .HasColumnType("uuid[]");
 
                     b.HasKey("Id");
 

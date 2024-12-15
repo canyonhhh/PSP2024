@@ -357,7 +357,7 @@ namespace PSPOS.ApiService.Services
                     UpdatedBy = sg.UpdatedBy,
                     name = sg.Name,
                     description = sg.Description,
-                    productOrServiceIds = new[] { sg.Id }
+                    productOrServiceIds = sg.productOrServiceIds
                 }))
                 .ToList();
 
@@ -378,7 +378,7 @@ namespace PSPOS.ApiService.Services
                     UpdatedBy = productGroup.UpdatedBy,
                     name = productGroup.Name,
                     description = productGroup.Description,
-                    productOrServiceIds = new[] { productGroup.Id }
+                    productOrServiceIds = productGroup.productOrServiceIds
                 };
             }
 
@@ -394,7 +394,7 @@ namespace PSPOS.ApiService.Services
                     UpdatedBy = serviceGroup.UpdatedBy,
                     name = serviceGroup.Name,
                     description = serviceGroup.Description,
-                    productOrServiceIds = new[] { serviceGroup.Id }
+                    productOrServiceIds = serviceGroup.productOrServiceIds
                 };
             }
 
@@ -408,17 +408,22 @@ namespace PSPOS.ApiService.Services
                 throw new ArgumentException("Category must include product or service IDs.");
             }
 
-            var isProduct = true;
+            var allProducts = true;
+            var allServices = true;
+
             foreach (var id in categoryDto.ProductOrServiceIds)
             {
                 if (!await _repository.IsProductAsync(id))
                 {
-                    isProduct = false;
-                    break;
+                    allProducts = false;
+                }
+                if (!await _repository.IsServiceAsync(id))
+                {
+                    allServices = false;
                 }
             }
 
-            if (isProduct)
+            if (allProducts && !allServices)
             {
                 var productGroup = new ProductGroup(categoryDto.Name, categoryDto.Description, categoryDto.ProductOrServiceIds);
                 var addedGroup = await _repository.AddProductGroupAsync(productGroup);
@@ -435,21 +440,27 @@ namespace PSPOS.ApiService.Services
                     productOrServiceIds = addedGroup.productOrServiceIds
                 };
             }
-
-            var serviceGroup = new ServiceGroup(categoryDto.Name, categoryDto.Description);
-            var addedServiceGroup = await _repository.AddServiceGroupAsync(serviceGroup);
-
-            return new ProductCategorySchema
+            else if (!allProducts && allServices)
             {
-                Id = addedServiceGroup.Id,
-                CreatedAt = addedServiceGroup.CreatedAt,
-                UpdatedAt = addedServiceGroup.UpdatedAt,
-                CreatedBy = addedServiceGroup.CreatedBy,
-                UpdatedBy = addedServiceGroup.UpdatedBy,
-                name = addedServiceGroup.Name,
-                description = addedServiceGroup.Description,
-                productOrServiceIds = categoryDto.ProductOrServiceIds
-            };
+                var serviceGroup = new ServiceGroup(categoryDto.Name, categoryDto.Description, categoryDto.ProductOrServiceIds);
+                var addedServiceGroup = await _repository.AddServiceGroupAsync(serviceGroup);
+
+                return new ProductCategorySchema
+                {
+                    Id = addedServiceGroup.Id,
+                    CreatedAt = addedServiceGroup.CreatedAt,
+                    UpdatedAt = addedServiceGroup.UpdatedAt,
+                    CreatedBy = addedServiceGroup.CreatedBy,
+                    UpdatedBy = addedServiceGroup.UpdatedBy,
+                    name = addedServiceGroup.Name,
+                    description = addedServiceGroup.Description,
+                    productOrServiceIds = addedServiceGroup.productOrServiceIds
+                };
+            }
+            else
+            {
+                throw new ArgumentException("A category must consist of only services or products.");
+            }
         }
 
 
@@ -458,6 +469,15 @@ namespace PSPOS.ApiService.Services
             var productGroup = await _repository.GetProductGroupByIdAsync(categoryId);
             if (productGroup != null)
             {
+                // Validate that all IDs are products
+                foreach (var id in categoryDto.ProductOrServiceIds)
+                {
+                    if (!await _repository.IsProductAsync(id))
+                    {
+                        throw new InvalidOperationException("Cannot add a service to a product group.");
+                    }
+                }
+
                 // Update the product group
                 productGroup.Name = categoryDto.Name;
                 productGroup.Description = categoryDto.Description;
@@ -483,6 +503,15 @@ namespace PSPOS.ApiService.Services
             var serviceGroup = await _repository.GetServiceGroupByIdAsync(categoryId);
             if (serviceGroup != null)
             {
+                // Validate that all IDs are services
+                foreach (var id in categoryDto.ProductOrServiceIds)
+                {
+                    if (!await _repository.IsServiceAsync(id))
+                    {
+                        throw new InvalidOperationException("Cannot add a product to a service group.");
+                    }
+                }
+
                 // Update the service group
                 serviceGroup.Name = categoryDto.Name;
                 serviceGroup.Description = categoryDto.Description;
