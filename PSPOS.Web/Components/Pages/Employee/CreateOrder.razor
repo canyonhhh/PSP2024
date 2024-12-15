@@ -11,7 +11,6 @@
     <form @onsubmit="OnCreateOrder" @onsubmit:preventDefault="true">
         <div class="form-group mb-3">
         </div>
-
         <div class="form-group mb-3">
             <label for="currency">Currency</label>
             <select id="currency" @bind="newOrder.currency" class="form-select" required>
@@ -21,7 +20,6 @@
                 <option value="USD">USD</option>
             </select>
         </div>
-
         <div class="form-group mb-3">
             <label for="status">Order Status</label>
             <select id="status" @bind="newOrder.status" class="form-select" required>
@@ -32,15 +30,12 @@
                 <option value="REFUNDED">Refunded</option>
             </select>
         </div>
-
         <button type="submit" class="btn btn-primary">Create Order</button>
     </form>
-
     @if (!string.IsNullOrEmpty(ErrorMessage))
     {
         <div class="alert alert-danger mt-3">@ErrorMessage</div>
     }
-
     @if (IsSuccess)
     {
         <div class="alert alert-success mt-3">Order created successfully! Order ID: @CreatedOrderId</div>
@@ -58,33 +53,25 @@
                     <option value="">-- Select Product --</option>
                     @foreach (var product in StockItems)
                     {
-                        <option value="@product.Id">
-                            @product.Name - Price: @product.Price.ToString("C") - Stock: @product.StockQuantity
-                        </option>
+                        <option value="@product.Id">@product.Name - Price: @product.Price.ToString("C") - Stock: @product.StockQuantity</option>
                     }
                 </select>
             </div>
-
-
             <div class="form-group mb-3">
                 <label for="quantity">Quantity</label>
                 <input id="quantity" @bind="newOrderItem.Quantity" type="number" min="1" class="form-control" required />
             </div>
-
             <button type="submit" class="btn btn-success">Add Item</button>
         </form>
-
         @if (!string.IsNullOrEmpty(OrderItemErrorMessage))
         {
             <div class="alert alert-danger mt-3">@OrderItemErrorMessage</div>
         }
-
         @if (IsOrderItemAdded)
         {
             <div class="alert alert-success mt-3">Order item added successfully!</div>
         }
     </div>
-
     <h4>Current Order Items</h4>
     @if (OrderItems == null)
     {
@@ -124,21 +111,17 @@
 
 @code {
     private HttpClient Http => ClientFactory.CreateClient("ApiClient");
-
     private OrderDTO newOrder = new OrderDTO();
     private bool IsSuccess = false;
     private string ErrorMessage = string.Empty;
-
     private bool IsOrderCreated = false;
     private Guid CreatedOrderId;
     private List<OrderItemSchema> OrderItems = new();
-
     private List<StockItem> StockItems = new();
     private Guid selectedStockItemId = Guid.Empty;
     private NewOrderItemDTO newOrderItem = new NewOrderItemDTO();
     private bool IsOrderItemAdded = false;
     private string OrderItemErrorMessage = string.Empty;
-
     private string orderCurrency = string.Empty;
     private bool ShouldLoadOrderItems = false;
 
@@ -151,10 +134,7 @@
     {
         try
         {
-            // Fetch products with stock data
             var products = await Http.GetFromJsonAsync<List<ProductSchema>>("api/products");
-
-            // Map the products to the StockItems list
             StockItems = products?.Select(p => new StockItem
                 {
                     Id = p.Id,
@@ -175,19 +155,16 @@
     {
         IsSuccess = false;
         ErrorMessage = string.Empty;
-
         if (string.IsNullOrWhiteSpace(newOrder.currency))
         {
             ErrorMessage = "Please select a currency.";
             return;
         }
-
         if (string.IsNullOrWhiteSpace(newOrder.status))
         {
             ErrorMessage = "Please select a status.";
             return;
         }
-
         try
         {
             var response = await Http.PostAsJsonAsync("orders", newOrder);
@@ -202,13 +179,11 @@
                         CreatedOrderId = orderId;
                         IsOrderCreated = true;
                         IsSuccess = true;
-
                         var createdOrderResponse = await Http.GetFromJsonAsync<OrderSchema>($"orders/{CreatedOrderId}");
                         if (createdOrderResponse != null)
                         {
-                            orderCurrency = createdOrderResponse.currency ?? "USD"; 
+                            orderCurrency = createdOrderResponse.currency ?? "USD";
                         }
-
                         ShouldLoadOrderItems = true;
                     }
                     else
@@ -237,7 +212,6 @@
     {
         if (!ShouldLoadOrderItems || CreatedOrderId == Guid.Empty)
             return;
-
         try
         {
             OrderItems = await Http.GetFromJsonAsync<List<OrderItemSchema>>($"orders/{CreatedOrderId}/items") ?? new List<OrderItemSchema>();
@@ -253,47 +227,36 @@
     {
         IsOrderItemAdded = false;
         OrderItemErrorMessage = string.Empty;
-
-        // Check if the order is already created
         if (CreatedOrderId == Guid.Empty)
         {
             OrderItemErrorMessage = "Please create an order first.";
             return;
         }
-
-        // Check if a stock item is selected
         if (selectedStockItemId == Guid.Empty)
         {
             OrderItemErrorMessage = "Please select a stock item.";
             return;
         }
-
-        // Validate the quantity
         if (newOrderItem.Quantity < 1)
         {
             OrderItemErrorMessage = "Quantity must be at least 1.";
             return;
         }
-
-        // Retrieve the selected product
         var selectedStockItem = StockItems.FirstOrDefault(s => s.Id == selectedStockItemId);
         if (selectedStockItem == null)
         {
             OrderItemErrorMessage = "Selected product not found.";
             return;
         }
-
-        // Prepare the order item DTO
         var orderItemDTO = new OrderItemDTO
             {
                 orderId = CreatedOrderId,
-                type = "PRODUCT", // Since everything is a product
+                type = "PRODUCT",
                 price = selectedStockItem.Price,
                 quantity = newOrderItem.Quantity,
                 productId = selectedStockItem.Id,
                 transactionId = Guid.Empty
             };
-
         try
         {
             var response = await Http.PostAsJsonAsync($"orders/{CreatedOrderId}/items", orderItemDTO);
@@ -302,8 +265,7 @@
                 IsOrderItemAdded = true;
                 newOrderItem = new NewOrderItemDTO();
                 selectedStockItemId = Guid.Empty;
-
-                await LoadOrderItems(); // Reload current order items
+                await LoadOrderItems();
             }
             else
             {
@@ -330,5 +292,4 @@
         public decimal Price { get; set; }
         public int StockQuantity { get; set; }
     }
-
 }

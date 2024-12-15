@@ -1,0 +1,292 @@
+@page "/business-admin/products"
+@inject IHttpClientFactory ClientFactory
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+
+<h2>Product Management</h2>
+
+<!-- Create New Product Form -->
+<div class="card mb-3">
+    <div class="card-header bg-primary text-white">Add New Product</div>
+    <div class="card-body">
+        <div class="mb-3">
+            <label class="form-label">Name</label>
+            <input class="form-control" @bind="newProduct.Name" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Description</label>
+            <input class="form-control" @bind="newProduct.Description" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Price</label>
+            <input type="number" step="0.01" class="form-control" @bind="newProduct.Price" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Stock Quantity</label>
+            <input type="number" class="form-control" @bind="newProduct.StockQuantity" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Base Product (Optional)</label>
+            <select class="form-control" @bind="newProduct.BaseProductId">
+                <option value="" disabled selected>Select base product</option>
+                @foreach (var baseProduct in baseProducts)
+                {
+                    <option value="@baseProduct.Id">@baseProduct.Name</option>
+                }
+            </select>
+        </div>
+        <button class="btn btn-success" @onclick="CreateProduct">Add Product</button>
+    </div>
+</div>
+
+<!-- Products Table -->
+@if (products == null)
+{
+    <p>Loading products...</p>
+}
+else if (!products.Any())
+{
+    <p>No products found.</p>
+}
+else
+{
+@foreach (var baseProduct in baseProducts)
+{
+    <div class="mb-2">
+        <h4>@baseProduct.Name</h4>
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Price</th>
+                    <th>Stock Quantity</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Display Base Product -->
+                <tr>
+                    <td>@baseProduct.Name</td>
+                    <td>@baseProduct.Description</td>
+                    <td>@baseProduct.Price.ToString("C")</td>
+                    <td>@baseProduct.StockQuantity</td>
+                    <td>
+                        <button class="btn btn-warning btn-sm me-2" @onclick="() => OpenEditPopup(baseProduct)">Edit</button>
+                        <button class="btn btn-danger btn-sm" @onclick="() => DeleteProduct(baseProduct.Id)">Delete</button>
+                    </td>
+                </tr>
+
+                <!-- Display Varieties if Any -->
+                @if (varieties.ContainsKey(baseProduct.Id))
+                {
+                    @foreach (var variety in varieties[baseProduct.Id])
+                    {
+                        <tr>
+                            <td>— @variety.Name</td>
+                            <td>@variety.Description</td>
+                            <td>@variety.Price.ToString("C")</td>
+                            <td>@variety.StockQuantity</td>
+                            <td>
+                                <button class="btn btn-warning btn-sm me-2" @onclick="() => OpenEditPopup(variety)">Edit</button>
+                                <button class="btn btn-danger btn-sm" @onclick="() => DeleteProduct(variety.Id)">Delete</button>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+}
+}
+
+<!-- Edit Product Popup -->
+@if (isEditPopupVisible)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Product</h5>
+                    <button type="button" class="btn-close" @onclick="CloseEditPopup"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Name</label>
+                        <input class="form-control" @bind="editProduct.Name" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <input class="form-control" @bind="editProduct.Description" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Price</label>
+                        <input type="number" step="0.01" class="form-control" @bind="editProduct.Price" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Stock Quantity</label>
+                        <input type="number" class="form-control" @bind="editProduct.StockQuantity" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseEditPopup">Close</button>
+                    <button type="button" class="btn btn-primary" @onclick="SaveEditProduct">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Success/Error Messages -->
+@if (!string.IsNullOrEmpty(Message))
+{
+    <div class="alert alert-info">@Message</div>
+}
+
+@code {
+    private HttpClient Http => ClientFactory.CreateClient("ApiClient");
+
+    private List<Product>? products;
+    private List<Product> baseProducts = new();
+    private Dictionary<Guid, List<Product>> varieties = new();
+    private Product newProduct = new();
+    private Product editProduct = new();
+    private string? Message;
+    private bool isEditPopupVisible = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProducts();
+    }
+
+    private async Task LoadProducts()
+    {
+        try
+        {
+            products = await Http.GetFromJsonAsync<List<Product>>("api/products");
+            baseProducts = products!.Where(p => p.BaseProductId == null).ToList();
+	    if (products != null)
+		    varieties = products
+			.Where(p => p.BaseProductId != null)
+			.GroupBy(p => p.BaseProductId!.Value)
+			.ToDictionary(g => g.Key, g => g.ToList());
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error loading products: {ex.Message}";
+        }
+    }
+
+private async Task CreateProduct()
+{
+    try
+    {
+        var businessIdClaim = (await AuthenticationStateProvider.GetAuthenticationStateAsync())
+            .User?.FindFirst("businessId")?.Value;
+
+        if (Guid.TryParse(businessIdClaim, out Guid businessId))
+        {
+            newProduct.BusinessId = businessId; // Set the BusinessId from the user claims
+
+            var response = await Http.PostAsJsonAsync("api/products", newProduct);
+            if (response.IsSuccessStatusCode)
+            {
+                Message = "Product created successfully.";
+                newProduct = new(); // Reset form
+                await LoadProducts();
+            }
+            else
+            {
+                Message = $"Failed to create product: {response.ReasonPhrase}";
+            }
+        }
+        else
+        {
+            Message = "Error: Could not determine BusinessId from user claims.";
+        }
+    }
+    catch (Exception ex)
+    {
+        Message = $"Error creating product: {ex.Message}";
+    }
+}
+
+    private void OpenEditPopup(Product product)
+    {
+        editProduct = new Product(product);
+        isEditPopupVisible = true;
+    }
+
+private async Task SaveEditProduct()
+{
+    try
+    {
+        var response = await Http.PutAsJsonAsync($"api/products/{editProduct.Id}", editProduct);
+        if (response.IsSuccessStatusCode)
+        {
+            Message = "Product updated successfully.";
+            await LoadProducts(); // Reload to ensure UI reflects changes
+            CloseEditPopup();
+        }
+        else
+        {
+            Message = $"Failed to update product: {response.ReasonPhrase}";
+        }
+    }
+    catch (Exception ex)
+    {
+        Message = $"Error updating product: {ex.Message}";
+    }
+}
+
+    private async Task DeleteProduct(Guid productId)
+    {
+        try
+        {
+            var response = await Http.DeleteAsync($"api/products/{productId}");
+            if (response.IsSuccessStatusCode)
+            {
+                Message = "Product deleted successfully.";
+                await LoadProducts();
+            }
+            else
+            {
+                Message = $"Failed to delete product: {response.ReasonPhrase}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error deleting product: {ex.Message}";
+        }
+    }
+
+    private void CloseEditPopup() => isEditPopupVisible = false;
+
+    public class Product
+    {
+        public Guid Id { get; set; }
+        public string? Name { get; set; }
+        public string? Description { get; set; }
+        public decimal Price { get; set; }
+        public int StockQuantity { get; set; }
+        public Guid BusinessId { get; set; }
+        public Guid? BaseProductId { get; set; }
+
+        public Product() { }
+
+        public Product(Product product)
+        {
+            Id = product.Id;
+            Name = product.Name;
+            Description = product.Description;
+            Price = product.Price;
+            StockQuantity = product.StockQuantity;
+            BaseProductId = product.BaseProductId;
+        }
+    }
+}
