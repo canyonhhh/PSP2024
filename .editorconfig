@@ -1,6 +1,10 @@
 # Remove the line below if you want to inherit .editorconfig settings from higher directories
 root = true
 
+# Ignore Migrations
+[**/Migrations/**]
+generated_code = true
+
 # C# files
 [*.cs]
 
