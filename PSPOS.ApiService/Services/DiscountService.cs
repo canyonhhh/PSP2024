@@ -78,7 +78,7 @@ namespace PSPOS.ApiService.Services
             decimal originalTotalPrice = orderItem.Price * orderItem.Quantity;
             decimal discountedTotalPrice = originalTotalPrice;
 
-            switch (discount.Method.ToUpper())
+            switch ((discount.Method ?? "").ToUpper())
             {
                 case "FIXED":
                     discountedTotalPrice -= discount.Amount;

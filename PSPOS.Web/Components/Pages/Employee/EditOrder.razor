@@ -151,7 +151,7 @@ else
             // Fetch product details for items with productId
             var productIds = OrderItems
                 .Where(item => item.productId.HasValue)
-                .Select(item => item.productId.Value)
+                .Select(item => item.productId!.Value)
                 .Distinct()
                 .ToList();
 
