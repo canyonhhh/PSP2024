@@ -18,7 +18,6 @@
 }
 else
 {
-    <!-- Edit Existing Order Items -->
     <div class="table-responsive">
         <table class="table table-striped table-hover mb-4">
             <thead class="table-dark">
@@ -37,30 +36,18 @@ else
                 {
                     <tr>
                         <td>@item.Id</td>
-                        <td>
-                            <input type="text" class="form-control" value="@item.ProductName" readonly />
-                        </td>
-                        <td>
-                            <input type="text" class="form-control" value="@item.ProductDescription" readonly />
-                        </td>
-                        <td>
-                            <input type="number" class="form-control" step="0.01" value="@item.price" readonly />
-                        </td>
-                        <td>
-                            <input type="number" class="form-control" min="1" @bind="item.quantity" />
-                        </td>
+                        <td><input type="text" class="form-control" value="@item.ProductName" readonly /></td>
+                        <td><input type="text" class="form-control" value="@item.ProductDescription" readonly /></td>
+                        <td><input type="number" class="form-control" step="0.01" value="@item.price" readonly /></td>
+                        <td><input type="number" class="form-control" min="1" @bind="item.quantity" /></td>
                         <td>@(item.price * item.quantity)</td>
-                        <td>
-                            <button class="btn btn-success btn-sm" @onclick="() => SaveItem(item)">Save</button>
-                        </td>
+                        <td><button class="btn btn-success btn-sm" @onclick="() => SaveItem(item)">Save</button></td>
                     </tr>
                 }
             </tbody>
-
         </table>
     </div>
 
-    <!-- Add New Order Items -->
     <h4>Add New Order Items</h4>
     <div class="card p-4 mb-4">
         <form @onsubmit="OnAddOrderItem" @onsubmit:preventDefault="true">
@@ -70,21 +57,16 @@ else
                     <option value="">-- Select Product --</option>
                     @foreach (var product in StockItems)
                     {
-                        <option value="@product.Id">
-                            @product.Name - Price: @product.Price.ToString("C") - Stock: @product.StockQuantity
-                        </option>
+                        <option value="@product.Id">@product.Name - Price: @product.Price.ToString("C") - Stock: @product.StockQuantity</option>
                     }
                 </select>
             </div>
-
             <div class="form-group mb-3">
                 <label for="quantity">Quantity</label>
                 <input id="quantity" @bind="newOrderItem.Quantity" type="number" min="1" class="form-control" required />
             </div>
-
             <button type="submit" class="btn btn-success">Add Item</button>
         </form>
-
         @if (!string.IsNullOrEmpty(OrderItemErrorMessage))
         {
             <div class="alert alert-danger mt-3">@OrderItemErrorMessage</div>
@@ -104,12 +86,10 @@ else
     public Guid OrderId { get; set; }
 
     private HttpClient Http => ClientFactory.CreateClient("ApiClient");
-
     private List<OrderItemSchema> OrderItems = new();
     private List<StockItem> StockItems = new();
     private Guid selectedStockItemId = Guid.Empty;
     private NewOrderItemDTO newOrderItem = new NewOrderItemDTO();
-
     private string ErrorMessage = string.Empty;
     private string OrderItemErrorMessage = string.Empty;
     private bool IsLoading = true;
@@ -145,26 +125,14 @@ else
     {
         try
         {
-            // Fetch order items
             OrderItems = await Http.GetFromJsonAsync<List<OrderItemSchema>>($"orders/{OrderId}/items") ?? new List<OrderItemSchema>();
-
-            // Fetch product details for items with productId
-            var productIds = OrderItems
-                .Where(item => item.productId.HasValue)
-                .Select(item => item.productId!.Value)
-                .Distinct()
-                .ToList();
-
+            var productIds = OrderItems.Where(item => item.productId.HasValue).Select(item => item.productId!.Value).Distinct().ToList();
             if (productIds.Any())
             {
-                // Fetch product details in one API call
                 var products = await Http.GetFromJsonAsync<List<ProductSchema>>("api/products");
-
                 var productDict = products?
                     .Where(p => productIds.Contains(p.Id))
                     .ToDictionary(p => p.Id, p => p) ?? new Dictionary<Guid, ProductSchema>();
-
-                // Map product details into OrderItems
                 foreach (var orderItem in OrderItems)
                 {
                     if (orderItem.productId.HasValue && productDict.ContainsKey(orderItem.productId.Value))
@@ -211,26 +179,20 @@ else
     private async Task OnAddOrderItem()
     {
         OrderItemErrorMessage = string.Empty;
-
         if (selectedStockItemId == Guid.Empty)
         {
             OrderItemErrorMessage = "Please select a product.";
             return;
         }
-
         if (newOrderItem.Quantity < 1)
         {
             OrderItemErrorMessage = "Quantity must be at least 1.";
             return;
         }
-
-        // Check if the product already exists in the order items
         var existingItem = OrderItems.FirstOrDefault(oi => oi.productId == selectedStockItemId);
         if (existingItem != null)
         {
-            // Update the quantity of the existing item
             existingItem.quantity += newOrderItem.Quantity;
-
             try
             {
                 var response = await Http.PutAsJsonAsync($"orders/{OrderId}/items/{existingItem.Id}", existingItem);
@@ -249,14 +211,12 @@ else
         }
         else
         {
-            // Add new item if it does not already exist
             var selectedStockItem = StockItems.FirstOrDefault(s => s.Id == selectedStockItemId);
             if (selectedStockItem == null)
             {
                 OrderItemErrorMessage = "Selected product not found.";
                 return;
             }
-
             var orderItemDTO = new OrderItemDTO
                 {
                     orderId = OrderId,
@@ -265,7 +225,6 @@ else
                     quantity = newOrderItem.Quantity,
                     productId = selectedStockItem.Id
                 };
-
             try
             {
                 var response = await Http.PostAsJsonAsync($"orders/{OrderId}/items", orderItemDTO);
@@ -282,14 +241,10 @@ else
                 return;
             }
         }
-
         await LoadOrderItems();
-
-        // Reset input
         newOrderItem = new NewOrderItemDTO();
         selectedStockItemId = Guid.Empty;
     }
-
 
     private void GoBack()
     {
