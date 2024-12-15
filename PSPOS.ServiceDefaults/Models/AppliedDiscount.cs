@@ -2,9 +2,9 @@ namespace PSPOS.ServiceDefaults.Models;
 
 public class AppliedDiscount : BaseClass
 {
-    public AppliedDiscount(/* DiscountMethod method, */ decimal amount, decimal percentage, Guid discountId, Guid orderItemId, Guid orderId)
+    public AppliedDiscount(DiscountMethod method, decimal amount, decimal percentage, Guid discountId, Guid orderItemId, Guid orderId)
     {
-        // Method = method;
+        Method = method;
         Amount = amount;
         Percentage = percentage;
         DiscountId = discountId;
@@ -12,7 +12,7 @@ public class AppliedDiscount : BaseClass
         OrderId = orderId;
     }
 
-    // public DiscountMethod Method { get; set; } // TODO Uncomment when dependency exists
+    public DiscountMethod Method { get; set; }
     public decimal Amount { get; set; }
     public decimal Percentage { get; set; }
     public Guid DiscountId { get; set; }
