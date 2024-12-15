@@ -108,17 +108,6 @@ public class OrderService : IOrderService
             if (orderItem.TransactionId != Guid.Empty)
                 throw new ArgumentException($"Item '{orderItem.Id}' is already paid for.");
 
-        // Check for valid gift card
-        if (transactionDTO.paidByGiftcard > 0)
-        {
-            if (transactionDTO.giftcardId == Guid.Empty)
-                throw new ArgumentException($"Giftcard payment amount provided with no giftcard ID.");
-
-            Giftcard? giftCard = await _orderRepository.GetGiftcardByIdAsync(transactionDTO.giftcardId) ?? throw new ArgumentException($"Giftcard '{transactionDTO.giftcardId}' doesn't exist.");
-
-            if (giftCard.Amount < transactionDTO.paidByGiftcard)
-                throw new ArgumentException($"Giftcard '{transactionDTO.giftcardId}' doesn't have enough money for the transaction.");
-        }
 
         // Check if enough money is paid for all the items
         // TODO Use Stripe too
@@ -133,11 +122,39 @@ public class OrderService : IOrderService
         // Add transaction data to database
         Transaction transaction = new(TransactionType.Purchase);
 
-        if (transactionDTO.paidByGiftcard > 0)
+        if (transactionDTO.paidByGiftcard > 0 && transactionDTO.giftcardCode != null)
         {
-            Payment giftcardPayment = new(PaymentMethod.Giftcard, transactionDTO.paidByGiftcard, order.OrderCurrency, Guid.Empty, transaction.Id, transactionDTO.giftcardId);
+            // Retrieve the gift card by its code
+            Giftcard? giftcard = await _orderRepository.GetGiftCardByCode(transactionDTO.giftcardCode);
+
+            if (giftcard == null)
+            {
+                throw new InvalidOperationException("Gift card not found.");
+            }
+
+            // Deduct the payment amount from the gift card balance
+            if (giftcard.Amount < transactionDTO.paidByGiftcard)
+            {
+                throw new InvalidOperationException("Insufficient balance on the gift card.");
+            }
+
+            giftcard.Amount -= transactionDTO.paidByGiftcard;
+
+            // Create a new payment for the gift card
+            Payment giftcardPayment = new(
+                PaymentMethod.Giftcard,
+                transactionDTO.paidByGiftcard,
+                order.OrderCurrency,
+                Guid.Empty,
+                transaction.Id,
+                giftcard.Id
+            );
+
+            // Add the payment and update the gift card amount
             await _orderRepository.AddPaymentAsync(giftcardPayment);
+            await _orderRepository.UpdateGiftCardAmountAsync(giftcard);
         }
+
 
         if (transactionDTO.paidByCash > 0)
         {

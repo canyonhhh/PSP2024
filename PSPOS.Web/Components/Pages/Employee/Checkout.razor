@@ -84,19 +84,6 @@ else
                         </tr>
                     }
                 </tbody>
-                <tfoot>
-                    @if (OrderLevelDiscount > 0)
-                    {
-                        <tr>
-                            <td colspan="6" class="text-end"><strong>Order Level Discount:</strong></td>
-                            <td class="text-danger">-@OrderLevelDiscount.ToString("C", GetCultureInfo(OrderDetails?.currency))</td>
-                        </tr>
-                    }
-                    <tr class="table-primary">
-                        <td colspan="6" class="text-end"><strong>Total Amount:</strong></td>
-                        <td><strong>@TotalAmount.ToString("C", GetCultureInfo(OrderDetails?.currency))</strong></td>
-                    </tr>
-                </tfoot>
             </table>
         </div>
     }
@@ -116,8 +103,6 @@ else
     private OrderSchema? OrderDetails = null;
     private List<OrderItemSchema> OrderItems = new();
     private decimal TotalAmount = 0;
-    private decimal OrderLevelDiscount = 0;
-    private Discount? FoundOrderLevelDiscount = null;
 
     private string ErrorMessage = string.Empty;
     private bool IsLoading = true;
@@ -250,15 +235,6 @@ else
                     item.AppliedDiscountMethod = applicableDiscount.Method;
                 }
             }
-
-            var orderLevelDiscounts = discounts.Where(d =>
-                d.Active &&
-                d.EndDate > DateTime.UtcNow &&
-                d.ProductOrServiceId == Guid.Empty &&
-                d.ProductOrServiceGroupId == Guid.Empty
-            ).ToList();
-
-            FoundOrderLevelDiscount = orderLevelDiscounts.FirstOrDefault();
         }
         catch (Exception)
         {
@@ -286,25 +262,6 @@ else
             var lineTotal = baseAfterDiscount * (1 + (item.tax / 100));
             subtotalWithTax += lineTotal;
         }
-
-        if (FoundOrderLevelDiscount != null)
-        {
-            decimal discountValue = 0;
-            if (FoundOrderLevelDiscount.Method?.ToUpper() == "FIXED")
-            {
-                discountValue = FoundOrderLevelDiscount.Amount;
-                if (discountValue > subtotalWithTax) discountValue = subtotalWithTax;
-            }
-            else if (FoundOrderLevelDiscount.Method?.ToUpper() == "PERCENTAGE")
-            {
-                discountValue = subtotalWithTax * (FoundOrderLevelDiscount.Percentage / 100);
-            }
-
-            OrderLevelDiscount = discountValue;
-            subtotalWithTax -= discountValue;
-            if (subtotalWithTax < 0) subtotalWithTax = 0;
-        }
-
         TotalAmount = subtotalWithTax;
     }
 

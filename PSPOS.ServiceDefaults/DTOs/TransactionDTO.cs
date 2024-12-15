@@ -5,6 +5,6 @@
         public IEnumerable<Guid>? itemIds { get; set; }
         public decimal paidByCash { get; set; }
         public decimal paidByGiftcard { get; set; }
-        public Guid giftcardId { get; set; }
+        public string? giftcardCode { get; set; }
     }
 }

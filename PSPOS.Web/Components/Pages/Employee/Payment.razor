@@ -432,45 +432,6 @@ else
         }
     }
 
-
-    private async Task SendTransactionToServer(List<OrderItemSchema> selectedItems, decimal paidByCash)
-    {
-        try
-        {
-            var transactionDTO = new TransactionDTO
-                {
-                    itemIds = selectedItems.Select(si => si.Id),
-                    paidByCash = paidByCash,
-                    paidByGiftcard = 0,
-                    giftcardId = Guid.Empty
-                };
-
-            var response = await Http.PostAsJsonAsync($"/orders/{OrderId}/transactions", transactionDTO);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var err = await response.Content.ReadAsStringAsync();
-                ErrorMessage = $"Error processing payment: {err}";
-                return;
-            }
-
-            await LoadOrderDetails();
-
-            if (OrderDetails?.status?.ToUpper() == "CLOSED")
-            {
-                ErrorMessage = "Payment successful! Order is now CLOSED.";
-            }
-            else
-            {
-                ErrorMessage = "Payment successful, but order status was not updated to CLOSED.";
-            }
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"Error processing payment: {ex.Message}";
-        }
-    }
-
     private decimal CalculateLineTotal(OrderItemSchema item)
     {
         decimal basePrice = item.price * item.quantity;
@@ -496,34 +457,23 @@ else
                 return;
             }
 
-            decimal sumOfSelected = selectedItems.Sum(i => CalculateLineTotal(i));
-
-            if (SelectedPaymentMethod == "Cash")
+            switch (SelectedPaymentMethod)
             {
-                if (PaymentAmount <= 0)
-                {
-                    ErrorMessage = $"Payment amount must be greater than 0.";
-                    return;
-                }
+                case "Cash":
+                    await ProcessCashPayment(selectedItems);
+                    break;
 
-                if (PaymentAmount < sumOfSelected)
-                {
-                    ErrorMessage = $"Not enough money, need at least {sumOfSelected.ToString("C", GetCultureInfo(OrderDetails?.currency))}.";
-                    return;
-                }
+                case "GiftCard":
+                    await ProcessGiftCardPayment(selectedItems);
+                    break;
 
-                decimal change = PaymentAmount - sumOfSelected;
+                case "Card":
+                    await ProcessCardPayment(selectedItems);
+                    break;
 
-                await SendTransactionToServer(selectedItems, sumOfSelected);
-
-                if (change > 0)
-                {
-                    ErrorMessage = $"Payment accepted. Give back change: {change.ToString("C", GetCultureInfo(OrderDetails?.currency))}.";
-                }
-                else
-                {
-                    ErrorMessage = "Payment accepted.";
-                }
+                default:
+                    ErrorMessage = "Invalid payment method selected.";
+                    break;
             }
         }
         catch (Exception ex)
@@ -531,6 +481,116 @@ else
             ErrorMessage = $"Error processing payment: {ex.Message}";
         }
     }
+    private async Task ProcessCashPayment(List<OrderItemSchema> selectedItems)
+    {
+        decimal sumOfSelected = selectedItems.Sum(i => CalculateLineTotal(i));
+
+        if (PaymentAmount <= 0)
+        {
+            ErrorMessage = "Payment amount must be greater than 0.";
+            return;
+        }
+
+        if (PaymentAmount < sumOfSelected)
+        {
+            ErrorMessage = $"Not enough money, need at least {sumOfSelected.ToString("C", GetCultureInfo(OrderDetails?.currency))}.";
+            return;
+        }
+
+        decimal change = PaymentAmount - sumOfSelected;
+
+        var transactionDTO = new TransactionDTO
+            {
+                itemIds = selectedItems.Select(si => si.Id),
+                paidByCash = sumOfSelected,
+                paidByGiftcard = 0,
+                giftcardCode = GiftCardCode
+            };
+
+        var response = await Http.PostAsJsonAsync($"/orders/{OrderId}/transactions", transactionDTO);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var err = await response.Content.ReadAsStringAsync();
+            ErrorMessage = $"Error processing payment: {err}";
+            return;
+        }
+
+        await LoadOrderDetails();
+
+        if (OrderDetails?.status?.ToUpper() == "CLOSED")
+        {
+            ErrorMessage = "Payment successful! Order is now CLOSED.";
+        }
+        else
+        {
+            ErrorMessage = "Payment successful, but order status was not updated to CLOSED.";
+        }
+
+        if (change > 0)
+        {
+            ErrorMessage = $"Payment accepted. Change to return: {change.ToString("C", GetCultureInfo(OrderDetails?.currency))}.";
+        }
+        else
+        {
+            ErrorMessage = "Payment accepted.";
+        }
+    }
+    private async Task ProcessGiftCardPayment(List<OrderItemSchema> selectedItems)
+    {
+        if (string.IsNullOrEmpty(GiftCardCode))
+        {
+            ErrorMessage = "Please enter a valid gift card code.";
+            return;
+        }
+
+        decimal sumOfSelected = selectedItems.Sum(i => CalculateLineTotal(i));
+
+        var transactionDTO = new TransactionDTO
+            {
+                itemIds = selectedItems.Select(si => si.Id),
+                paidByCash = 0,
+                paidByGiftcard = sumOfSelected,
+                giftcardCode = GiftCardCode
+            };
+
+        var response = await Http.PostAsJsonAsync($"/orders/{OrderId}/transactions", transactionDTO);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var err = await response.Content.ReadAsStringAsync();
+            ErrorMessage = $"Gift card payment failed: {err}";
+            return;
+        }
+
+        await LoadOrderDetails();
+        ErrorMessage = "Gift card payment successful!";
+    }
+    private async Task ProcessCardPayment(List<OrderItemSchema> selectedItems)
+    {
+        decimal sumOfSelected = selectedItems.Sum(i => CalculateLineTotal(i));
+
+        var transactionDTO = new TransactionDTO
+            {
+                itemIds = selectedItems.Select(si => si.Id),
+                paidByCash = 0,
+                paidByGiftcard = 0,
+                giftcardCode = string.Empty
+            };
+
+        var response = await Http.PostAsJsonAsync($"/orders/{OrderId}/transactions", transactionDTO);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var err = await response.Content.ReadAsStringAsync();
+            ErrorMessage = $"Card payment failed: {err}";
+            return;
+        }
+
+        await LoadOrderDetails();
+        ErrorMessage = "Card payment successful!";
+    }
+
 
     private void GoBack()
     {
@@ -621,6 +681,6 @@ else
         public IEnumerable<Guid>? itemIds { get; set; }
         public decimal paidByCash { get; set; }
         public decimal paidByGiftcard { get; set; }
-        public Guid giftcardId { get; set; }
+        public string? giftcardCode { get; set; }
     }
 }
