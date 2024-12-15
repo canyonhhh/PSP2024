@@ -549,6 +549,7 @@ namespace PSPOS.ApiService.Services
                 // Update the service group
                 serviceGroup.Name = categoryDto.Name;
                 serviceGroup.Description = categoryDto.Description;
+                serviceGroup.productOrServiceIds = categoryDto.ProductOrServiceIds;
 
                 var updatedGroup = await _repository.UpdateServiceGroupAsync(serviceGroup);
                 if (updatedGroup != null)
