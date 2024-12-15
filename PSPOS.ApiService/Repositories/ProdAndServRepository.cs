@@ -321,14 +321,14 @@ public class ProdAndServRepository : IProdAndServRepository
     public async Task<bool> RemoveServiceFromGroupAsync(Guid serviceId)
     {
         var serviceGroups = await _context.ServiceGroups
-            .Where(sg => sg.productOrServiceIds.Contains(serviceId))
+            .Where(sg => sg.productOrServiceIds != null && sg.productOrServiceIds.Contains(serviceId))
             .ToListAsync();
 
         if (!serviceGroups.Any()) return false;
 
         foreach (var serviceGroup in serviceGroups)
         {
-            serviceGroup.productOrServiceIds = serviceGroup.productOrServiceIds
+            serviceGroup.productOrServiceIds = serviceGroup.productOrServiceIds?
                 .Where(id => id != serviceId)
                 .ToArray();
 
@@ -342,14 +342,14 @@ public class ProdAndServRepository : IProdAndServRepository
     public async Task<bool> RemoveProductFromGroupAsync(Guid productId)
     {
         var productGroups = await _context.ProductGroups
-            .Where(pg => pg.productOrServiceIds.Contains(productId))
+            .Where(pg => pg.productOrServiceIds != null && pg.productOrServiceIds.Contains(productId))
             .ToListAsync();
 
         if (!productGroups.Any()) return false;
 
         foreach (var productGroup in productGroups)
         {
-            productGroup.productOrServiceIds = productGroup.productOrServiceIds
+            productGroup.productOrServiceIds = productGroup.productOrServiceIds?
                 .Where(id => id != productId)
                 .ToArray();
 
