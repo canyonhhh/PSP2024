@@ -15,10 +15,11 @@ public class AppDbContext : DbContext
     public DbSet<Payment> Payments { get; set; }
     public DbSet<Giftcard> GiftCards { get; set; }
     public DbSet<Discount> Discounts { get; set; }
+    public DbSet<AppliedDiscount> AppliedDiscounts { get; set; }
     public DbSet<Business> Businesses { get; set; }
 
     public DbSet<Tax> Taxes { get; set; }
-
+    public DbSet<AppliedTax> AppliedTax { get; set; }
     public DbSet<Reservation> Reservations { get; set; }
 
     public DbSet<Service> Services { get; set; }

@@ -1,4 +1,5 @@
 using PSPOS.ServiceDefaults.Models;
+using PSPOS.ServiceDefaults.Schemas;
 
 namespace PSPOS.ApiService.Repositories.Interfaces;
 
@@ -17,10 +18,12 @@ public interface IOrderRepository
     Task AddTransactionAsync(Transaction transaction);
     Task<Transaction?> GetTransactionByIdAsync(Guid id);
     Task<IEnumerable<Payment>> GetAllPaymentsOfTransactionAsync(Guid transactionId);
-    Task<Giftcard?> GetGiftcardByIdAsync(Guid id);
+    Task<Giftcard?> GetGiftCardByCode(string giftcardCode);
+    Task UpdateGiftCardAmountAsync(Giftcard giftcard);
 
     // '/orders/items'
-    Task<IEnumerable<OrderItem>> GetAllItemsOfOrderAsync(Guid id);
+    Task<IEnumerable<OrderItemSchema>> GetAllItemsOfOrderAsync(Guid id);
+    Task<IEnumerable<OrderItem>> GetAllItemsOfOrderAsyncO(Guid orderId);
     Task AddOrderItemToOrderAsync(OrderItem orderItem);
     Task<OrderItem?> GetOrderItemByIdAsync(Guid orderItemId);
     Task UpdateOrderItemAsync(OrderItem orderItem);

@@ -6,11 +6,51 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace PSPOS.MigrationService.Migrations
 {
     /// <inheritdoc />
-    public partial class WorkingMigrations : Migration
+    public partial class Giftcards : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.CreateTable(
+                name: "AppliedDiscounts",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Method = table.Column<int>(type: "integer", nullable: false),
+                    Amount = table.Column<decimal>(type: "numeric", nullable: false),
+                    Percentage = table.Column<decimal>(type: "numeric", nullable: false),
+                    DiscountId = table.Column<Guid>(type: "uuid", nullable: false),
+                    OrderItemId = table.Column<Guid>(type: "uuid", nullable: false),
+                    OrderId = table.Column<Guid>(type: "uuid", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedBy = table.Column<Guid>(type: "uuid", nullable: false),
+                    UpdatedBy = table.Column<Guid>(type: "uuid", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AppliedDiscounts", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "AppliedTax",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Percentage = table.Column<decimal>(type: "numeric", nullable: false),
+                    TaxId = table.Column<Guid>(type: "uuid", nullable: false),
+                    OrderItemId = table.Column<Guid>(type: "uuid", nullable: false),
+                    OrderId = table.Column<Guid>(type: "uuid", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedBy = table.Column<Guid>(type: "uuid", nullable: false),
+                    UpdatedBy = table.Column<Guid>(type: "uuid", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AppliedTax", x => x.Id);
+                });
+
             migrationBuilder.CreateTable(
                 name: "Businesses",
                 columns: table => new
@@ -45,6 +85,7 @@ namespace PSPOS.MigrationService.Migrations
                     Percentage = table.Column<decimal>(type: "numeric", nullable: false),
                     EndDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     BusinessId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ProductOrServiceGroupId = table.Column<Guid>(type: "uuid", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedBy = table.Column<Guid>(type: "uuid", nullable: false),
@@ -122,7 +163,7 @@ namespace PSPOS.MigrationService.Migrations
                     Method = table.Column<int>(type: "integer", nullable: false),
                     Amount = table.Column<decimal>(type: "numeric", nullable: false),
                     PaymentCurrency = table.Column<int>(type: "integer", nullable: false),
-                    ExternalPaymentId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ExternalPaymentId = table.Column<string>(type: "text", nullable: false),
                     TransactionId = table.Column<Guid>(type: "uuid", nullable: false),
                     GiftCardId = table.Column<Guid>(type: "uuid", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -318,6 +359,12 @@ namespace PSPOS.MigrationService.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "AppliedDiscounts");
+
+            migrationBuilder.DropTable(
+                name: "AppliedTax");
+
             migrationBuilder.DropTable(
                 name: "Businesses");
 

@@ -29,7 +29,13 @@ namespace PSPOS.ApiService.Services
         {
             await _discountRepository.AddDiscountAsync(discount);
         }
+        public async Task AddAppliedDiscountAsync(AppliedDiscount discount)
+        {
+            if (discount == null)
+                throw new ArgumentNullException(nameof(discount), "Applied discount cannot be null.");
 
+            await _discountRepository.AddAppliedDiscountAsync(discount);
+        }
         public async Task UpdateDiscountAsync(Guid discountId, Discount updatedDiscount)
         {
             var existingDiscount = await _discountRepository.GetDiscountByIdAsync(discountId);
@@ -62,7 +68,7 @@ namespace PSPOS.ApiService.Services
             if (!discount.Active || discount.EndDate < DateTime.Now)
                 throw new InvalidOperationException("The discount is either inactive or expired.");
 
-            var orderItems = await _orderRepository.GetAllItemsOfOrderAsync(orderId);
+            var orderItems = await _orderRepository.GetAllItemsOfOrderAsyncO(orderId);
             var orderItem = orderItems.FirstOrDefault(oi => oi.Id == orderItemId);
 
             if (orderItem == null)

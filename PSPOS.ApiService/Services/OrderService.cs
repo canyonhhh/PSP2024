@@ -95,7 +95,7 @@ public class OrderService : IOrderService
         if (!(transactionDTO.itemIds?.Count() > 0))
             throw new ArgumentException($"Item IDs were not provided in request.");
 
-        IEnumerable<OrderItem> orderItems = await _orderRepository.GetAllItemsOfOrderAsync(orderId);
+        IEnumerable<OrderItem> orderItems = await _orderRepository.GetAllItemsOfOrderAsyncO(orderId);
         if (!orderItems.Any())
             throw new ArgumentException($"Order '{orderId}' doesn't contain any items.");
 
@@ -108,17 +108,6 @@ public class OrderService : IOrderService
             if (orderItem.TransactionId != Guid.Empty)
                 throw new ArgumentException($"Item '{orderItem.Id}' is already paid for.");
 
-        // Check for valid gift card
-        if (transactionDTO.paidByGiftcard > 0)
-        {
-            if (transactionDTO.giftcardId == Guid.Empty)
-                throw new ArgumentException($"Giftcard payment amount provided with no giftcard ID.");
-
-            Giftcard? giftCard = await _orderRepository.GetGiftcardByIdAsync(transactionDTO.giftcardId) ?? throw new ArgumentException($"Giftcard '{transactionDTO.giftcardId}' doesn't exist.");
-
-            if (giftCard.Amount < transactionDTO.paidByGiftcard)
-                throw new ArgumentException($"Giftcard '{transactionDTO.giftcardId}' doesn't have enough money for the transaction.");
-        }
 
         // Check if enough money is paid for all the items
         // TODO Use Stripe too
@@ -133,11 +122,39 @@ public class OrderService : IOrderService
         // Add transaction data to database
         Transaction transaction = new(TransactionType.Purchase);
 
-        if (transactionDTO.paidByGiftcard > 0)
+        if (transactionDTO.paidByGiftcard > 0 && transactionDTO.giftcardCode != null)
         {
-            Payment giftcardPayment = new(PaymentMethod.Giftcard, transactionDTO.paidByGiftcard, order.OrderCurrency, String.Empty, transaction.Id, transactionDTO.giftcardId);
+            // Retrieve the gift card by its code
+            Giftcard? giftcard = await _orderRepository.GetGiftCardByCode(transactionDTO.giftcardCode);
+
+            if (giftcard == null)
+            {
+                throw new InvalidOperationException("Gift card not found.");
+            }
+
+            // Deduct the payment amount from the gift card balance
+            if (giftcard.Amount < transactionDTO.paidByGiftcard)
+            {
+                throw new InvalidOperationException("Insufficient balance on the gift card.");
+            }
+
+            giftcard.Amount -= transactionDTO.paidByGiftcard;
+
+            // Create a new payment for the gift card
+            Payment giftcardPayment = new(
+                PaymentMethod.Giftcard,
+                transactionDTO.paidByGiftcard,
+                order.OrderCurrency,
+                string.Empty,
+                transaction.Id,
+                giftcard.Id
+            );
+
+            // Add the payment and update the gift card amount
             await _orderRepository.AddPaymentAsync(giftcardPayment);
+            await _orderRepository.UpdateGiftCardAmountAsync(giftcard);
         }
+
 
         if (transactionDTO.paidByCash > 0)
         {
@@ -229,8 +246,10 @@ public class OrderService : IOrderService
 
     public async Task<IEnumerable<OrderItemSchema>> GetAllItemsOfOrderAsync(Guid id)
     {
-        IEnumerable<OrderItem> items = await _orderRepository.GetAllItemsOfOrderAsync(id);
+        // Retrieve data from the repository
+        IEnumerable<OrderItemSchema> items = await _orderRepository.GetAllItemsOfOrderAsync(id);
 
+        // Map and ensure null handling for appliedDiscounts and appliedTaxes
         return items.Select(item => new OrderItemSchema
         {
             Id = item.Id,
@@ -238,15 +257,20 @@ public class OrderService : IOrderService
             UpdatedAt = item.UpdatedAt,
             CreatedBy = item.CreatedBy,
             UpdatedBy = item.UpdatedBy,
-            type = item.Type.ToString(),
-            price = item.Price,
-            quantity = item.Quantity,
-            orderId = item.OrderId,
-            serviceId = item.ServiceId,
-            productId = item.ProductId,
-            transactionId = item.TransactionId
+            type = item.type?.ToString() ?? "Unknown",
+            price = item.price,
+            quantity = item.quantity,
+            orderId = item.orderId,
+            serviceId = item.serviceId,
+            productId = item.productId,
+            transactionId = item.transactionId,
+
+            // Ensure appliedDiscounts and appliedTaxes are never null
+            appliedDiscounts = item.appliedDiscounts?.ToList() ?? new List<AppliedDiscountSchema>(),
+            appliedTaxes = item.appliedTaxes?.ToList() ?? new List<AppliedTaxSchema>()
         });
     }
+
 
     public async Task AddOrderItemToOrderAsync(Guid orderId, OrderItemDTO orderItemDTO)
     {
@@ -346,7 +370,7 @@ public class OrderService : IOrderService
 
     public async Task DuplicateAllItemsOfOrderToInventory(Guid orderId)
     {
-        IEnumerable<OrderItem> orderItems = await _orderRepository.GetAllItemsOfOrderAsync(orderId);
+        IEnumerable<OrderItem> orderItems = await _orderRepository.GetAllItemsOfOrderAsyncO(orderId);
 
         foreach (OrderItem item in orderItems)
         {
