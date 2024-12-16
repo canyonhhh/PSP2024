@@ -45,6 +45,11 @@ namespace PSPOS.ApiService.Repositories
             await _context.Discounts.AddAsync(discount);
             await _context.SaveChangesAsync();
         }
+        public async Task AddAppliedDiscountAsync(AppliedDiscount discount)
+        {
+            await _context.AppliedDiscounts.AddAsync(discount);
+            await _context.SaveChangesAsync();
+        }
 
         public async Task UpdateDiscountAsync(Discount discount)
         {

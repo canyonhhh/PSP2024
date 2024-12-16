@@ -29,7 +29,13 @@ namespace PSPOS.ApiService.Services
         {
             await _discountRepository.AddDiscountAsync(discount);
         }
+        public async Task AddAppliedDiscountAsync(AppliedDiscount discount)
+        {
+            if (discount == null)
+                throw new ArgumentNullException(nameof(discount), "Applied discount cannot be null.");
 
+            await _discountRepository.AddAppliedDiscountAsync(discount);
+        }
         public async Task UpdateDiscountAsync(Guid discountId, Discount updatedDiscount)
         {
             var existingDiscount = await _discountRepository.GetDiscountByIdAsync(discountId);

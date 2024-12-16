@@ -184,7 +184,7 @@ else
             ErrorMessage = $"Error loading discounts: {ex.Message}";
         }
     }
-    private void ApplyDiscountToOrder()
+    private async Task ApplyDiscountToOrder()
     {
         if (Guid.TryParse(SelectedDiscountId, out Guid discountId))
         {
@@ -201,6 +201,38 @@ else
                 {
                     // Apply a percentage discount based on the total amount
                     OrderLevelDiscount = TotalAmount * (SelectedOrderDiscount.Percentage / 100);
+                }
+
+                var appliedDiscount = new AppliedDiscountSchema
+                    {
+                        Id = Guid.NewGuid(),
+                        amount = OrderLevelDiscount,
+                        percentage = SelectedOrderDiscount.Percentage,
+                        discountId = SelectedOrderDiscount.Id,
+                        orderItemId = Guid.Empty, // Set to empty as it's for the entire order
+                        orderId = OrderId
+                    };
+
+                try
+                {
+                    Console.WriteLine("Sending POST request to create AppliedDiscount record...");
+                    var response = await Http.PostAsJsonAsync("api/discounts/applied", appliedDiscount);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        Console.WriteLine("AppliedDiscount record created successfully.");
+                    }
+                    else
+                    {
+                        var errorMessage = await response.Content.ReadAsStringAsync();
+                        Console.WriteLine($"Error creating AppliedDiscount record: {errorMessage}");
+                        ErrorMessage = $"Failed to apply discount: {errorMessage}";
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Exception occurred while creating AppliedDiscount: {ex.Message}");
+                    ErrorMessage = $"Error applying discount: {ex.Message}";
                 }
 
                 // Recalculate total after applying discount
@@ -306,6 +338,7 @@ else
         decimal basePrice = item.price * item.quantity;
         decimal discountTotal = item.appliedDiscounts?.Sum(d => d.amount) ?? 0;
         decimal discountedBase = basePrice - discountTotal;
+        discountedBase = discountedBase - OrderLevelDiscount;
 
         if (discountedBase < 0) discountedBase = 0;
 
@@ -496,6 +529,8 @@ else
         public decimal amount { get; set; }
         public decimal percentage { get; set; }
         public Guid discountId { get; set; }
+        public Guid orderItemId { get; set; }
+        public Guid orderId { get; set; }
     }
 
     public class AppliedTaxSchema

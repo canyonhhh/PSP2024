@@ -63,6 +63,17 @@ public class DiscountsController : ControllerBase
         await _discountService.AddDiscountAsync(discount);
         return CreatedAtAction(nameof(GetDiscountById), new { discountId = discount.Id }, discount);
     }
+    [HttpPost("applied")]
+    [ProducesResponseType(201)]
+    [ProducesResponseType(400)]
+    public async Task<ActionResult> AddAppliedDiscount([FromBody] AppliedDiscount discount)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        await _discountService.AddAppliedDiscountAsync(discount);
+        return Ok(new { Message = "AppliedDiscount created successfully." });
+    }
 
     [HttpPut("{discountId:guid}")]
     [ProducesResponseType(200)]
