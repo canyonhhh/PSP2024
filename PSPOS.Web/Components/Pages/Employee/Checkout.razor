@@ -39,8 +39,8 @@ else
                         <th>Description</th>
                         <th>Price</th>
                         <th>Quantity</th>
-                        <th>Tax</th>
                         <th>Discount</th>
+                        <th>Tax</th>
                         <th>Total</th>
                     </tr>
                 </thead>
@@ -48,38 +48,44 @@ else
                     @foreach (var item in OrderItems)
                     {
                         var basePrice = item.price * item.quantity;
-                        var discountedBase = basePrice - item.DiscountAmount;
+                        var discountTotal = item.appliedDiscounts?.Sum(d => d.amount) ?? 0;
+                        var discountedBase = basePrice - discountTotal;
                         if (discountedBase < 0) discountedBase = 0;
-                        var lineTotal = discountedBase * (1 + (item.tax / 100));
 
-                        string discountDisplay;
-                        if (item.DiscountAmount > 0)
-                        {
-                            if (item.AppliedDiscountMethod?.ToUpper() == "PERCENTAGE" && item.AppliedDiscountPercentage > 0)
-                            {
-                                discountDisplay = $"{item.AppliedDiscountPercentage}%";
-                            }
-                            else if (item.AppliedDiscountMethod?.ToUpper() == "FIXED")
-                            {
-                                discountDisplay = "Fixed discount";
-                            }
-                            else
-                            {
-                                discountDisplay = "Discount Applied";
-                            }
-                        }
-                        else
-                        {
-                            discountDisplay = "No discount";
-                        }
+                        var taxTotal = item.appliedTaxes?.Sum(t => discountedBase * (t.percentage / 100)) ?? 0;
+                        var lineTotal = discountedBase + taxTotal;
 
                         <tr>
                             <td>@item.ProductName</td>
                             <td>@item.ProductDescription</td>
                             <td>@item.price.ToString("C", GetCultureInfo(OrderDetails?.currency))</td>
                             <td>@item.quantity</td>
-                            <td>@($"{item.tax}%")</td>
-                            <td>@discountDisplay</td>
+                            <td>
+                                @if (item.appliedDiscounts?.Any() == true)
+                                {
+                                    @foreach (var discount in item.appliedDiscounts)
+                                    {
+                                        <div>@($"-{discount.amount:C} ({discount.percentage}%)")</div>
+                                    }
+                                }
+                                else
+                                {
+                                    <div>No Discount</div>
+                                }
+                            </td>
+                            <td>
+                                @if (item.appliedTaxes?.Any() == true)
+                                {
+                                    @foreach (var tax in item.appliedTaxes)
+                                    {
+                                        <div>@($"Tax ({tax.percentage}%): {discountedBase * (tax.percentage / 100):C}")</div>
+                                    }
+                                }
+                                else
+                                {
+                                    <div>No Tax</div>
+                                }
+                            </td>
                             <td>@lineTotal.ToString("C", GetCultureInfo(OrderDetails?.currency))</td>
                         </tr>
                     }
@@ -102,8 +108,6 @@ else
 
     private OrderSchema? OrderDetails = null;
     private List<OrderItemSchema> OrderItems = new();
-    private decimal TotalAmount = 0;
-
     private string ErrorMessage = string.Empty;
     private bool IsLoading = true;
 
@@ -111,8 +115,7 @@ else
     {
         await LoadOrderDetails();
         await LoadOrderItems();
-        await ApplyDiscountLogic();
-        CalculateTotalAmount();
+        IsLoading = false;
     }
 
     private async Task LoadOrderDetails()
@@ -131,53 +134,37 @@ else
     {
         try
         {
+            // Fetch order items
             OrderItems = await Http.GetFromJsonAsync<List<OrderItemSchema>>($"orders/{OrderId}/items") ?? new List<OrderItemSchema>();
 
+            // Extract product IDs to fetch product details
             var productIds = OrderItems
                 .Where(item => item.productId != Guid.Empty)
                 .Select(item => item.productId)
                 .Distinct()
                 .ToList();
 
-            var products = await Http.GetFromJsonAsync<List<ProductSchema>>("api/products");
-            var productDict = products?
-                .Where(p => productIds.Contains(p.Id))
-                .ToDictionary(p => p.Id, p => p) ?? new Dictionary<Guid, ProductSchema>();
-
-            var categoriesResponse = await Http.GetFromJsonAsync<CategoriesResponse>("api/categories");
-            var categories = categoriesResponse?.Categories ?? new List<CategorySchema>();
-
-            var categoryDict = new Dictionary<Guid, Guid>();
-            foreach (var category in categories)
+            if (productIds.Any())
             {
-                foreach (var productId in category.ProductOrServiceIds)
+                // Fetch product details
+                var products = await Http.GetFromJsonAsync<List<ProductSchema>>("api/products");
+
+                var productDict = products?
+                    .Where(p => productIds.Contains(p.Id))
+                    .ToDictionary(p => p.Id, p => p) ?? new Dictionary<Guid, ProductSchema>();
+
+                // Map product details to order items
+                foreach (var item in OrderItems)
                 {
-                    if (!categoryDict.ContainsKey(productId))
+                    if (productDict.TryGetValue(item.productId, out var product))
                     {
-                        categoryDict[productId] = category.Id;
+                        item.ProductName = product.name;
+                        item.ProductDescription = product.description;
                     }
-                }
-            }
-
-            var taxes = await Http.GetFromJsonAsync<List<Tax>>("tax");
-
-            foreach (var orderItem in OrderItems)
-            {
-                if (orderItem.productId != Guid.Empty && productDict.ContainsKey(orderItem.productId))
-                {
-                    var product = productDict[orderItem.productId];
-                    orderItem.ProductName = product.name;
-                    orderItem.ProductDescription = product.description;
-
-                    var category = categories.FirstOrDefault(c => c.ProductOrServiceIds.Contains(orderItem.productId));
-                    if (category != null)
+                    else
                     {
-                        var categoryId = category.Id;
-                        var matchingTax = taxes?.FirstOrDefault(t => t.ProductOrServiceGroupId == categoryId);
-                        if (matchingTax != null)
-                        {
-                            orderItem.tax = matchingTax.Percentage;
-                        }
+                        item.ProductName = "Unknown Product";
+                        item.ProductDescription = "No description available";
                     }
                 }
             }
@@ -192,54 +179,6 @@ else
         }
     }
 
-    private async Task ApplyDiscountLogic()
-    {
-        try
-        {
-            var discounts = await Http.GetFromJsonAsync<List<Discount>>("api/discounts") ?? new List<Discount>();
-            var categoriesResponse = await Http.GetFromJsonAsync<CategoriesResponse>("api/categories");
-            var categories = categoriesResponse?.Categories ?? new List<CategorySchema>();
-
-            foreach (var item in OrderItems)
-            {
-                var category = categories.FirstOrDefault(c => c.ProductOrServiceIds.Contains(item.productId));
-                if (category == null) continue;
-
-                Guid categoryId = category.Id;
-                var applicableDiscounts = discounts.Where(d =>
-                    d.Active &&
-                    d.EndDate > DateTime.UtcNow &&
-                    d.ProductOrServiceGroupId == categoryId
-                ).ToList();
-
-                var applicableDiscount = applicableDiscounts.FirstOrDefault();
-                if (applicableDiscount != null)
-                {
-                    decimal itemBasePrice = item.price * item.quantity;
-                    decimal discountAmount = 0;
-
-                    if (applicableDiscount.Method?.ToUpper() == "FIXED")
-                    {
-                        discountAmount = applicableDiscount.Amount;
-                        if (discountAmount > itemBasePrice)
-                            discountAmount = itemBasePrice;
-                    }
-                    else if (applicableDiscount.Method?.ToUpper() == "PERCENTAGE")
-                    {
-                        discountAmount = itemBasePrice * (applicableDiscount.Percentage / 100);
-                        item.AppliedDiscountPercentage = applicableDiscount.Percentage;
-                    }
-
-                    item.DiscountAmount = discountAmount;
-                    item.AppliedDiscountName = applicableDiscount.Name;
-                    item.AppliedDiscountMethod = applicableDiscount.Method;
-                }
-            }
-        }
-        catch (Exception)
-        {
-        }
-    }
 
     private System.Globalization.CultureInfo GetCultureInfo(string? currency)
     {
@@ -252,19 +191,6 @@ else
         };
     }
 
-    private void CalculateTotalAmount()
-    {
-        decimal subtotalWithTax = 0;
-        foreach (var item in OrderItems)
-        {
-            decimal baseAfterDiscount = (item.price * item.quantity) - item.DiscountAmount;
-            if (baseAfterDiscount < 0) baseAfterDiscount = 0;
-            var lineTotal = baseAfterDiscount * (1 + (item.tax / 100));
-            subtotalWithTax += lineTotal;
-        }
-        TotalAmount = subtotalWithTax;
-    }
-
     private void CompleteCheckout()
     {
         Navigation.NavigateTo($"/Payment/{OrderId}");
@@ -275,24 +201,7 @@ else
         Navigation.NavigateTo("/Orders");
     }
 
-    public class CategorySchema
-    {
-        public string Name { get; set; } = string.Empty;
-        public string? Description { get; set; }
-        public List<Guid> ProductOrServiceIds { get; set; } = new();
-        public Guid Id { get; set; }
-        public DateTime CreatedAt { get; set; }
-        public DateTime UpdatedAt { get; set; }
-        public Guid CreatedBy { get; set; }
-        public Guid UpdatedBy { get; set; }
-    }
-
-    public class CategoriesResponse
-    {
-        public List<CategorySchema> Categories { get; set; } = new();
-        public int TotalCount { get; set; }
-    }
-
+    // Schema Definitions
     public class OrderSchema
     {
         public Guid Id { get; set; }
@@ -306,42 +215,25 @@ else
         public Guid Id { get; set; }
         public string? ProductName { get; set; }
         public string? ProductDescription { get; set; }
+        public Guid productId { get; set; }
         public decimal price { get; set; }
         public int quantity { get; set; }
-        public decimal tax { get; set; }
-        public Guid productId { get; set; }
-        public decimal DiscountAmount { get; set; } = 0;
-        public string? AppliedDiscountName { get; set; }
-        public string? AppliedDiscountMethod { get; set; }
-        public decimal AppliedDiscountPercentage { get; set; } = 0;
+        public List<AppliedDiscountSchema>? appliedDiscounts { get; set; } = new List<AppliedDiscountSchema>();
+        public List<AppliedTaxSchema>? appliedTaxes { get; set; } = new List<AppliedTaxSchema>();
     }
 
-    public class ProductSchema
+    public class AppliedDiscountSchema
     {
         public Guid Id { get; set; }
-        public string? name { get; set; }
-        public string? description { get; set; }
+        public decimal amount { get; set; }
+        public decimal percentage { get; set; }
+        public Guid discountId { get; set; }
     }
 
-    public class Tax
+    public class AppliedTaxSchema
     {
         public Guid Id { get; set; }
-        public decimal Percentage { get; set; }
-        public Guid? ProductOrServiceGroupId { get; set; }
-    }
-
-    public class Discount
-    {
-        public Guid Id { get; set; }
-        public string? Name { get; set; }
-        public string? Description { get; set; }
-        public string? Method { get; set; }
-        public bool Active { get; set; }
-        public decimal Amount { get; set; }
-        public decimal Percentage { get; set; }
-        public DateTime EndDate { get; set; }
-        public Guid BusinessId { get; set; }
-        public Guid ProductOrServiceGroupId { get; set; }
-        public Guid ProductOrServiceId { get; set; }
+        public decimal percentage { get; set; }
+        public Guid taxId { get; set; }
     }
 }

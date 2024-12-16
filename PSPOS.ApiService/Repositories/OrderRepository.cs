@@ -160,8 +160,7 @@ public class OrderRepository : IOrderRepository
     {
         return await _context.Payments.Where(p => p.TransactionId == transactionId).ToArrayAsync();
     }
-
-    public async Task<IEnumerable<OrderItem>> GetAllItemsOfOrderAsync(Guid orderId)
+    public async Task<IEnumerable<OrderItem>> GetAllItemsOfOrderAsyncO(Guid orderId)
     {
         // Ensure the order exists
         var order = await GetOrderByIdAsync(orderId) ?? throw new ArgumentException($"Order with ID '{orderId}' does not exist.");
@@ -172,6 +171,75 @@ public class OrderRepository : IOrderRepository
             .ToListAsync();
 
         return orderItems;
+    }
+    public async Task<IEnumerable<OrderItemSchema>> GetAllItemsOfOrderAsync(Guid orderId)
+    {
+        // Step 1: Ensure the order exists
+        var orderExists = await _context.Orders.AnyAsync(o => o.Id == orderId);
+        if (!orderExists)
+            throw new ArgumentException($"Order with ID '{orderId}' does not exist.");
+
+        // Step 2: Fetch all OrderItems for the given order ID
+        var orderItems = await _context.OrderItems
+            .Where(oi => oi.OrderId == orderId)
+            .ToListAsync();
+
+        if (!orderItems.Any())
+            return Enumerable.Empty<OrderItemSchema>();
+
+        // Step 3: Fetch AppliedDiscounts and AppliedTaxes
+        var appliedDiscounts = await _context.AppliedDiscounts
+            .Where(ad => ad.OrderId == orderId)
+            .ToListAsync();
+
+        var appliedTaxes = await _context.AppliedTax
+            .Where(at => at.OrderId == orderId)
+            .ToListAsync();
+
+        // Step 4: Map OrderItems to OrderItemSchema with null handling
+        var orderItemSchemas = orderItems.Select(item =>
+        {
+            var discounts = appliedDiscounts
+                ?.Where(ad => ad.OrderItemId == item.Id)
+                .Select(ad => new AppliedDiscountSchema
+                {
+                    Id = ad.Id,
+                    amount = ad.Amount,
+                    percentage = ad.Percentage,
+                    discountId = ad.DiscountId,
+                    orderItemId = ad.OrderItemId,
+                    orderId = ad.OrderId
+                })
+                .ToList() ?? new List<AppliedDiscountSchema>();
+
+            var taxes = appliedTaxes
+                ?.Where(at => at.OrderItemId == item.Id)
+                .Select(at => new AppliedTaxSchema
+                {
+                    Id = at.Id,
+                    percentage = at.Percentage,
+                    taxId = at.TaxId,
+                    orderItemId = at.OrderItemId,
+                    orderId = at.OrderId
+                })
+                .ToList() ?? new List<AppliedTaxSchema>();
+
+            // Return the mapped schema
+            return new OrderItemSchema
+            {
+                Id = item.Id,
+                price = item.Price,
+                quantity = item.Quantity,
+                orderId = item.OrderId,
+                serviceId = item.ServiceId,
+                productId = item.ProductId,
+                transactionId = item.TransactionId,
+                appliedDiscounts = discounts, // Default empty list if null
+                appliedTaxes = taxes           // Default empty list if null
+            };
+        }).ToList();
+
+        return orderItemSchemas;
     }
 
     public async Task AddOrderItemToOrderAsync(OrderItem orderItem)
@@ -191,7 +259,7 @@ public class OrderRepository : IOrderRepository
 
         foreach (var group in productGroups)
         {
-            foreach (var productId in group.productOrServiceIds) // Assuming it's List<Guid>
+            foreach (var productId in group.productOrServiceIds ?? Array.Empty<Guid>())
             {
                 if (!productGroupDict.ContainsKey(productId))
                 {
@@ -218,11 +286,11 @@ public class OrderRepository : IOrderRepository
             decimal discountAmount = 0;
 
             // Calculate the discount amount
-            if (discount.Method.ToUpper() == "FIXED")
+            if (string.Equals(discount.Method, "FIXED", StringComparison.OrdinalIgnoreCase))
             {
                 discountAmount = Math.Min(discount.Amount, orderItem.Price * orderItem.Quantity);
             }
-            else if (discount.Method.ToUpper() == "PERCENTAGE")
+            else if (string.Equals(discount.Method, "PERCENTAGE", StringComparison.OrdinalIgnoreCase))
             {
                 discountAmount = (orderItem.Price * orderItem.Quantity) * (discount.Percentage / 100);
             }

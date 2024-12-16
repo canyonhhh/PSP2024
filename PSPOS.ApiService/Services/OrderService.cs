@@ -95,7 +95,7 @@ public class OrderService : IOrderService
         if (!(transactionDTO.itemIds?.Count() > 0))
             throw new ArgumentException($"Item IDs were not provided in request.");
 
-        IEnumerable<OrderItem> orderItems = await _orderRepository.GetAllItemsOfOrderAsync(orderId);
+        IEnumerable<OrderItem> orderItems = await _orderRepository.GetAllItemsOfOrderAsyncO(orderId);
         if (!orderItems.Any())
             throw new ArgumentException($"Order '{orderId}' doesn't contain any items.");
 
@@ -242,8 +242,10 @@ public class OrderService : IOrderService
 
     public async Task<IEnumerable<OrderItemSchema>> GetAllItemsOfOrderAsync(Guid id)
     {
-        IEnumerable<OrderItem> items = await _orderRepository.GetAllItemsOfOrderAsync(id);
+        // Retrieve data from the repository
+        IEnumerable<OrderItemSchema> items = await _orderRepository.GetAllItemsOfOrderAsync(id);
 
+        // Map and ensure null handling for appliedDiscounts and appliedTaxes
         return items.Select(item => new OrderItemSchema
         {
             Id = item.Id,
@@ -251,15 +253,20 @@ public class OrderService : IOrderService
             UpdatedAt = item.UpdatedAt,
             CreatedBy = item.CreatedBy,
             UpdatedBy = item.UpdatedBy,
-            type = item.Type.ToString(),
-            price = item.Price,
-            quantity = item.Quantity,
-            orderId = item.OrderId,
-            serviceId = item.ServiceId,
-            productId = item.ProductId,
-            transactionId = item.TransactionId
+            type = item.type?.ToString() ?? "Unknown",
+            price = item.price,
+            quantity = item.quantity,
+            orderId = item.orderId,
+            serviceId = item.serviceId,
+            productId = item.productId,
+            transactionId = item.transactionId,
+
+            // Ensure appliedDiscounts and appliedTaxes are never null
+            appliedDiscounts = item.appliedDiscounts?.ToList() ?? new List<AppliedDiscountSchema>(),
+            appliedTaxes = item.appliedTaxes?.ToList() ?? new List<AppliedTaxSchema>()
         });
     }
+
 
     public async Task AddOrderItemToOrderAsync(Guid orderId, OrderItemDTO orderItemDTO)
     {
@@ -359,7 +366,7 @@ public class OrderService : IOrderService
 
     public async Task DuplicateAllItemsOfOrderToInventory(Guid orderId)
     {
-        IEnumerable<OrderItem> orderItems = await _orderRepository.GetAllItemsOfOrderAsync(orderId);
+        IEnumerable<OrderItem> orderItems = await _orderRepository.GetAllItemsOfOrderAsyncO(orderId);
 
         foreach (OrderItem item in orderItems)
         {

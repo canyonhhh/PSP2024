@@ -1,4 +1,5 @@
 using PSPOS.ServiceDefaults.Models;
+using PSPOS.ServiceDefaults.Schemas;
 
 namespace PSPOS.ApiService.Repositories.Interfaces;
 
@@ -21,7 +22,8 @@ public interface IOrderRepository
     Task UpdateGiftCardAmountAsync(Giftcard giftcard);
 
     // '/orders/items'
-    Task<IEnumerable<OrderItem>> GetAllItemsOfOrderAsync(Guid id);
+    Task<IEnumerable<OrderItemSchema>> GetAllItemsOfOrderAsync(Guid id);
+    Task<IEnumerable<OrderItem>> GetAllItemsOfOrderAsyncO(Guid orderId);
     Task AddOrderItemToOrderAsync(OrderItem orderItem);
     Task<OrderItem?> GetOrderItemByIdAsync(Guid orderItemId);
     Task UpdateOrderItemAsync(OrderItem orderItem);

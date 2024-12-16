@@ -62,7 +62,7 @@ namespace PSPOS.ApiService.Services
             if (!discount.Active || discount.EndDate < DateTime.Now)
                 throw new InvalidOperationException("The discount is either inactive or expired.");
 
-            var orderItems = await _orderRepository.GetAllItemsOfOrderAsync(orderId);
+            var orderItems = await _orderRepository.GetAllItemsOfOrderAsyncO(orderId);
             var orderItem = orderItems.FirstOrDefault(oi => oi.Id == orderItemId);
 
             if (orderItem == null)
