@@ -162,6 +162,15 @@ else
 
     else if (SelectedPaymentMethod == "Card")
     {
+	<script>
+	// import stripe handler module
+	import('./stripeHandler.js').then((module) => {
+	    // initialize stripe with the public key
+	    module.initializeStripe("pk_test_51QUWBYGUMof1EohPLwH4KQZj1wbLTJf8o8kzruKACLFgDeiH7SLxAAGN8dYUxP0Ku85bqSow0hEHGthPuPATzfCP00sDDvnD8L");
+	}).catch((error) => {
+	    console.error('Error loading Stripe handler:', error);
+	});
+	</script>
         <h5>Select Items to Pay</h5>
         <div class="table-responsive mb-4">
             <table class="table table-striped table-hover">
@@ -225,15 +234,15 @@ else
                 Add Discount
             </button>
         </div>
+
+	<div id="card-element" style="border: 1px solid #ccc; padding: 10px; border-radius: 4px; margin-bottom: 10px;"></div>
+	<p id="card-errors" style="color: red; margin-top: 10px;"></p>
     }
 
     <button class="btn btn-primary" @onclick="ProcessPayment">Process Payment</button>
     <button class="btn btn-secondary ms-2" @onclick="GoBack">Back</button>
 }
 
-
-<div id="card-element" style="border: 1px solid #ccc; padding: 10px; border-radius: 4px; margin-bottom: 10px;"></div>
-<p id="card-errors" style="color: red; margin-top: 10px;"></p>
 
 
 @code {
@@ -261,7 +270,6 @@ else
     // stripe stuff
     private IJSObjectReference? stripeJs;
     private string? _clientSecret;
-    private bool _isInitialized = false;
 
     // Fetch discounts during initialization
     protected override async Task OnInitializedAsync()
@@ -274,15 +282,6 @@ else
         IsLoading = false;
     }
 
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender && !_isInitialized)
-        {
-            await InitializeStripe();
-            _isInitialized = true;
-        }
-    }
 
     // Load discounts for the dropdown
     private async Task LoadAvailableDiscounts()
@@ -464,8 +463,8 @@ else
                 {
                     itemIds = selectedItems.Select(si => si.Id),
                     paidByCash = paidByCash,
-                    paidByGiftcard = 0,
-                    paidByBankcard = 0,
+                    paidByGiftcard = paidByGiftcard,
+                    paidByBankcard = paidByBankcard,
                     externalTransactionId = externalTransactionId,
                     giftcardId = Guid.Empty
                 };
@@ -567,19 +566,6 @@ else
         Navigation.NavigateTo($"/Checkout/{OrderId}");
     }
 
-    private async Task InitializeStripe()
-    {
-        try
-        {
-            stripeJs = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./stripeHandler.js");
-            await stripeJs.InvokeVoidAsync("initializeStripe", "pk_test_51QUWBYGUMof1EohPLwH4KQZj1wbLTJf8o8kzruKACLFgDeiH7SLxAAGN8dYUxP0Ku85bqSow0hEHGthPuPATzfCP00sDDvnD8L");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Failed to load Stripe.js: {ex.Message}");
-        }
-    }
-
     private async Task SubmitStripePayment(decimal SumOfSelected)
     {
 
@@ -592,6 +578,8 @@ else
             var json = await response.Content.ReadFromJsonAsync<JsonElement>();
             _clientSecret = json.GetProperty("clientSecret").GetString();
 
+
+            stripeJs = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./stripeHandler.js");
             var result = await stripeJs!.InvokeAsync<StripeResult>("confirmPayment", _clientSecret);
 
             if (result.Success)
@@ -605,7 +593,7 @@ else
         }
         catch (Exception ex)
         {
-            ErrorMessage = $"Error processing payment: {ex.Message}";
+            ErrorMessage = $"Error processing payment here: {ex.Message}";
         }
     }
 

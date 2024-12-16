@@ -1,13 +1,16 @@
-let stripe;
+let stripe = null;
 let card;
 
 export async function initializeStripe(publishableKey) {
-    stripe = Stripe(publishableKey);
-    const elements = stripe.elements();
-    card = elements.create("card", {
-        style: { base: { fontSize: "16px", color: "#32325d" } },
-    });
-    card.mount("#card-element");
+    if (!stripe) {
+        console.log("Initializing Stripe with key:", publishableKey);
+        stripe = Stripe(publishableKey);
+        const elements = stripe.elements();
+        card = elements.create("card", {
+            style: { base: { fontSize: "16px", color: "#32325d" } },
+        });
+        card.mount("#card-element");
+    }
 }
 
 export async function confirmPayment(clientSecret) {

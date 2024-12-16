@@ -145,7 +145,7 @@ public class OrderService : IOrderService
             await _orderRepository.AddPaymentAsync(cashPayment);
         }
 
-        if (transactionDTO.paidByBankcard > 0)
+        if (transactionDTO.paidByBankcard > 0 && transactionDTO.externalTransactionId != null)
         {
             Payment bankcardPayment = new(PaymentMethod.Bankcard, transactionDTO.paidByBankcard, order.OrderCurrency, transactionDTO.externalTransactionId, transaction.Id, Guid.Empty);
             await _orderRepository.AddPaymentAsync(bankcardPayment);
