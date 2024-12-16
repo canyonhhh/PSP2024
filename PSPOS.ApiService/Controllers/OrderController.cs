@@ -241,4 +241,30 @@ public class OrderController : ControllerBase
 
         return Ok();
     }
+    [HttpPut("{orderId}")]
+    [ProducesResponseType(typeof(OrderSchema), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    public async Task<ActionResult<OrderSchema>> UpdateOrder(Guid orderId, [FromBody] OrderDTO orderDTO)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        try
+        {
+            var updatedOrder = await _orderService.UpdateOrderAsync(orderId, orderDTO);
+            if (updatedOrder == null)
+                return NotFound(new { Message = $"Order with ID '{orderId}' not found." });
+
+            return Ok(updatedOrder);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { Message = "An unexpected error occurred.", Details = ex.Message });
+        }
+    }
 }

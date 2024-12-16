@@ -12,7 +12,7 @@ public interface IOrderService
     Task<IEnumerable<OrderSchema>> GetAllOrdersAsync(string? status, int? limit, int? skip);
     Task<Order> AddOrderAsync(Guid businessId, string? status, string? currency);
     Task DeleteOrderAsync(Guid id);
-
+    Task<OrderSchema?> UpdateOrderAsync(Guid orderId, OrderDTO orderDTO);
     // '/orders/transactions'
     Task<IEnumerable<TransactionSchema>> GetAllTransactionsOfOrderAsync(Guid id);
     Task ProcessTransactionForOrderAsync(Guid id, TransactionDTO transactionDTO);

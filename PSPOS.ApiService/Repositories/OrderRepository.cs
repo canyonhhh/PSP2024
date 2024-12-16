@@ -345,4 +345,34 @@ public class OrderRepository : IOrderRepository
         _context.OrderItems.Update(orderItem);
         await _context.SaveChangesAsync();
     }
+    public async Task UpdateOrderAsync(Order order)
+    {
+        if (!_context.Orders.Local.Any(o => o.Id == order.Id))
+        {
+            _context.Orders.Attach(order);
+        }
+
+        _context.Entry(order).State = EntityState.Modified;
+
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            if (!await OrderExists(order.Id))
+            {
+                throw new ArgumentException($"Order with ID '{order.Id}' does not exist.");
+            }
+            else
+            {
+                throw;
+            }
+        }
+    }
+
+    private async Task<bool> OrderExists(Guid orderId)
+    {
+        return await _context.Orders.AnyAsync(o => o.Id == orderId);
+    }
 }
