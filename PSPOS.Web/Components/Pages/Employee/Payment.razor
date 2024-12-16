@@ -310,8 +310,6 @@ else
 
     private async Task LoadAvailableDiscounts()
     {
-        try
-        {
             // Fetch all discounts from the API
             var allDiscounts = await Http.GetFromJsonAsync<List<Discount>>("api/discounts")
                 ?? new List<Discount>();
@@ -320,11 +318,6 @@ else
             AvailableDiscounts = allDiscounts
                 .Where(d => d.BusinessId == CurrentBusinessId && d.Active)
                 .ToList();
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"Error loading discounts: {ex.Message}";
-        }
     }
     private async Task ApplyDiscountToOrder()
     {
@@ -425,8 +418,6 @@ else
     }
     private async Task LoadOrderItems()
     {
-        try
-        {
             OrderItems = await Http.GetFromJsonAsync<List<OrderItemSchema>>($"orders/{OrderId}/items") ?? new List<OrderItemSchema>();
 
             var productIds = OrderItems
@@ -451,11 +442,6 @@ else
                     }
                 }
             }
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"Error loading order items: {ex.Message}";
-        }
     }
 
     private async Task SendTransactionToServer(List<OrderItemSchema> selectedItems, decimal paidByCash = 0, decimal paidByGiftcard = 0, decimal paidByBankcard = 0, string externalTransactionId = "")
