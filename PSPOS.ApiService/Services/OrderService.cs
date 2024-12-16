@@ -135,17 +135,21 @@ public class OrderService : IOrderService
 
         if (transactionDTO.paidByGiftcard > 0)
         {
-            Payment giftcardPayment = new(PaymentMethod.Giftcard, transactionDTO.paidByGiftcard, order.OrderCurrency, Guid.Empty, transaction.Id, transactionDTO.giftcardId);
+            Payment giftcardPayment = new(PaymentMethod.Giftcard, transactionDTO.paidByGiftcard, order.OrderCurrency, String.Empty, transaction.Id, transactionDTO.giftcardId);
             await _orderRepository.AddPaymentAsync(giftcardPayment);
         }
 
         if (transactionDTO.paidByCash > 0)
         {
-            Payment cashPayment = new(PaymentMethod.Cash, transactionDTO.paidByCash, order.OrderCurrency, Guid.Empty, transaction.Id, Guid.Empty);
+            Payment cashPayment = new(PaymentMethod.Cash, transactionDTO.paidByCash, order.OrderCurrency, String.Empty, transaction.Id, Guid.Empty);
             await _orderRepository.AddPaymentAsync(cashPayment);
         }
 
-        // TODO Stripe platform payment
+        if (transactionDTO.paidByBankcard > 0 && transactionDTO.externalTransactionId != null)
+        {
+            Payment bankcardPayment = new(PaymentMethod.Bankcard, transactionDTO.paidByBankcard, order.OrderCurrency, transactionDTO.externalTransactionId, transaction.Id, Guid.Empty);
+            await _orderRepository.AddPaymentAsync(bankcardPayment);
+        }
 
         // Order items get a transaction ID to tell if they're paid for
         foreach (OrderItem orderItem in orderItemsToLinkToTransaction)
@@ -210,7 +214,7 @@ public class OrderService : IOrderService
         switch (refundMethod)
         {
             case PaymentMethod.Cash:
-                Payment cashPayment = new(PaymentMethod.Cash, refundDTO.amount, order.OrderCurrency, Guid.Empty, refundTransaction.Id, Guid.Empty);
+                Payment cashPayment = new(PaymentMethod.Cash, refundDTO.amount, order.OrderCurrency, String.Empty, refundTransaction.Id, Guid.Empty);
                 await _orderRepository.AddPaymentAsync(cashPayment);
                 break;
                 // TODO Case for Stripe platform refund
