@@ -5,10 +5,10 @@ using PSPOS.ApiService.Repositories;
 using PSPOS.ApiService.Repositories.Interfaces;
 using PSPOS.ApiService.Services;
 using PSPOS.ApiService.Services.Interfaces;
-using System.Text;
 using Stripe;
-using TaxService = PSPOS.ApiService.Services.TaxService;
+using System.Text;
 using DiscountService = PSPOS.ApiService.Services.DiscountService;
+using TaxService = PSPOS.ApiService.Services.TaxService;
 
 var builder = WebApplication.CreateBuilder(args);
 
