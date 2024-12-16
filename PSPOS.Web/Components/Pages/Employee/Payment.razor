@@ -582,7 +582,7 @@ else
             stripeJs = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./stripeHandler.js");
             var result = await stripeJs!.InvokeAsync<StripeResult>("confirmPayment", _clientSecret);
 
-            if (result.Success)
+            if (result.Success && result.Id != null)
             {
                 await SendTransactionToServer(OrderItems, paidByBankcard: SumOfSelected, externalTransactionId: result.Id);
             }
