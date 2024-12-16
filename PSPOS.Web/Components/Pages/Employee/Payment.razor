@@ -281,8 +281,6 @@ else
     }
     private async Task LoadOrderItems()
     {
-        try
-        {
             OrderItems = await Http.GetFromJsonAsync<List<OrderItemSchema>>($"orders/{OrderId}/items") ?? new List<OrderItemSchema>();
 
             var productIds = OrderItems
@@ -307,11 +305,6 @@ else
                     }
                 }
             }
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"Error loading order items: {ex.Message}";
-        }
     }
 
     private async Task SendTransactionToServer(List<OrderItemSchema> selectedItems, decimal paidByCash = 0, decimal paidByGiftcard = 0, decimal paidByBankcard = 0, string externalTransactionId = "")
