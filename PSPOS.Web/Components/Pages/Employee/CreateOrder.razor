@@ -189,7 +189,7 @@
         }
         try
         {
-            newOrder.businessId = CurrentBusinessId; // Set the businessId here
+            newOrder.businessId = CurrentBusinessId; 
             var response = await Http.PostAsJsonAsync("orders", newOrder);
             if (response.IsSuccessStatusCode)
             {

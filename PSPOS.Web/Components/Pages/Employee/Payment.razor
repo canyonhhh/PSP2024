@@ -2,7 +2,11 @@
 @using PSPOS.ServiceDefaults.Schemas
 @inject IHttpClientFactory ClientFactory
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
 
 <h3>Payment</h3>
 
@@ -118,6 +122,22 @@ else
             <input type="number" step="0.01" @bind="PaymentAmount" class="form-control" />
         </div>
     }
+    <h4>Apply Discount to Order</h4>
+    <div class="mb-3 d-flex">
+        <!-- Dropdown to select available discounts -->
+        <select @bind="SelectedDiscountId" class="form-select me-2" style="max-width: 300px;">
+            <option value="">-- Select Discount --</option>
+            @foreach (var discount in AvailableDiscounts)
+            {
+                <option value="@discount.Id">
+                    @discount.Name (@(discount.Method?.ToUpper() == "FIXED" ? $"{discount.Amount:C}" : $"{discount.Percentage}%"))
+                </option>
+            }
+        </select>
+        <button class="btn btn-success" @onclick="ApplyDiscountToOrder" disabled="@(string.IsNullOrEmpty(SelectedDiscountId))">
+            Apply Discount
+        </button>
+    </div>
 
     <div>
         <button class="btn btn-success" @onclick="ProcessPayment">Submit Payment</button>
@@ -139,11 +159,81 @@ else
     private decimal PaymentAmount = 0;
     private string ErrorMessage = string.Empty;
     private bool IsLoading = true;
+    private List<Discount> AvailableDiscounts = new();
+    private string SelectedDiscountId = string.Empty;
+    private Discount? SelectedOrderDiscount = null;
+    private decimal OrderLevelDiscount = 0;
 
+    private Guid CurrentBusinessId;
+
+    private async Task LoadAvailableDiscounts()
+    {
+        try
+        {
+            // Fetch all discounts from the API
+            var allDiscounts = await Http.GetFromJsonAsync<List<Discount>>("api/discounts")
+                ?? new List<Discount>();
+
+            // Filter discounts for the current BusinessId
+            AvailableDiscounts = allDiscounts
+                .Where(d => d.BusinessId == CurrentBusinessId && d.Active)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error loading discounts: {ex.Message}";
+        }
+    }
+    private void ApplyDiscountToOrder()
+    {
+        if (Guid.TryParse(SelectedDiscountId, out Guid discountId))
+        {
+            // Find the selected discount
+            SelectedOrderDiscount = AvailableDiscounts.FirstOrDefault(d => d.Id == discountId);
+            if (SelectedOrderDiscount != null)
+            {
+                if (SelectedOrderDiscount.Method?.ToUpper() == "FIXED")
+                {
+                    // Apply a fixed discount directly
+                    OrderLevelDiscount = Math.Min(SelectedOrderDiscount.Amount, TotalAmount);
+                }
+                else if (SelectedOrderDiscount.Method?.ToUpper() == "PERCENTAGE")
+                {
+                    // Apply a percentage discount based on the total amount
+                    OrderLevelDiscount = TotalAmount * (SelectedOrderDiscount.Percentage / 100);
+                }
+
+                // Recalculate total after applying discount
+                CalculateTotalAmount();
+            }
+        }
+        else
+        {
+            ErrorMessage = "Invalid discount selected.";
+        }
+    }
+
+    private async Task SetCurrentBusinessId()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var businessIdClaim = user.FindFirst("BusinessId")?.Value;
+
+        if (Guid.TryParse(businessIdClaim, out var businessId))
+        {
+            CurrentBusinessId = businessId;
+        }
+        else
+        {
+            ErrorMessage = "Could not determine Business ID.";
+        }
+    }
     protected override async Task OnInitializedAsync()
     {
+        await SetCurrentBusinessId();
         await LoadOrderDetails();
         await LoadOrderItems();
+        await LoadAvailableDiscounts();
         CalculateTotalAmount();
         IsLoading = false;
     }
@@ -197,18 +287,20 @@ else
 
     private void CalculateTotalAmount()
     {
-        TotalAmount = OrderItems.Sum(item =>
+        decimal subtotal = OrderItems.Sum(i =>
         {
-            var basePrice = item.price * item.quantity;
-            var discount = item.appliedDiscounts?.Sum(d => d.amount) ?? 0;
-            var discountedBase = basePrice - discount;
+            decimal baseAfterDiscount = (i.price * i.quantity) - (i.appliedDiscounts?.Sum(d => d.amount) ?? 0);
+            if (baseAfterDiscount < 0) baseAfterDiscount = 0;
 
-            if (discountedBase < 0) discountedBase = 0;
-
-            var tax = item.appliedTaxes?.Sum(t => discountedBase * (t.percentage / 100)) ?? 0;
-            return discountedBase + tax;
+            var tax = i.appliedTaxes?.Sum(t => baseAfterDiscount * (t.percentage / 100)) ?? 0;
+            return baseAfterDiscount + tax;
         });
+
+        // Apply the order-level discount
+        TotalAmount = subtotal - OrderLevelDiscount;
+        if (TotalAmount < 0) TotalAmount = 0;
     }
+
     private decimal CalculateLineTotal(OrderItemSchema item)
     {
         decimal basePrice = item.price * item.quantity;
@@ -412,4 +504,15 @@ else
         public decimal percentage { get; set; }
         public Guid taxId { get; set; }
     }
+    public class Discount
+    {
+        public Guid Id { get; set; }
+        public string? Name { get; set; }
+        public string? Method { get; set; } // "FIXED" or "PERCENTAGE"
+        public decimal Amount { get; set; } // Fixed discount amount
+        public decimal Percentage { get; set; } // Percentage discount
+        public bool Active { get; set; }
+        public Guid BusinessId { get; set; }
+    }
+
 }
