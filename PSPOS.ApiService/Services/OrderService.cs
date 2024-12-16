@@ -137,7 +137,7 @@ public class OrderService : IOrderService
             {
                 throw new InvalidOperationException("Insufficient balance on the gift card.");
             }
-          
+
             giftcard.Amount -= transactionDTO.paidByGiftcard;
 
             // Create a new payment for the gift card
