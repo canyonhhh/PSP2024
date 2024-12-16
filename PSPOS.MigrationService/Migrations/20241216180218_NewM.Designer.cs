@@ -12,8 +12,8 @@ using PSPOS.ApiService.Data;
 namespace PSPOS.MigrationService.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20241215230230_AppliedDiscountTax1")]
-    partial class AppliedDiscountTax1
+    [Migration("20241216180218_NewM")]
+    partial class NewM
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -322,8 +322,9 @@ namespace PSPOS.MigrationService.Migrations
                     b.Property<Guid>("CreatedBy")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("ExternalPaymentId")
-                        .HasColumnType("uuid");
+                    b.Property<string>("ExternalPaymentId")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<Guid>("GiftCardId")
                         .HasColumnType("uuid");
@@ -517,6 +518,9 @@ namespace PSPOS.MigrationService.Migrations
 
                     b.Property<Guid>("UpdatedBy")
                         .HasColumnType("uuid");
+
+                    b.Property<Guid[]>("productOrServiceIds")
+                        .HasColumnType("uuid[]");
 
                     b.HasKey("Id");
 

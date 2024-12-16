@@ -5,7 +5,10 @@ using PSPOS.ApiService.Repositories;
 using PSPOS.ApiService.Repositories.Interfaces;
 using PSPOS.ApiService.Services;
 using PSPOS.ApiService.Services.Interfaces;
+using Stripe;
 using System.Text;
+using DiscountService = PSPOS.ApiService.Services.DiscountService;
+using TaxService = PSPOS.ApiService.Services.TaxService;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -74,6 +77,8 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
+StripeConfiguration.ApiKey = builder.Configuration["Stripe:SecretKey"]
+    ?? throw new Exception("Stripe:SecretKey is missing");
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>

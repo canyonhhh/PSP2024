@@ -13,8 +13,7 @@
 
 <div class="card p-4 mb-4">
     <form @onsubmit="OnCreateOrder" @onsubmit:preventDefault="true">
-        <div class="form-group mb-3">
-        </div>
+        <div class="form-group mb-3"></div>
         <div class="form-group mb-3">
             <label for="currency">Currency</label>
             <select id="currency" @bind="newOrder.currency" class="form-select" required>
@@ -52,20 +51,39 @@
     <div class="card p-4 mb-4">
         <form @onsubmit="OnAddOrderItem" @onsubmit:preventDefault="true">
             <div class="form-group mb-3">
-                <label for="stockItem">Select Product</label>
-                <select id="stockItem" @bind="selectedStockItemId" class="form-select" required>
-                    <option value="">-- Select Product --</option>
-                    @foreach (var product in StockItems)
+                <label>Select Top-Level Product</label>
+                <select class="form-select" @onchange="OnTopProductChanged" required>
+                    <option value="">-- Select Top-Level Product --</option>
+                    @foreach (var product in TopLevelStockItems)
                     {
-                        <option value="@product.Id">@product.Name - Price: @product.Price.ToString("C") - Stock: @product.StockQuantity</option>
+                        <option value="@product.Id">@product.Name</option>
                     }
                 </select>
             </div>
-            <div class="form-group mb-3">
-                <label for="quantity">Quantity</label>
-                <input id="quantity" @bind="newOrderItem.Quantity" type="number" min="1" class="form-control" required />
-            </div>
-            <button type="submit" class="btn btn-success">Add Item</button>
+
+            @if (selectedTopProductId != Guid.Empty)
+            {
+                @if (FilteredSubProducts.Any())
+                {
+                    <div class="form-group mb-3">
+                        <label>Select Sub-Product</label>
+                        <select class="form-select" @bind="selectedSubProductId" required>
+                            <option value="">-- Select Sub-Product --</option>
+                            @foreach (var product in FilteredSubProducts)
+                            {
+                                <option value="@product.Id">@product.Name - Price: @product.Price.ToString("C") - Stock: @product.StockQuantity</option>
+                            }
+                        </select>
+                    </div>
+                }
+
+                <div class="form-group mb-3">
+                    <label for="quantity">Quantity</label>
+                    <input id="quantity" @bind="newOrderItem.Quantity" type="number" min="1" class="form-control" required />
+                </div>
+
+                <button type="submit" class="btn btn-success">Add Item</button>
+            }
         </form>
         @if (!string.IsNullOrEmpty(OrderItemErrorMessage))
         {
@@ -122,7 +140,10 @@
     private Guid CreatedOrderId;
     private List<OrderItemSchema> OrderItems = new();
     private List<StockItem> StockItems = new();
-    private Guid selectedStockItemId = Guid.Empty;
+    private List<StockItem> TopLevelStockItems = new();
+    private List<StockItem> FilteredSubProducts = new();
+    private Guid selectedTopProductId = Guid.Empty;
+    private Guid selectedSubProductId = Guid.Empty;
     private NewOrderItemDTO newOrderItem = new NewOrderItemDTO();
     private bool IsOrderItemAdded = false;
     private string OrderItemErrorMessage = string.Empty;
@@ -148,8 +169,11 @@
                     Name = p.name ?? "No Name",
                     Description = p.description ?? "No Description",
                     Price = p.price ?? 0,
-                    StockQuantity = p.stockQuantity
+                    StockQuantity = p.stockQuantity,
+                    BaseProductId = p.baseProductId
                 }).ToList() ?? new List<StockItem>();
+
+            TopLevelStockItems = StockItems.Where(s => s.BaseProductId == null).ToList();
         }
         catch (Exception ex)
         {
@@ -246,6 +270,33 @@
         }
     }
 
+    private void OnTopProductChanged(ChangeEventArgs e)
+    {
+        selectedSubProductId = Guid.Empty;
+        if (Guid.TryParse(e.Value?.ToString(), out Guid topProductId))
+        {
+            selectedTopProductId = topProductId;
+            FilterSubProducts();
+        }
+        else
+        {
+            selectedTopProductId = Guid.Empty;
+            FilteredSubProducts.Clear();
+        }
+    }
+
+    private void FilterSubProducts()
+    {
+        if (selectedTopProductId != Guid.Empty)
+        {
+            FilteredSubProducts = StockItems.Where(s => s.BaseProductId == selectedTopProductId).ToList();
+        }
+        else
+        {
+            FilteredSubProducts.Clear();
+        }
+    }
+
     private async Task OnAddOrderItem()
     {
         IsOrderItemAdded = false;
@@ -255,31 +306,50 @@
             OrderItemErrorMessage = "Please create an order first.";
             return;
         }
-        if (selectedStockItemId == Guid.Empty)
+        if (selectedTopProductId == Guid.Empty)
         {
-            OrderItemErrorMessage = "Please select a stock item.";
+            OrderItemErrorMessage = "Please select a top-level product.";
             return;
         }
+
+        StockItem? selectedItem;
+        if (FilteredSubProducts.Any())
+        {
+            if (selectedSubProductId == Guid.Empty)
+            {
+                OrderItemErrorMessage = "Please select a sub-product.";
+                return;
+            }
+            selectedItem = StockItems.FirstOrDefault(s => s.Id == selectedSubProductId);
+        }
+        else
+        {
+            // No sub-products, directly use the top-level product
+            selectedItem = StockItems.FirstOrDefault(s => s.Id == selectedTopProductId);
+        }
+
+        if (selectedItem == null)
+        {
+            OrderItemErrorMessage = "Selected product not found.";
+            return;
+        }
+
         if (newOrderItem.Quantity < 1)
         {
             OrderItemErrorMessage = "Quantity must be at least 1.";
             return;
         }
-        var selectedStockItem = StockItems.FirstOrDefault(s => s.Id == selectedStockItemId);
-        if (selectedStockItem == null)
-        {
-            OrderItemErrorMessage = "Selected product not found.";
-            return;
-        }
+
         var orderItemDTO = new OrderItemDTO
             {
                 orderId = CreatedOrderId,
                 type = "PRODUCT",
-                price = selectedStockItem.Price,
+                price = selectedItem.Price,
                 quantity = newOrderItem.Quantity,
-                productId = selectedStockItem.Id,
+                productId = selectedItem.Id,
                 transactionId = Guid.Empty
             };
+
         try
         {
             var response = await Http.PostAsJsonAsync($"orders/{CreatedOrderId}/items", orderItemDTO);
@@ -287,7 +357,7 @@
             {
                 IsOrderItemAdded = true;
                 newOrderItem = new NewOrderItemDTO();
-                selectedStockItemId = Guid.Empty;
+                selectedSubProductId = Guid.Empty;
                 await LoadOrderItems();
             }
             else
@@ -314,5 +384,6 @@
         public string Description { get; set; } = string.Empty;
         public decimal Price { get; set; }
         public int StockQuantity { get; set; }
+        public Guid? BaseProductId { get; set; }
     }
 }

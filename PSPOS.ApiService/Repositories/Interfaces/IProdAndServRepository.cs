@@ -38,4 +38,6 @@ public interface IProdAndServRepository
     // **MISC**
     Task<bool> IsProductAsync(Guid id);
     Task<bool> IsServiceAsync(Guid id);
+    Task<bool> RemoveServiceFromGroupAsync(Guid serviceId);
+    Task<bool> RemoveProductFromGroupAsync(Guid productId);
 }

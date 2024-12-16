@@ -319,8 +319,9 @@ namespace PSPOS.MigrationService.Migrations
                     b.Property<Guid>("CreatedBy")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("ExternalPaymentId")
-                        .HasColumnType("uuid");
+                    b.Property<string>("ExternalPaymentId")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<Guid>("GiftCardId")
                         .HasColumnType("uuid");
@@ -514,6 +515,9 @@ namespace PSPOS.MigrationService.Migrations
 
                     b.Property<Guid>("UpdatedBy")
                         .HasColumnType("uuid");
+
+                    b.Property<Guid[]>("productOrServiceIds")
+                        .HasColumnType("uuid[]");
 
                     b.HasKey("Id");
 

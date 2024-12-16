@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace PSPOS.MigrationService.Migrations
 {
     /// <inheritdoc />
-    public partial class AppliedDiscountTax1 : Migration
+    public partial class NewM : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -163,7 +163,7 @@ namespace PSPOS.MigrationService.Migrations
                     Method = table.Column<int>(type: "integer", nullable: false),
                     Amount = table.Column<decimal>(type: "numeric", nullable: false),
                     PaymentCurrency = table.Column<int>(type: "integer", nullable: false),
-                    ExternalPaymentId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ExternalPaymentId = table.Column<string>(type: "text", nullable: false),
                     TransactionId = table.Column<Guid>(type: "uuid", nullable: false),
                     GiftCardId = table.Column<Guid>(type: "uuid", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -262,6 +262,7 @@ namespace PSPOS.MigrationService.Migrations
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Name = table.Column<string>(type: "text", nullable: false),
                     Description = table.Column<string>(type: "text", nullable: true),
+                    productOrServiceIds = table.Column<Guid[]>(type: "uuid[]", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedBy = table.Column<Guid>(type: "uuid", nullable: false),
