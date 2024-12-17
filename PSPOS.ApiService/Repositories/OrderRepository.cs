@@ -230,7 +230,7 @@ public class OrderRepository : IOrderRepository
         Id = item.Id,
         price = item.Price,
         quantity = item.Quantity,
-        type = item.Type.ToString(), 
+        type = item.Type.ToString(),
         orderId = item.OrderId,
         serviceId = item.ServiceId,
         productId = item.ProductId,
