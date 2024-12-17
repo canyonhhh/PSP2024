@@ -12,9 +12,11 @@
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
 
 <h3>Payment</h3>
-
 <script src="https://js.stripe.com/v3/"></script>
 
 @if (IsLoading)
@@ -57,15 +59,14 @@ else
                     <th>Product</th>
                     <th>Final Price (after discounts & tax)</th>
                 </tr>
+
             </thead>
             <tbody>
                 @foreach (var item in OrderItems)
                 {
                     var lineTotal = CalculateLineTotal(item);
                     <tr>
-                        <td>
-                            <input type="checkbox" @bind="item.SelectedForPayment" />
-                        </td>
+                        <td><input type="checkbox" @bind="item.SelectedForPayment" /></td>
                         <td>@item.ProductName</td>
                         <td>@lineTotal.ToString("C", GetCultureInfo(OrderDetails?.currency))</td>
                     </tr>
@@ -113,7 +114,8 @@ else
         </div>
     </div>
 
-    @if (SelectedPaymentMethod == "GiftCard")
+
+    if (SelectedPaymentMethod == "GiftCard")
     {
         <div class="mb-3">
             <label>Gift Card Code:</label>
@@ -129,12 +131,14 @@ else
     }
     else if (SelectedPaymentMethod == "Card")
     {
-        <script type="module">
-            import { initializeStripe } from './stripeHandler.js';
-            initializeStripe("pk_test_51QUWBYGUMof1EohPLwH4KQZj1wbLTJf8o8kzruKACLFgDeiH7SLxAAGN8dYUxP0Ku85bqSow0hEHGthPuPATzfCP00sDDvnD8L")
-                .catch(error => {
-                    console.error('Error loading Stripe handler:', error);
-                });
+        <script>
+            // import stripe handler module
+            import('./stripeHandler.js').then((module) => {
+                // initialize stripe with the public key
+                module.initializeStripe("pk_test_51QUWBYGUMof1EohPLwH4KQZj1wbLTJf8o8kzruKACLFgDeiH7SLxAAGN8dYUxP0Ku85bqSow0hEHGthPuPATzfCP00sDDvnD8L");
+            }).catch((error) => {
+                console.error('Error loading Stripe handler:', error);
+            });
         </script>
 
         <div id="card-element" style="border: 1px solid #ccc; padding: 10px; border-radius: 4px;"></div>
@@ -146,9 +150,7 @@ else
 }
 
 @code {
-    [Parameter]
-    public Guid OrderId { get; set; }
-
+    [Parameter] public Guid OrderId { get; set; }
     private HttpClient Http => ClientFactory.CreateClient("ApiClient");
 
     private OrderSchema? OrderDetails = null;
@@ -174,12 +176,16 @@ else
 
     private decimal? TipAmount { get; set; }
 
+    private IJSObjectReference? stripeJs;
+    private string? _clientSecret;
+
     protected override async Task OnInitializedAsync()
     {
         await SetCurrentBusinessId();
         await LoadOrderDetails();
         await LoadOrderItems();
         await LoadAvailableDiscounts();
+
         TipAmount = OrderDetails?.tip;
         CalculateTotalAmount();
         IsLoading = false;
@@ -203,34 +209,41 @@ else
 
     private async Task LoadAvailableDiscounts()
     {
-        try
-        {
-            var allDiscounts = await Http.GetFromJsonAsync<List<Discount>>("api/discounts")
-                ?? new List<Discount>();
+    	try
+	{
+	    var response = await Http.GetAsync("api/discounts");
+	    if (response.IsSuccessStatusCode)
+	    {
+		var allDiscounts = await response.Content.ReadFromJsonAsync<List<Discount>>() ?? new List<Discount>();
 
-            AvailableDiscounts = allDiscounts
-                .Where(d => d.BusinessId == CurrentBusinessId && d.Active)
-                .ToList();
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"Error loading discounts: {ex.Message}";
-        }
+		AvailableDiscounts = allDiscounts
+			.Where(d => d.BusinessId == CurrentBusinessId && d.Active)
+			.ToList();
+	    }
+	}
+	catch (Exception ex)
+	{
+	    Console.WriteLine($"Exception occurred while reading discounts: {ex.Message}");
+	    ErrorMessage = $"Error reading discounts: {ex.Message}";
+	}
     }
 
     private async Task ApplyDiscountToOrder()
     {
         if (Guid.TryParse(SelectedDiscountId, out Guid discountId))
         {
+            // Find the selected discount
             SelectedOrderDiscount = AvailableDiscounts.FirstOrDefault(d => d.Id == discountId);
             if (SelectedOrderDiscount != null)
             {
                 if (SelectedOrderDiscount.Method?.ToUpper() == "FIXED")
                 {
+                    // Apply a fixed discount directly
                     OrderLevelDiscount = Math.Min(SelectedOrderDiscount.Amount, TotalAmount);
                 }
                 else if (SelectedOrderDiscount.Method?.ToUpper() == "PERCENTAGE")
                 {
+                    // Apply a percentage discount based on the total amount
                     OrderLevelDiscount = TotalAmount * (SelectedOrderDiscount.Percentage / 100);
                 }
 
@@ -256,8 +269,6 @@ else
                     else
                     {
                         var errorMessage = await response.Content.ReadAsStringAsync();
-                        ErrorMessage = $"Failed to apply discount: {errorMessage}";
-                        SuccessMessage = string.Empty;
                     }
                 }
                 catch (Exception ex)
@@ -299,6 +310,7 @@ else
         TotalAmount = subtotal;
     }
 
+
     private async Task LoadOrderDetails()
     {
         try
@@ -312,11 +324,8 @@ else
             ErrorMessage = $"Error loading order details: {ex.Message}";
         }
     }
-
     private async Task LoadOrderItems()
     {
-        try
-        {
             OrderItems = await Http.GetFromJsonAsync<List<OrderItemSchema>>($"orders/{OrderId}/items") ?? new List<OrderItemSchema>();
 
             var productIds = OrderItems
@@ -398,6 +407,7 @@ else
                     PaidByGiftcard = paidByGiftcard,
                     PaidByBankcard = paidByBankcard,
                     ExternalTransactionId = externalTransactionId,
+                    GiftcardCode = GiftCardCode,
                     Tip = TipAmount 
                 };
 
@@ -442,6 +452,7 @@ else
         var taxTotal = item.AppliedTaxes?.Sum(t => discountedBase * (t.Percentage / 100)) ?? 0;
         return discountedBase + taxTotal;
     }
+
 
     private async Task ProcessPayment()
     {
@@ -581,7 +592,22 @@ else
         public decimal Percentage { get; set; }
         public Guid TaxId { get; set; }
     }
+    public class AppliedDiscountSchema
+    {
+        public Guid Id { get; set; }
+        public decimal amount { get; set; }
+        public decimal percentage { get; set; }
+        public Guid discountId { get; set; }
+        public Guid orderItemId { get; set; }
+        public Guid orderId { get; set; }
+    }
 
+    public class AppliedTaxSchema
+    {
+        public Guid Id { get; set; }
+        public decimal percentage { get; set; }
+        public Guid taxId { get; set; }
+    }
     public class Discount
     {
         public Guid Id { get; set; }
@@ -593,7 +619,6 @@ else
         public decimal Percentage { get; set; }
         public DateTime EndDate { get; set; }
         public Guid BusinessId { get; set; }
-
         private Guid? _productOrServiceGroupId;
         public Guid? ProductOrServiceGroupId
         {
