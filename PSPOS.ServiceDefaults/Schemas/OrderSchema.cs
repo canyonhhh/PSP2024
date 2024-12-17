@@ -7,5 +7,6 @@ namespace PSPOS.ServiceDefaults.Schemas
         public Guid businessId { get; set; }
         public string? status { get; set; }
         public string? currency { get; set; }
+        public decimal? tip { get; set; }
     }
 }
