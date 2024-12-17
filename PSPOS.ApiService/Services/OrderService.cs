@@ -257,7 +257,7 @@ public class OrderService : IOrderService
             UpdatedAt = item.UpdatedAt,
             CreatedBy = item.CreatedBy,
             UpdatedBy = item.UpdatedBy,
-            type = item.type?.ToString() ?? "Unknown",
+            type = item.type.ToString(),
             price = item.price,
             quantity = item.quantity,
             orderId = item.orderId,
@@ -277,8 +277,12 @@ public class OrderService : IOrderService
         if (orderItemDTO.quantity < 1)
             throw new ArgumentException($"Order item quantity must be more than 0.");
 
+        Console.WriteLine(orderItemDTO.type);
+
         if (!Enum.TryParse(orderItemDTO.type, true, out OrderItemType orderItemType))
             throw new ArgumentException($"Order item type '{orderItemDTO.type}' does not exist.");
+
+        Console.WriteLine(orderItemType);
 
         Order? order = await _orderRepository.GetOrderByIdAsync(orderItemDTO.orderId)
             ?? throw new ArgumentException($"Order '{orderItemDTO.orderId}' does not exist.");

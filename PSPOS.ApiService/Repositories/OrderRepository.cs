@@ -229,6 +229,7 @@ public class OrderRepository : IOrderRepository
             {
                 Id = item.Id,
                 price = item.Price,
+                type = item.Type.ToString(),
                 quantity = item.Quantity,
                 orderId = item.OrderId,
                 serviceId = item.ServiceId,

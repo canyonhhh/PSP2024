@@ -2,6 +2,8 @@
 @inject IHttpClientFactory ClientFactory
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@using PSPOS.ServiceDefaults.DTOs
+@using PSPOS.ServiceDefaults.Models
 @using System.Security.Claims
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
@@ -191,10 +193,38 @@ else
     private string? Message;
     private bool isEditPopupVisible = false;
 
+    private Guid currentUserId;
+    private Guid currentBusinessId;
+    private Guid currentServiceId;
+
     protected override async Task OnInitializedAsync()
     {
         await LoadServices();
         await LoadReservations();
+        await LoadCurrentUserId();
+        await LoadCurrentBusinessId();
+    }
+
+    private async Task LoadCurrentUserId()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var userId = user.FindFirst("UserId")?.Value;
+        if (!string.IsNullOrEmpty(userId))
+        {
+            currentUserId = Guid.Parse(userId);
+        }
+    }
+
+    private async Task LoadCurrentBusinessId()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var businessId = user.FindFirst("BusinessId")?.Value;
+        if (!string.IsNullOrEmpty(businessId))
+        {
+            currentBusinessId = Guid.Parse(businessId);
+        }
     }
 
     private async Task OnServiceSelected(ChangeEventArgs e)
@@ -253,17 +283,62 @@ else
         {
             newReservation.Status = ReservationStatus.Open;
             var response = await Http.PostAsJsonAsync("reservations", newReservation);
-            if (response.IsSuccessStatusCode)
+            if (response.IsSuccessStatusCode && response.Headers.Location != null)
             {
                 Message = "Reservation created successfully.";
-                newReservation = new();
-                availableTimes = null;
-                await LoadReservations();
             }
         }
         catch (Exception ex)
         {
             Message = $"Error creating reservation: {ex.Message}";
+        }
+
+        try
+        {
+            var order = new OrderDTO
+            {
+                businessId = currentBusinessId,
+                currency = "Eur",
+                status = OrderStatus.Open.ToString()
+            };
+
+            var response = await Http.PostAsJsonAsync("orders", order);
+
+            if (response.IsSuccessStatusCode && response.Headers.Location != null)
+            {
+                // Extract the Location header
+                var location = response.Headers.Location.ToString();
+                var segments = location.Split('/');
+                var guidString = segments[^1];
+
+                // Create an order item
+                var orderItemDTO = new OrderItemDTO
+                {
+                    type = "Service",
+                    price = services.FirstOrDefault(s => s.Id == newReservation.ServiceId)?.Price ?? 0,
+                    quantity = 1,
+                    orderId = Guid.Parse(guidString),
+                    serviceId = newReservation.ServiceId
+                };
+
+                var respone = await Http.PostAsJsonAsync($"orders/{guidString}/items", orderItemDTO);
+                Console.WriteLine(respone.Content.ReadAsStringAsync());
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                // read the error message
+                Message = await response.Content.ReadAsStringAsync();
+            }
+
+            newReservation = new();
+            availableTimes = null;
+            await LoadReservations();
+
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error creating order for reservation: {ex.Message}";
         }
     }
 
@@ -316,40 +391,9 @@ else
         availableTimes = null;
     }
 
-    public class ReservationDTO
-    {
-        public Guid Id { get; set; }
-        public string? CustomerFirstName { get; set; }
-        public string? CustomerLastName { get; set; }
-        public string? CustomerEmail { get; set; }
-        public string? CustomerPhone { get; set; }
-        public DateTime AppointmentTime { get; set; }
-        public Guid ServiceId { get; set; }
-        public ReservationStatus Status { get; set; }
-    }
-
-    public class Service
-    {
-        public Guid Id { get; set; }
-        public string? Name { get; set; }
-    }
-
-    public class AvailableTimeDto
-    {
-        public DateTime TimeFrom { get; set; }
-        public DateTime TimeTo { get; set; }
-    }
-
     public class PaginatedResult<T>
     {
         public List<T>? Items { get; set; }
         public int TotalCount { get; set; }
-    }
-
-    public enum ReservationStatus
-    {
-        Open,
-        Closed,
-        Cancelled
     }
 }
