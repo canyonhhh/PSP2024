@@ -21,48 +21,25 @@ public class OrderService : IOrderService
     {
         return await _orderRepository.GetOrderByIdAsync(id);
     }
-    public async Task<OrderSchema?> UpdateOrderAsync(Guid orderId, OrderDTO orderDTO)
+    public async Task<Order?> UpdateOrderAsync(Guid orderId, OrderDTO orderDTO)
     {
-        Order? order = await _orderRepository.GetOrderByIdAsync(orderId);
+        var order = await _orderRepository.GetOrderByIdAsync(orderId);
         if (order == null)
             return null;
 
-        if (!string.IsNullOrEmpty(orderDTO.status))
-        {
-            if (Enum.TryParse<OrderStatus>(orderDTO.status, true, out var newStatus))
-            {
-                order.Status = newStatus;
-            }
-            else
-            {
-                throw new ArgumentException($"Status '{orderDTO.status}' does not exist.");
-            }
-        }
-
         if (orderDTO.tip.HasValue)
-        {
-            if (orderDTO.tip.Value < 0)
-                throw new ArgumentException("Tip cannot be negative.");
             order.Tip = orderDTO.tip.Value;
-        }
 
-        if (!string.IsNullOrEmpty(orderDTO.currency))
-        {
-            if (Enum.TryParse<Currency>(orderDTO.currency, true, out var newCurrency))
-            {
-                order.OrderCurrency = newCurrency;
-            }
-            else
-            {
-                throw new ArgumentException($"Currency '{orderDTO.currency}' does not exist.");
-            }
-        }
+        if (!string.IsNullOrEmpty(orderDTO.status))
+            order.Status = Enum.Parse<OrderStatus>(orderDTO.status, true);
 
         await _orderRepository.UpdateOrder(order);
-        return await GetOrderSchemaByIdAsync(orderId);
+
+        return order;
     }
 
-public async Task<OrderSchema?> GetOrderSchemaByIdAsync(Guid id)
+
+    public async Task<OrderSchema?> GetOrderSchemaByIdAsync(Guid id)
     {
         Order? order = await _orderRepository.GetOrderByIdAsync(id);
         if (order == null)
@@ -94,7 +71,8 @@ public async Task<OrderSchema?> GetOrderSchemaByIdAsync(Guid id)
             UpdatedBy = item.UpdatedBy,
             businessId = item.BusinessId,
             status = item.Status.ToString(),
-            currency = item.OrderCurrency.ToString()
+            currency = item.OrderCurrency.ToString(),
+            tip = item.Tip
         });
     }
 

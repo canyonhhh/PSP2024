@@ -1,0 +1,139 @@
+﻿@page "/business-admin/tips"
+@inject IHttpClientFactory ClientFactory
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@attribute [Authorize]
+@rendermode InteractiveServer
+
+<h2>Employee Tips</h2>
+
+@if (employees == null || employeeTips == null)
+{
+    <p>Loading employees and tips...</p>
+}
+else if (!employees.Any())
+{
+    <p>No employees found.</p>
+}
+else
+{
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>First Name</th>
+                <th>Last Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Total Tips</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var employee in employees)
+            {
+                <tr>
+                    <td>@employee.FirstName</td>
+                    <td>@employee.LastName</td>
+                    <td>@employee.Email</td>
+                    <td>@employee.Phone</td>
+                    <td>@(employeeTips.ContainsKey(employee.Id) ? employeeTips[employee.Id].ToString("C") : "$0.00")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@if (!string.IsNullOrEmpty(Message) && !isLoading)
+{
+    <div class="alert alert-info">@Message</div>
+}
+
+@code {
+    private HttpClient Http => ClientFactory.CreateClient("ApiClient");
+    private List<Employee>? employees;
+    private Dictionary<Guid, decimal> employeeTips = new();
+    private string? Message;
+    private bool isLoading = true;
+    private Guid? CurrentBusinessId;
+
+    public class Employee
+    {
+        public Guid Id { get; set; }
+        public string? FirstName { get; set; }
+        public string? LastName { get; set; }
+        public string? Email { get; set; }
+        public string? Phone { get; set; }
+    }
+
+    public class OrderSchema
+    {
+        public Guid Id { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public Guid CreatedBy { get; set; }
+        public string? status { get; set; }
+        public string? currency { get; set; }
+        public decimal? tip { get; set; }
+        public Guid BusinessId { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await SetCurrentBusinessId();
+        await LoadEmployeesAndTips();
+    }
+
+    private async Task SetCurrentBusinessId()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var businessIdClaim = user.FindFirst("BusinessId")?.Value;
+
+        if (Guid.TryParse(businessIdClaim, out var businessId))
+        {
+            CurrentBusinessId = businessId;
+        }
+        else
+        {
+            Message = "Invalid or missing Business ID.";
+        }
+    }
+
+    private async Task LoadEmployeesAndTips()
+    {
+        if (CurrentBusinessId == null)
+        {
+            Message = "Business ID is not available.";
+            isLoading = false;
+            return;
+        }
+
+        try
+        {
+            var employeesTask = Http.GetFromJsonAsync<List<Employee>>($"users?role=2&businessId={CurrentBusinessId}");
+            var ordersTask = Http.GetFromJsonAsync<List<OrderSchema>>("orders");
+
+            await Task.WhenAll(employeesTask, ordersTask);
+
+            employees = employeesTask.Result ?? new List<Employee>();
+            var orders = ordersTask.Result ?? new List<OrderSchema>();
+
+            employeeTips = orders
+                .Where(o => o.tip.HasValue && o.CreatedBy != Guid.Empty && o.BusinessId == CurrentBusinessId)
+                .GroupBy(o => o.CreatedBy)
+                .ToDictionary(g => g.Key, g => g.Sum(o => o.tip.Value));
+        }
+        catch (HttpRequestException httpEx)
+        {
+            Message = $"Error loading employees or tips: {httpEx.Message}";
+        }
+        catch (Exception ex)
+        {
+            Message = $"An unexpected error occurred: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}
