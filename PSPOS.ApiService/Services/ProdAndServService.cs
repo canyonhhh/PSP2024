@@ -252,7 +252,7 @@ namespace PSPOS.ApiService.Services
                 name = service.Name,
                 description = service.Description,
                 price = service.Price,
-                interval = service.Interval,
+                duration = service.Duration,
                 employeeId = service.EmployeeId
             }).ToList();
 
@@ -277,7 +277,7 @@ namespace PSPOS.ApiService.Services
                 name = service.Name,
                 description = service.Description,
                 price = service.Price,
-                interval = service.Interval,
+                duration = service.Duration,
                 employeeId = service.EmployeeId
             };
         }
@@ -304,7 +304,7 @@ namespace PSPOS.ApiService.Services
                 name = addedService.Name,
                 description = addedService.Description,
                 price = addedService.Price,
-                interval = addedService.Interval,
+                duration = addedService.Duration,
                 employeeId = addedService.EmployeeId
             };
         }
@@ -320,7 +320,7 @@ namespace PSPOS.ApiService.Services
             existingService.Name = updatedServiceDto.Name;
             existingService.Description = updatedServiceDto.Description;
             existingService.Price = updatedServiceDto.Price;
-            existingService.Interval = updatedServiceDto.Duration;
+            existingService.Duration = updatedServiceDto.Duration;
             existingService.EmployeeId = updatedServiceDto.EmployeeId;
 
             return await _repository.UpdateServiceAsync(serviceId, existingService);

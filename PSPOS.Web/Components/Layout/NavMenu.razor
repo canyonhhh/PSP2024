@@ -71,13 +71,23 @@
         @if (User?.FindFirst("UserRole")?.Value == "Employee")
         {
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="CreateOrder">
+            <NavLink class="nav-link" href="/employee/createOrder">
                 <span class="bi bi-list-nested" aria-hidden="true"></span> Create order
             </NavLink>
         </div>
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="Orders">
+            <NavLink class="nav-link" href="/employee/orders">
                 <span class="bi bi-list-nested" aria-hidden="true"></span> Orders
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="/employee/services">
+                <span class="bi bi-list-nested" aria-hidden="true"></span> Services
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="/employee/reservations">
+                <span class="bi bi-list-nested" aria-hidden="true"></span> Reservations
             </NavLink>
         </div>
         }
