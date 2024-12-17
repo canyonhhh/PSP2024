@@ -275,7 +275,7 @@ public class OrderService : IOrderService
             UpdatedAt = item.UpdatedAt,
             CreatedBy = item.CreatedBy,
             UpdatedBy = item.UpdatedBy,
-            type = item.type?.ToString() ?? "Unknown",
+            type = item.type?.ToString(),
             price = item.price,
             quantity = item.quantity,
             orderId = item.orderId,
