@@ -45,6 +45,16 @@
             <input type="checkbox" class="form-check-input" @bind="newDiscount.Active" />
             <label class="form-check-label">Active</label>
         </div>
+        <div>
+            <label class="form-label">Product Group</label>
+            <select class="form-select" @bind="newDiscount.ProductOrServiceGroupId">
+                <option value="@Guid.Empty">-- Select a Product Group --</option>
+                @foreach (var group in productGroups)
+                {
+                    <option value="@group.Id">@group.Name</option>
+                }
+            </select>
+        </div>
         <button class="btn btn-success" @onclick="CreateDiscount">Add Discount</button>
     </div>
 </div>
@@ -70,6 +80,7 @@ else
                 <th>Percentage</th>
                 <th>End Date</th>
                 <th>Active</th>
+                <th>Product group</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -84,6 +95,7 @@ else
                     <td>@discount.Percentage%</td>
                     <td>@discount.EndDate.ToShortDateString()</td>
                     <td>@(discount.Active ? "Yes" : "No")</td>
+                    <td>@(productGroups.FirstOrDefault(g => g.Id == discount.ProductOrServiceGroupId)?.Name ?? "None")</td>
                     <td>
                         <button class="btn btn-warning btn-sm me-2" @onclick="() => OpenEditPopup(discount)">Edit</button>
                         <button class="btn btn-danger btn-sm" @onclick="() => DeleteDiscount(discount.Id)">Delete</button>
@@ -127,6 +139,16 @@ else
                         <input type="checkbox" class="form-check-input" @bind="editDiscount.Active" />
                         <label class="form-check-label">Active</label>
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label">Product Group</label>
+                        <select class="form-select" @bind="editDiscount.ProductOrServiceGroupId">
+                            <option value="@Guid.Empty">-- Select a Product Group --</option>
+                            @foreach (var group in productGroups)
+                            {
+                                <option value="@group.Id">@group.Name</option>
+                            }
+                        </select>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" @onclick="CloseEditPopup">Close</button>
@@ -144,11 +166,13 @@ else
     private Discount newDiscount = new();
     private Discount editDiscount = new();
     private string? Message;
+    private List<ProductGroup> productGroups = new();
     private bool isEditPopupVisible = false;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadDiscounts();
+        await LoadProductGroups();
     }
 
     private async Task LoadDiscounts()
@@ -162,11 +186,24 @@ else
             Message = $"Error loading discounts: {ex.Message}";
         }
     }
-
+    private async Task LoadProductGroups()
+    {
+        try
+        {
+            var response = await Http.GetFromJsonAsync<ProductGroupResponse>("api/categories");
+            productGroups = response?.Categories ?? new List<ProductGroup>();
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error loading product groups: {ex.Message}";
+            productGroups = new List<ProductGroup>(); // Initialize to avoid null reference issues
+        }
+    }
     private async Task CreateDiscount()
     {
         try
         {
+
             var businessIdClaim = (await AuthenticationStateProvider.GetAuthenticationStateAsync())
                 .User?.FindFirst("businessId")?.Value;
 
@@ -178,12 +215,12 @@ else
                 if (response.IsSuccessStatusCode)
                 {
                     Message = "Discount created successfully.";
-                    newDiscount = new();
+                    newDiscount = new Discount(); 
                     await LoadDiscounts();
                 }
                 else
                 {
-                    Message = $"Failed to create discount: {response.ReasonPhrase}";
+                    var errorContent = await response.Content.ReadAsStringAsync();
                 }
             }
             else
@@ -214,17 +251,12 @@ else
                 await LoadDiscounts();
                 CloseEditPopup();
             }
-            else
-            {
-                Message = $"Failed to update discount: {response.ReasonPhrase}";
-            }
         }
         catch (Exception ex)
         {
             Message = $"Error updating discount: {ex.Message}";
         }
     }
-
     private async Task DeleteDiscount(Guid discountId)
     {
         try
@@ -246,7 +278,12 @@ else
         }
     }
 
-    private void CloseEditPopup() => isEditPopupVisible = false;
+    private void CloseEditPopup()
+    {
+        isEditPopupVisible = false;
+        editDiscount = new Discount(); 
+    }
+
 
     public class Discount
     {
@@ -259,6 +296,7 @@ else
         public decimal Percentage { get; set; }
         public DateTime EndDate { get; set; }
         public Guid BusinessId { get; set; }
+        public Guid? ProductOrServiceGroupId { get; set; }
 
         public Discount() { }
 
@@ -273,6 +311,17 @@ else
             Percentage = discount.Percentage;
             EndDate = discount.EndDate;
             BusinessId = discount.BusinessId;
+            ProductOrServiceGroupId = discount.ProductOrServiceGroupId;
         }
+    }
+    public class ProductGroup
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+    }
+    public class ProductGroupResponse
+    {
+        public List<ProductGroup> Categories { get; set; } = new();
+        public int TotalCount { get; set; }
     }
 }
