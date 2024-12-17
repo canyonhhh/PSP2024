@@ -198,47 +198,47 @@ public class OrderRepository : IOrderRepository
 
         // Step 4: Map OrderItems to OrderItemSchema with null handling
         var orderItemSchemas = orderItems.Select(item =>
-
+{
+    var discounts = appliedDiscounts
+        ?.Where(ad => ad.OrderItemId == item.Id)
+        .Select(ad => new AppliedDiscountSchema
         {
-            var discounts = appliedDiscounts
-                ?.Where(ad => ad.OrderItemId == item.Id)
-                .Select(ad => new AppliedDiscountSchema
-                {
-                    Id = ad.Id,
-                    amount = ad.Amount,
-                    percentage = ad.Percentage,
-                    discountId = ad.DiscountId,
-                    orderItemId = ad.OrderItemId,
-                    orderId = ad.OrderId
-                })
-                .ToList() ?? new List<AppliedDiscountSchema>();
+            Id = ad.Id,
+            amount = ad.Amount,
+            percentage = ad.Percentage,
+            discountId = ad.DiscountId,
+            orderItemId = ad.OrderItemId,
+            orderId = ad.OrderId
+        })
+        .ToList() ?? new List<AppliedDiscountSchema>();
 
-            var taxes = appliedTaxes
-                ?.Where(at => at.OrderItemId == item.Id)
-                .Select(at => new AppliedTaxSchema
-                {
-                    Id = at.Id,
-                    percentage = at.Percentage,
-                    taxId = at.TaxId,
-                    orderItemId = at.OrderItemId,
-                    orderId = at.OrderId
-                })
-                .ToList() ?? new List<AppliedTaxSchema>();
+    var taxes = appliedTaxes
+        ?.Where(at => at.OrderItemId == item.Id)
+        .Select(at => new AppliedTaxSchema
+        {
+            Id = at.Id,
+            percentage = at.Percentage,
+            taxId = at.TaxId,
+            orderItemId = at.OrderItemId,
+            orderId = at.OrderId
+        })
+        .ToList() ?? new List<AppliedTaxSchema>();
 
-            // Return the mapped schema
-            return new OrderItemSchema
-            {
-                Id = item.Id,
-                price = item.Price,
-                quantity = item.Quantity,
-                orderId = item.OrderId,
-                serviceId = item.ServiceId,
-                productId = item.ProductId,
-                transactionId = item.TransactionId,
-                appliedDiscounts = discounts, // Default empty list if null
-                appliedTaxes = taxes           // Default empty list if null
-            };
-        }).ToList();
+    // Return the mapped schema
+    return new OrderItemSchema
+    {
+        Id = item.Id,
+        price = item.Price,
+        quantity = item.Quantity,
+        type = item.Type.ToString(), 
+        orderId = item.OrderId,
+        serviceId = item.ServiceId,
+        productId = item.ProductId,
+        transactionId = item.TransactionId,
+        appliedDiscounts = discounts, // Default empty list if null
+        appliedTaxes = taxes           // Default empty list if null
+    };
+}).ToList();
 
         return orderItemSchemas;
     }

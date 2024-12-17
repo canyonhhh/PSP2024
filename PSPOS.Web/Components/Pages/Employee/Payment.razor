@@ -12,9 +12,6 @@
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @rendermode InteractiveServer
-@using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Components.Authorization
-@using System.Security.Claims
 
 <h3>Payment</h3>
 <script src="https://js.stripe.com/v3/"></script>
@@ -134,10 +131,10 @@ else
         <script>
             // import stripe handler module
             import('./stripeHandler.js').then((module) => {
-                // initialize stripe with the public key
-                module.initializeStripe("pk_test_51QUWBYGUMof1EohPLwH4KQZj1wbLTJf8o8kzruKACLFgDeiH7SLxAAGN8dYUxP0Ku85bqSow0hEHGthPuPATzfCP00sDDvnD8L");
+            // initialize stripe with the public key
+            module.initializeStripe("pk_test_51QUWBYGUMof1EohPLwH4KQZj1wbLTJf8o8kzruKACLFgDeiH7SLxAAGN8dYUxP0Ku85bqSow0hEHGthPuPATzfCP00sDDvnD8L");
             }).catch((error) => {
-                console.error('Error loading Stripe handler:', error);
+            console.error('Error loading Stripe handler:', error);
             });
         </script>
 
@@ -176,9 +173,6 @@ else
 
     private decimal? TipAmount { get; set; }
 
-    private IJSObjectReference? stripeJs;
-    private string? _clientSecret;
-
     protected override async Task OnInitializedAsync()
     {
         await SetCurrentBusinessId();
@@ -209,23 +203,23 @@ else
 
     private async Task LoadAvailableDiscounts()
     {
-    	try
-	{
-	    var response = await Http.GetAsync("api/discounts");
-	    if (response.IsSuccessStatusCode)
-	    {
-		var allDiscounts = await response.Content.ReadFromJsonAsync<List<Discount>>() ?? new List<Discount>();
+        try
+        {
+            var response = await Http.GetAsync("api/discounts");
+            if (response.IsSuccessStatusCode)
+            {
+                var allDiscounts = await response.Content.ReadFromJsonAsync<List<Discount>>() ?? new List<Discount>();
 
-		AvailableDiscounts = allDiscounts
-			.Where(d => d.BusinessId == CurrentBusinessId && d.Active)
-			.ToList();
-	    }
-	}
-	catch (Exception ex)
-	{
-	    Console.WriteLine($"Exception occurred while reading discounts: {ex.Message}");
-	    ErrorMessage = $"Error reading discounts: {ex.Message}";
-	}
+                AvailableDiscounts = allDiscounts
+                    .Where(d => d.BusinessId == CurrentBusinessId && d.Active)
+                    .ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Exception occurred while reading discounts: {ex.Message}");
+            ErrorMessage = $"Error reading discounts: {ex.Message}";
+        }
     }
 
     private async Task ApplyDiscountToOrder()
@@ -326,6 +320,8 @@ else
     }
     private async Task LoadOrderItems()
     {
+        try
+        {
             OrderItems = await Http.GetFromJsonAsync<List<OrderItemSchema>>($"orders/{OrderId}/items") ?? new List<OrderItemSchema>();
 
             var productIds = OrderItems
@@ -356,6 +352,7 @@ else
             ErrorMessage = $"Error loading order items: {ex.Message}";
         }
     }
+    
 
     private async Task UpdateTip()
     {
@@ -592,22 +589,6 @@ else
         public decimal Percentage { get; set; }
         public Guid TaxId { get; set; }
     }
-    public class AppliedDiscountSchema
-    {
-        public Guid Id { get; set; }
-        public decimal amount { get; set; }
-        public decimal percentage { get; set; }
-        public Guid discountId { get; set; }
-        public Guid orderItemId { get; set; }
-        public Guid orderId { get; set; }
-    }
-
-    public class AppliedTaxSchema
-    {
-        public Guid Id { get; set; }
-        public decimal percentage { get; set; }
-        public Guid taxId { get; set; }
-    }
     public class Discount
     {
         public Guid Id { get; set; }
@@ -648,4 +629,3 @@ else
         Navigation.NavigateTo($"/Orders");
     }
 }
-
