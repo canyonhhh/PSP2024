@@ -45,7 +45,7 @@ public class OrderController : ControllerBase
 
         try
         {
-            var createdOrder = await _orderService.AddOrderAsync(orderDTO.businessId, orderDTO.status, orderDTO.currency);
+            var createdOrder = await _orderService.AddOrderAsync(orderDTO.businessId, orderDTO.status, orderDTO.currency, orderDTO.createdBy);
             return CreatedAtAction(nameof(GetOrderById), new { orderId = createdOrder.Id }, null);
         }
         catch (ArgumentException ex)

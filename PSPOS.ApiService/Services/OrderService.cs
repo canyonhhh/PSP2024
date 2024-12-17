@@ -76,9 +76,9 @@ public class OrderService : IOrderService
         });
     }
 
-    public async Task<Order> AddOrderAsync(Guid businessId, string? status, string? currency)
+    public async Task<Order> AddOrderAsync(Guid businessId, string? status, string? currency, Guid createdBy)
     {
-        return await _orderRepository.AddOrderAsync(businessId, status, currency);
+        return await _orderRepository.AddOrderAsync(businessId, status, currency, createdBy);
     }
 
     public async Task DeleteOrderAsync(Guid id)

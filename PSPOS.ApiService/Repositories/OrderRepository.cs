@@ -47,7 +47,7 @@ public class OrderRepository : IOrderRepository
         return await query.ToListAsync();
     }
 
-    public async Task<Order> AddOrderAsync(Guid businessId, string? status, string? currency)
+    public async Task<Order> AddOrderAsync(Guid businessId, string? status, string? currency, Guid createdBy)
     {
         Currency currencyEnum = 0; // Default if null
         OrderStatus statusEnum = 0; // Default if null
@@ -64,7 +64,7 @@ public class OrderRepository : IOrderRepository
                 throw new ArgumentException($"Currency '{currency}' does not exist."); // Catch in controller
         }
 
-        var order = new Order(businessId, currencyEnum, 0, statusEnum);
+        var order = new Order(businessId, createdBy, currencyEnum, 0, statusEnum);
 
         await _context.Orders.AddAsync(order);
         await _context.SaveChangesAsync();

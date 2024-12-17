@@ -456,6 +456,7 @@ else
             }
 
             decimal sumOfSelected = OrderItems.Where(i => i.SelectedForPayment).Sum(i => CalculateLineTotal(i));
+            sumOfSelected -= OrderLevelDiscount;
             sumOfSelected += TipAmount ?? 0; 
 
             switch (SelectedPaymentMethod)

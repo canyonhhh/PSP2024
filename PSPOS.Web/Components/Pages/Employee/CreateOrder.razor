@@ -150,6 +150,7 @@
     private string orderCurrency = string.Empty;
     private bool ShouldLoadOrderItems = false;
     private Guid CurrentBusinessId;
+    private Guid CurrentEmployeeId;
 
 
     protected override async Task OnInitializedAsync()
@@ -181,19 +182,28 @@
             OrderItemErrorMessage = $"Error loading stock items: {ex.Message}";
         }
     }
+
     private async Task SetCurrentBusinessId()
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
         var businessIdClaim = user.FindFirst("BusinessId")?.Value;
+        var employeeIdClaim = user.FindFirst("UserId")?.Value;
 
         if (Guid.TryParse(businessIdClaim, out var businessId))
         {
             CurrentBusinessId = businessId;
+            
+            Console.WriteLine($"Business ID: {CurrentBusinessId}");
+        }
+        if ( Guid.TryParse(employeeIdClaim, out var employeeId))
+        {
+            CurrentEmployeeId = employeeId;
+            Console.WriteLine($" Employee ID: {CurrentEmployeeId}");
         }
         else
         {
-            ErrorMessage = "Could not determine Business ID.";
+            ErrorMessage = "Could not determine Business ID and employeeID.";
         }
     }
 
@@ -213,7 +223,8 @@
         }
         try
         {
-            newOrder.businessId = CurrentBusinessId; 
+            newOrder.businessId = CurrentBusinessId;
+            newOrder.createdBy = CurrentEmployeeId;
             var response = await Http.PostAsJsonAsync("orders", newOrder);
             if (response.IsSuccessStatusCode)
             {
@@ -375,6 +386,14 @@
     public class NewOrderItemDTO
     {
         public int Quantity { get; set; } = 1;
+    }
+    public class OrderDTO
+    {
+        public Guid businessId { get; set; }
+        public string? status { get; set; }
+        public string? currency { get; set; }
+        public decimal? tip { get; set; }
+        public Guid createdBy { get; set; }
     }
 
     public class StockItem

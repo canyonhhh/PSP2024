@@ -9,7 +9,7 @@ public interface IOrderRepository
     Task<Order?> GetOrderByIdAsync(Guid id);
     Task UpdateOrder(Order order);
     Task<IEnumerable<Order>> GetAllOrdersAsync(string? status, int? limit, int? skip);
-    Task<Order> AddOrderAsync(Guid businessId, string? status, string? currency);
+    Task<Order> AddOrderAsync(Guid businessId, string? status, string? currency, Guid createdBy);
     Task DeleteOrderAsync(Guid id);
 
     // '/orders/transactions'
