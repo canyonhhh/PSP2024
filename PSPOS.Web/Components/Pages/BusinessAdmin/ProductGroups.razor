@@ -1,0 +1,360 @@
+﻿@page "/business-admin/productGroups"
+@inject IHttpClientFactory ClientFactory
+
+<h3>Product Groups</h3>
+
+<div class="card p-4">
+    @if (productGroups == null)
+    {
+        <p>Loading...</p>
+    }
+    else if (!productGroups.Any())
+    {
+        <p>No product groups found.</p>
+    }
+    else
+    {
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>ID</th>
+                    <th>Group Name</th>
+                    <th>Description</th>
+                    <th>Number of Products</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var group in productGroups)
+                {
+                    <tr>
+                        <td>@group.Id</td>
+                        <td>@group.Name</td>
+                        <td>@group.Description</td>
+                        <td>@(group.ProductOrServiceIds?.Count ?? 0)</td>
+                        <td>
+                            <!-- Delete Button -->
+                            <button class="btn btn-danger btn-sm" @onclick="() => OnDeleteCategory(group.Id)">
+                                Delete
+                            </button>
+                            <button class="btn btn-warning btn-sm" @onclick="() => OnEditCategory(group)">
+                                Edit
+                            </button>
+
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    @if (!string.IsNullOrEmpty(ErrorMessage))
+    {
+        <div class="alert alert-danger">@ErrorMessage</div>
+    }
+</div>
+
+<h4>Add New Category</h4>
+<div class="card p-4">
+    @if (isEditModalVisible)
+    {
+        <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit Category</h5>
+                        <button type="button" class="btn-close" @onclick="CloseEditModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form>
+                            <div class="form-group mb-3">
+                                <label for="editCategoryName">Name</label>
+                                <input id="editCategoryName" class="form-control" @bind="editCategory.Name" />
+                            </div>
+                            <div class="form-group mb-3">
+                                <label for="editCategoryDescription">Description</label>
+                                <textarea id="editCategoryDescription" class="form-control" @bind="editCategory.Description"></textarea>
+                            </div>
+                            <div class="form-group mb-3">
+                                <label>Already Selected Products</label>
+                                <ul class="list-group mb-2">
+                                    @foreach (var productId in selectedProductIds)
+                                    {
+                                        var productName = products.FirstOrDefault(p => p.Id == productId)?.Name ?? "Unknown";
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            @productName
+                                            <button type="button" class="btn btn-danger btn-sm" @onclick="() => RemoveSelectedProduct(productId)">
+                                                Remove
+                                            </button>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                            <div class="form-group mb-3">
+                                <label for="editProductSelect">Select Products to Add</label>
+                                <select id="editProductSelect" class="form-select" @onchange="OnProductSelected">
+                                    <option value="">-- Select a Product --</option>
+                                    @foreach (var product in products)
+                                    {
+                                        if (!selectedProductIds.Contains(product.Id))
+                                        {
+                                            <option value="@product.Id">@product.Name</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" @onclick="CloseEditModal">Cancel</button>
+                        <button class="btn btn-primary" @onclick="OnUpdateCategory">Save Changes</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+
+    <form @onsubmit="OnAddCategory" @onsubmit:preventDefault="true">
+        <div class="form-group mb-3">
+            <label for="categoryName">Name</label>
+            <input id="categoryName" class="form-control" @bind="newCategory.Name" required />
+        </div>
+        <div class="form-group mb-3">
+            <label for="categoryDescription">Description</label>
+            <textarea id="categoryDescription" class="form-control" @bind="newCategory.Description"></textarea>
+        </div>
+
+        <div class="form-group mb-3">
+            <label for="productSelect">Select Products</label>
+            <select id="productSelect" class="form-select" @onchange="OnProductSelected">
+                <option value="">-- Select a Product --</option>
+                @foreach (var product in products)
+                {
+                    <option value="@product.Id">@product.Name</option>
+                }
+            </select>
+        </div>
+        <div class="form-group mb-3">
+            <label>Selected Products</label>
+            <ul class="list-group mb-2">
+                @foreach (var productId in selectedProductIds)
+                {
+                    var productName = products.FirstOrDefault(p => p.Id == productId)?.Name ?? "Unknown";
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        @productName
+                        <button type="button" class="btn btn-danger btn-sm" @onclick="() => RemoveSelectedProduct(productId)">
+                            Remove
+                        </button>
+                    </li>
+                }
+            </ul>
+        </div>
+
+
+        <button type="submit" class="btn btn-success">Add Category</button>
+    </form>
+</div>
+
+@if (IsSuccess)
+{
+    <div class="alert alert-success mt-3">Category created successfully!</div>
+}
+
+@code {
+    private HttpClient Http => ClientFactory.CreateClient("ApiClient");
+    private List<ProductGroup> productGroups = new();
+    private List<Product> products = new(); // List of products for dropdown
+    private List<Guid> selectedProductIds = new();
+    private string ErrorMessage = string.Empty;
+
+    private bool isEditModalVisible = false; // Controls modal visibility
+    private ProductGroup editCategory = new(); // Category being edited
+
+
+    private NewCategory newCategory = new();
+    private bool IsSuccess = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await FetchProductGroups();
+        await FetchProducts();
+    }
+
+    private async Task FetchProductGroups()
+    {
+        try
+        {
+            var response = await Http.GetFromJsonAsync<CategoryResponse>("/api/categories/");
+            productGroups = response?.Categories ?? new List<ProductGroup>();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Failed to load product groups: {ex.Message}";
+        }
+    }
+
+    private async Task FetchProducts()
+    {
+        try
+        {
+            products = await Http.GetFromJsonAsync<List<Product>>("/api/products") ?? new List<Product>();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Failed to load products: {ex.Message}";
+        }
+    }
+
+    private void OnProductSelected(ChangeEventArgs e)
+    {
+        if (Guid.TryParse(e.Value?.ToString(), out Guid selectedProductId))
+        {
+            if (!selectedProductIds.Contains(selectedProductId))
+            {
+                selectedProductIds.Add(selectedProductId);
+            }
+
+            // Sync the selected products with the editCategory
+            editCategory.ProductOrServiceIds = new List<Guid>(selectedProductIds);
+        }
+    }
+
+    private void RemoveSelectedProduct(Guid productId)
+    {
+        selectedProductIds.Remove(productId);
+        editCategory.ProductOrServiceIds = new List<Guid>(selectedProductIds);
+    }
+
+    private async Task OnAddCategory()
+    {
+        IsSuccess = false;
+        ErrorMessage = string.Empty;
+
+        try
+        {
+            newCategory.ProductOrServiceIds = selectedProductIds;
+
+            var response = await Http.PostAsJsonAsync("/api/categories", newCategory);
+
+            if (response.IsSuccessStatusCode)
+            {
+                IsSuccess = true;
+                await FetchProductGroups();
+                newCategory = new NewCategory();
+                selectedProductIds.Clear();
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                ErrorMessage = $"Failed to add category: {response.ReasonPhrase} - {errorContent}";
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"An error occurred: {ex.Message}";
+        }
+    }
+
+    private async Task OnDeleteCategory(Guid categoryId)
+    {
+        ErrorMessage = string.Empty;
+
+        try
+        {
+            var response = await Http.DeleteAsync($"/api/categories/{categoryId}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                // Refresh the list after successful deletion
+                await FetchProductGroups();
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                ErrorMessage = $"Failed to delete category: {response.ReasonPhrase} - {errorContent}";
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"An error occurred while deleting the category: {ex.Message}";
+        }
+    }
+    private void OnEditCategory(ProductGroup category)
+    {
+        // Open the modal and load the selected category
+        editCategory = new ProductGroup
+            {
+                Id = category.Id,
+                Name = category.Name,
+                Description = category.Description,
+                ProductOrServiceIds = category.ProductOrServiceIds != null
+                ? new List<Guid>(category.ProductOrServiceIds)
+                : new List<Guid>()
+            };
+        selectedProductIds = editCategory.ProductOrServiceIds ?? new List<Guid>();
+        isEditModalVisible = true;
+    }
+
+    private void CloseEditModal()
+    {
+        isEditModalVisible = false;
+        selectedProductIds.Clear(); 
+    }
+
+    private async Task OnUpdateCategory()
+    {
+        ErrorMessage = string.Empty;
+
+        try
+        {
+            editCategory.ProductOrServiceIds = selectedProductIds;
+            var response = await Http.PutAsJsonAsync($"/api/categories/{editCategory.Id}", editCategory);
+
+            if (response.IsSuccessStatusCode)
+            {
+                isEditModalVisible = false;
+                await FetchProductGroups(); // Refresh list
+                selectedProductIds.Clear();
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                ErrorMessage = $"Failed to update category: {response.ReasonPhrase} - {errorContent}";
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"An error occurred while updating the category: {ex.Message}";
+        }
+    }
+
+
+    public class CategoryResponse
+    {
+        public List<ProductGroup> Categories { get; set; } = new();
+        public int TotalCount { get; set; }
+    }
+
+    public class ProductGroup
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public List<Guid>? ProductOrServiceIds { get; set; }
+    }
+
+    public class Product
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+    }
+
+    public class NewCategory
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public List<Guid>? ProductOrServiceIds { get; set; }
+    }
+}
+
