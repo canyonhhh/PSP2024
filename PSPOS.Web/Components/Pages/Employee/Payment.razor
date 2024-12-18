@@ -286,14 +286,16 @@ else
 
     private void CalculateTotalAmount()
     {
-        decimal subtotal = OrderItems.Sum(i =>
-        {
-            decimal baseAfterDiscount = (i.Price * i.Quantity) - (i.AppliedDiscounts?.Sum(d => d.Amount) ?? 0);
-            if (baseAfterDiscount < 0) baseAfterDiscount = 0;
+        decimal subtotal = OrderItems
+            .Where(i => SelectedItemIds.Contains(i.Id))
+            .Sum(i =>
+            {
+                decimal baseAfterDiscount = (i.Price * i.Quantity) - (i.AppliedDiscounts?.Sum(d => d.Amount) ?? 0);
+                if (baseAfterDiscount < 0) baseAfterDiscount = 0;
 
-            var tax = i.AppliedTaxes?.Sum(t => baseAfterDiscount * (t.Percentage / 100)) ?? 0;
-            return baseAfterDiscount + tax;
-        });
+                var tax = i.AppliedTaxes?.Sum(t => baseAfterDiscount * (t.Percentage / 100)) ?? 0;
+                return baseAfterDiscount + tax;
+            });
 
         subtotal += CurrentTipAmount;
 
@@ -345,7 +347,12 @@ else
         ErrorMessage = string.Empty;
     }
 
-    private async Task SendTransactionToServer(List<OrderItemSchema> selectedItems, decimal paidByCash = 0, decimal paidByGiftcard = 0, decimal paidByBankcard = 0, string externalTransactionId = "")
+    private async Task SendTransactionToServer(
+        List<OrderItemSchema> selectedItems,
+        decimal paidByCash = 0,
+        decimal paidByGiftcard = 0,
+        decimal paidByBankcard = 0,
+        string externalTransactionId = "")
     {
         try
         {
