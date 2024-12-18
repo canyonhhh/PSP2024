@@ -163,12 +163,11 @@ else
     private HttpClient Http => ClientFactory.CreateClient("ApiClient");
 
     private List<Discount>? discounts;
-    private Discount newDiscount = new();
     private Discount editDiscount = new();
     private string? Message;
     private List<ProductGroup> productGroups = new();
     private bool isEditPopupVisible = false;
-
+    private Discount newDiscount = new() { Method = "Fixed" };
     protected override async Task OnInitializedAsync()
     {
         await LoadDiscounts();
