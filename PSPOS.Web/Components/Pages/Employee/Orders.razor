@@ -2,6 +2,7 @@
 @inject IHttpClientFactory ClientFactory
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JS
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
@@ -38,7 +39,12 @@ else
                     <td>@order.Currency</td>
                     <td>
                         <button class="btn btn-warning btn-sm me-2" @onclick="() => EditOrder(order.Id)">Edit</button>
-                        <button class="btn btn-danger btn-sm" @onclick="() => DeleteOrder(order.Id)">Delete</button>
+                        <button class="btn btn-danger btn-sm me-2" @onclick="() => DeleteOrder(order.Id)">Delete</button>
+
+                        @if (order.Status?.ToUpper() == "CLOSED")
+                        {
+                            <button class="btn btn-secondary btn-sm" @onclick="() => RefundOrder(order.Id)">Refund</button>
+                        }
                     </td>
                 </tr>
             }
@@ -78,6 +84,7 @@ else
         await SetCurrentBusinessId();
         await LoadOrders();
     }
+
     private async Task SetCurrentBusinessId()
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
@@ -108,6 +115,58 @@ else
         }
     }
 
+    private async Task RefundOrder(Guid orderId)
+    {
+        // Optional: Confirm the refund action with the user
+        bool confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to refund Order {orderId}?");
+        if (!confirmed)
+        {
+            return;
+        }
+
+        try
+        {
+            // Retrieve the full details of the selected order
+            var fullOrder = orders.FirstOrDefault(o => o.Id == orderId);
+            if (fullOrder == null)
+            {
+                Message = $"Order {orderId} not found.";
+                return;
+            }
+
+            // Create an OrderDTO with all required fields
+            var refundOrderDTO = new OrderDTO
+                {
+                    createdBy = fullOrder.CreatedBy,        // Ensure this field is populated
+                    businessId = fullOrder.BusinessId,      // Ensure this field is populated
+                    status = "Refunded",
+                    currency = fullOrder.Currency,
+                    tip = fullOrder.Tip
+                };
+
+            // Send a PUT request to update the order's status to "Refunded"
+            var response = await Http.PutAsJsonAsync($"orders/{orderId}", refundOrderDTO);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Message = $"Order {orderId} has been refunded successfully.";
+
+                // Reload the orders to reflect the updated status
+                await LoadOrders();
+            }
+            else
+            {
+                // Optionally, read the error message from the response
+                var errorContent = await response.Content.ReadAsStringAsync();
+                Message = $"Failed to refund order: {response.ReasonPhrase}. Details: {errorContent}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error refunding order: {ex.Message}";
+        }
+    }
+
     private async Task LoadOrders()
     {
         try
@@ -131,8 +190,6 @@ else
         }
     }
 
-
-    
     // Delete order logic
     private async Task DeleteOrder(Guid orderId)
     {
@@ -141,7 +198,7 @@ else
             var response = await Http.DeleteAsync($"orders/{orderId}");
             if (response.IsSuccessStatusCode && orders != null)
             {
-                orders.RemoveAll(o => o.Id == orderId); 
+                orders.RemoveAll(o => o.Id == orderId);
                 Message = "Order deleted successfully.";
             }
             else
@@ -155,7 +212,7 @@ else
         }
     }
 
-    // Edit an order 
+    // Edit an order
     private void EditOrder(Guid id)
     {
         Navigation.NavigateTo($"/EditOrder/{id}");
@@ -168,12 +225,16 @@ else
         public string? Status { get; set; }
         public string? Currency { get; set; }
         public Guid BusinessId { get; set; }
+        public Guid CreatedBy { get; set; }       // Added to match backend's OrderDTO
+        public decimal? Tip { get; set; }         // Added to match backend's OrderDTO
     }
 
     public class OrderDTO
     {
-        public string? BusinessId { get; set; }
-        public string? Status { get; set; }
-        public string? Currency { get; set; }
+        public Guid createdBy { get; set; }        // Changed from string to Guid
+        public Guid businessId { get; set; }       // Changed from string to Guid
+        public string? status { get; set; }
+        public string? currency { get; set; }
+        public decimal? tip { get; set; }
     }
 }
