@@ -251,7 +251,8 @@ else
         try
         {
             var existingDiscount = discounts?.FirstOrDefault(t =>
-                t.ProductOrServiceGroupId == editDiscount.ProductOrServiceGroupId);
+                t.ProductOrServiceGroupId == editDiscount.ProductOrServiceGroupId &&
+            t.Id != editDiscount.Id);
 
             if (existingDiscount != null)
             {

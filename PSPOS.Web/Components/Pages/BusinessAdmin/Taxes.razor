@@ -260,7 +260,8 @@ private async Task SaveEditTax()
     try
     {
             var existingTax = taxes?.FirstOrDefault(t =>
-            t.ProductOrServiceGroupId == editTax.ProductOrServiceGroupId);
+            t.ProductOrServiceGroupId == editTax.ProductOrServiceGroupId &&
+            t.Id != editTax.Id);
 
             if (existingTax != null)
             {
