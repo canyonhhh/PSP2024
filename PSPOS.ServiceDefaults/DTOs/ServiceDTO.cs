@@ -1,11 +1,10 @@
-﻿using Microsoft.VisualBasic;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace PSPOS.ServiceDefaults.Models;
 
 public class ServiceDTO
 {
-    public ServiceDTO(string name, string? description, decimal price, DateInterval duration, Guid employeeId)
+    public ServiceDTO(string name, string? description, decimal price, TimeSpan duration, Guid employeeId)
     {
         Name = name;
         Description = description;
@@ -26,7 +25,7 @@ public class ServiceDTO
     public decimal Price { get; set; }
 
     [Required(ErrorMessage = "Duration is required")]
-    public DateInterval Duration { get; set; }
+    public TimeSpan Duration { get; set; }
 
     [Required(ErrorMessage = "EmployeeId is required")]
     public Guid EmployeeId { get; set; }

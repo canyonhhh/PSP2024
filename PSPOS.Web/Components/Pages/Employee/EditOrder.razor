@@ -16,6 +16,14 @@
 {
     <p>Loading...</p>
 }
+else if (OrderItems.First().type == "Service")
+{
+    <p>Order contains a service. Please edit them in the Reservations page</p>
+    // button to navigate to reservations page
+    <div class="text-center">
+        <button class="btn btn-secondary" @onclick="GoToReservations">Go to Reservations</button>
+    </div>
+}
 else
 {
     <div class="table-responsive">
@@ -321,6 +329,12 @@ else
     {
         Navigation.NavigateTo("/Orders");
     }
+
+    private void GoToReservations()
+    {
+        Navigation.NavigateTo("/employee/reservations");
+    }
+
 
     public class NewOrderItemDTO
     {

@@ -1,0 +1,445 @@
+@page "/employee/reservations"
+@inject IHttpClientFactory ClientFactory
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@using PSPOS.ServiceDefaults.DTOs
+@using PSPOS.ServiceDefaults.Models
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+
+<h2>Reservation Management</h2>
+
+<!-- Create New Reservation Form -->
+<div class="card mb-3">
+    <div class="card-header bg-primary text-white">Add New Reservation</div>
+    <div class="card-body">
+        <div class="mb-3">
+            <label class="form-label">Customer First Name</label>
+            <input class="form-control" @bind="newReservation.CustomerFirstName" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Customer Last Name</label>
+            <input class="form-control" @bind="newReservation.CustomerLastName" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Customer Email</label>
+            <input type="email" class="form-control" @bind="newReservation.CustomerEmail" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Customer Phone</label>
+            <input class="form-control" @bind="newReservation.CustomerPhone" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Service</label>
+            <select class="form-select" @onchange="OnServiceSelected">
+                <option value="@Guid.Empty">Select a Service</option>
+                @if (services != null)
+                {
+                    @foreach (var service in services)
+                    {
+                        <option value="@service.Id">@service.Name</option>
+                    }
+                }
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Available Time</label>
+            <select class="form-select" @bind="newReservation.AppointmentTime">
+                <option value="">Select a Time Slot</option>
+                @foreach (var time in availableTimes ?? new List<AvailableTimeDto>())
+                {
+                    <option value="@time.TimeFrom">@($"{time.TimeFrom:g} - {time.TimeTo:g}")</option>
+                }
+            </select>
+        </div>
+        <button class="btn btn-success" @onclick="CreateReservation">Add Reservation</button>
+    </div>
+</div>
+
+<!-- Reservations Table -->
+@if (reservations == null)
+{
+    <p>Loading reservations...</p>
+}
+else if (!reservations.Any())
+{
+    <p>No reservations found.</p>
+}
+else
+{
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Customer</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Appointment Time</th>
+                <th>Service</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var reservation in reservations)
+            {
+                <tr>
+                    <td>@($"{reservation.CustomerFirstName} {reservation.CustomerLastName}")</td>
+                    <td>@reservation.CustomerEmail</td>
+                    <td>@reservation.CustomerPhone</td>
+                    <td>@reservation.AppointmentTime.ToString("g")</td>
+                    <td>@((services != null && services.Any()) 
+                            ? services.FirstOrDefault(s => s.Id == reservation.ServiceId)?.Name ?? "Unknown" 
+                            : "Unknown")</td>
+                    <td>@reservation.Status</td>
+                    @if (reservation.Status == ReservationStatus.Open)
+                    {
+                    <td>
+                        <button class="btn btn-warning btn-sm me-2" @onclick="() => OpenEditPopup(reservation)">Edit</button>
+                        <button class="btn btn-danger btn-sm" @onclick="() => DeleteReservation(reservation.Id)">Delete</button>
+                    </td>
+                    }
+                    else
+                    {
+                    <td></td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<!-- Edit Reservation Popup -->
+@if (isEditPopupVisible)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Reservation</h5>
+                    <button type="button" class="btn-close" @onclick="CloseEditPopup"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Customer First Name</label>
+                        <input class="form-control" @bind="editReservation.CustomerFirstName" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Customer Last Name</label>
+                        <input class="form-control" @bind="editReservation.CustomerLastName" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Customer Email</label>
+                        <input type="email" class="form-control" @bind="editReservation.CustomerEmail" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Customer Phone</label>
+                        <input class="form-control" @bind="editReservation.CustomerPhone" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Service</label>
+                        <select class="form-select" @onchange="OnServiceSelected">
+                            <option value="@Guid.Empty">Select a Service</option>
+                            @if (services != null)
+                            {
+                                @foreach (var service in services)
+                                {
+                                    <option value="@service.Id">@service.Name</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Appointment Time</label>
+                        <select class="form-select" @bind="editReservation.AppointmentTime">
+                            <option value="">Select a Time Slot</option>
+                            @foreach (var time in availableTimes ?? new List<AvailableTimeDto>())
+                            {
+                                <option value="@time.TimeFrom">@($"{time.TimeFrom:g} - {time.TimeTo:g}")</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" @bind="editReservation.Status">
+                            @foreach (var status in Enum.GetValues<ReservationStatus>())
+                            {
+                                <option value="@status">@status</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseEditPopup">Close</button>
+                    <button type="button" class="btn btn-primary" @onclick="SaveEditReservation">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Success/Error Messages -->
+@if (!string.IsNullOrEmpty(Message))
+{
+    <div class="alert alert-info">@Message</div>
+}
+
+@code {
+    private HttpClient Http => ClientFactory.CreateClient("ApiClient");
+
+    private List<ReservationDTO>? reservations;
+    private List<Service>? services = new();
+    private List<AvailableTimeDto>? availableTimes;
+
+    private ReservationDTO newReservation = new();
+    private ReservationDTO editReservation = new();
+
+    private Guid selectedServiceId = Guid.Empty;
+    private string? Message;
+    private bool isEditPopupVisible = false;
+
+    private Guid currentUserId;
+    private Guid currentBusinessId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadServices();
+        await LoadReservations();
+        await LoadCurrentUserId();
+        await LoadCurrentBusinessId();
+    }
+
+    private async Task LoadCurrentUserId()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var userId = user.FindFirst("UserId")?.Value;
+        if (!string.IsNullOrEmpty(userId))
+        {
+            currentUserId = Guid.Parse(userId);
+        }
+    }
+
+    private async Task LoadCurrentBusinessId()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var businessId = user.FindFirst("BusinessId")?.Value;
+        if (!string.IsNullOrEmpty(businessId))
+        {
+            currentBusinessId = Guid.Parse(businessId);
+        }
+    }
+
+    private async Task OnServiceSelected(ChangeEventArgs e)
+    {
+        if (Guid.TryParse(e.Value?.ToString(), out var selectedId))
+        {
+            selectedServiceId = selectedId;
+            newReservation.ServiceId = selectedId;
+            await LoadAvailableTimes();
+        }
+    }
+
+    private async Task LoadAvailableTimes()
+    {
+        if (selectedServiceId == Guid.Empty) return;
+
+        try
+        {
+            var url = $"reservations/free?serviceId={selectedServiceId}&page=1&pageSize=10";
+            var result = await Http.GetFromJsonAsync<PaginatedResult<AvailableTimeDto>>(url);
+            availableTimes = result?.Items ?? new List<AvailableTimeDto>();
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error loading available times: {ex.Message}";
+        }
+    }
+
+    private async Task LoadServices()
+    {
+        try
+        {
+            services = await Http.GetFromJsonAsync<List<Service>>("api/services");
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error loading services: {ex.Message}";
+        }
+    }
+
+    private async Task LoadReservations()
+    {
+        try
+        {
+            reservations = await Http.GetFromJsonAsync<List<ReservationDTO>>("reservations");
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error loading reservations: {ex.Message}";
+        }
+    }
+
+    private async Task CreateReservation()
+    {
+        try
+        {
+            // order
+            var order = new OrderDTO
+            {
+                businessId = currentBusinessId,
+                currency = "Eur",
+                status = OrderStatus.Open.ToString(),
+		createdBy = currentUserId
+            };
+
+            var orderResponse = await Http.PostAsJsonAsync("orders", order);
+
+            if (!orderResponse.IsSuccessStatusCode)
+            {
+                Message = $"Error creating order: {await orderResponse.Content.ReadAsStringAsync()}";
+                return;
+            }
+
+            var orderLocation = orderResponse.Headers.Location?.ToString();
+            if (string.IsNullOrEmpty(orderLocation))
+            {
+                Message = "Order created, but location header is missing.";
+                return;
+            }
+
+            var orderId = Guid.Parse(orderLocation.Split('/').Last());
+
+            // reservation
+            newReservation.Status = ReservationStatus.Open;
+            newReservation.OrderId = orderId;
+            var reservationResponse = await Http.PostAsJsonAsync("reservations", newReservation);
+
+            if (!reservationResponse.IsSuccessStatusCode)
+            {
+                Message = $"Error creating reservation: {await reservationResponse.Content.ReadAsStringAsync()}";
+                return;
+            }
+
+            // order item
+            var orderItem = new OrderItemDTO
+            {
+                type = "Service",
+                price = services!.First(s => s.Id == newReservation.ServiceId).Price,
+                quantity = 1,
+                orderId = orderId,
+                serviceId = newReservation.ServiceId
+            };
+
+            var orderItemResponse = await Http.PostAsJsonAsync($"orders/{orderId}/items", orderItem);
+
+            if (!orderItemResponse.IsSuccessStatusCode)
+            {
+                Message = $"Error creating order item: {await orderItemResponse.Content.ReadAsStringAsync()}";
+                return;
+            }
+
+            // finalize
+            Message = "Reservation and order created successfully.";
+            newReservation = new();
+            availableTimes = null;
+
+            await LoadReservations();
+        }
+        catch (Exception ex)
+        {
+            Message = $"An unexpected error occurred: {ex.Message}";
+        }
+    }
+
+    private async Task OpenEditPopup(ReservationDTO reservation)
+    {
+        editReservation = reservation;
+        selectedServiceId = reservation.ServiceId;
+        isEditPopupVisible = true;
+        await LoadAvailableTimes();
+    }
+
+    private async Task SaveEditReservation()
+    {
+        try
+        {
+            var response = await Http.PutAsJsonAsync($"reservations/{editReservation.Id}", editReservation);
+            if (response.IsSuccessStatusCode)
+            {
+                Message = "Reservation updated successfully.";
+                await LoadReservations();
+                CloseEditPopup();
+            }
+
+            if (editReservation.Status != ReservationStatus.Open)
+            {
+                var orderResponse = await Http.GetAsync($"orders/{editReservation.OrderId}");
+                if (orderResponse.IsSuccessStatusCode)
+                {
+                    var order = await orderResponse.Content.ReadFromJsonAsync<OrderDTO>() ?? new OrderDTO();
+                    order.status = (editReservation.Status == ReservationStatus.Closed ? OrderStatus.Closed : OrderStatus.Cancelled).ToString();
+                    var updateOrderResponse = await Http.PutAsJsonAsync($"orders/{editReservation.OrderId}", order);
+                    if (updateOrderResponse.IsSuccessStatusCode)
+                    {
+                        Message = "Reservation updated successfully.";
+                        await LoadReservations();
+                        CloseEditPopup();
+                    }
+                }
+            }
+
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error updating reservation: {ex.Message}";
+        }
+    }
+
+    private async Task DeleteReservation(Guid reservationId)
+    {
+        try
+        {
+            var reservation = reservations?.FirstOrDefault(r => r.Id == reservationId);
+
+            if (reservation == null)
+            {
+                Message = "Reservation not found.";
+                return;
+            }
+
+            var response = await Http.DeleteAsync($"orders/{reservation.OrderId}");
+            if (!response.IsSuccessStatusCode)
+            {
+                Message = $"Error deleting reservation: {await response.Content.ReadAsStringAsync()}";
+                return;
+            }
+
+            var deleteResponse = await Http.DeleteAsync($"reservations/{reservationId}");
+            if (deleteResponse.IsSuccessStatusCode)
+            {
+                Message = "Reservation deleted successfully.";
+                reservations?.RemoveAll(r => r.Id == reservationId);
+            }
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error deleting reservation: {ex.Message}";
+        }
+    }
+
+    private void CloseEditPopup()
+    {
+        isEditPopupVisible = false;
+        availableTimes = null;
+    }
+
+    public class PaginatedResult<T>
+    {
+        public List<T>? Items { get; set; }
+        public int TotalCount { get; set; }
+    }
+}

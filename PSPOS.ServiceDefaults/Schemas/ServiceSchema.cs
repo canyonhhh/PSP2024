@@ -1,10 +1,4 @@
-﻿using Microsoft.VisualBasic;
-using PSPOS.ServiceDefaults.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using PSPOS.ServiceDefaults.Models;
 
 namespace PSPOS.ServiceDefaults.Schemas
 {
@@ -13,7 +7,7 @@ namespace PSPOS.ServiceDefaults.Schemas
         public string? name { get; set; }
         public string? description { get; set; }
         public decimal price { get; set; }
-        public DateInterval interval { get; set; }
+        public TimeSpan duration { get; set; }
         public Guid employeeId { get; set; }
     }
 }

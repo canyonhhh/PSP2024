@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PSPOS.ApiService.Data;
@@ -11,9 +12,11 @@ using PSPOS.ApiService.Data;
 namespace PSPOS.MigrationService.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241218100711_ReservationChange")]
+    partial class ReservationChange
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -669,6 +672,9 @@ namespace PSPOS.MigrationService.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("CustomerPhone")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Duration")
                         .HasColumnType("text");
 
                     b.Property<Guid>("OrderId")

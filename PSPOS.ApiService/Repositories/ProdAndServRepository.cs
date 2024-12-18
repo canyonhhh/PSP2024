@@ -133,7 +133,7 @@ public class ProdAndServRepository : IProdAndServRepository
         existingService.Name = updatedService.Name;
         existingService.Description = updatedService.Description;
         existingService.Price = updatedService.Price;
-        existingService.Interval = updatedService.Interval;
+        existingService.Duration = updatedService.Duration;
         existingService.EmployeeId = updatedService.EmployeeId;
 
         _context.Services.Update(existingService);

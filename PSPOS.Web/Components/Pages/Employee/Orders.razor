@@ -1,4 +1,4 @@
-﻿@page "/orders"
+﻿@page "/employee/orders"
 @inject IHttpClientFactory ClientFactory
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -36,10 +36,17 @@ else
                     <td>@order.Id</td>
                     <td>@order.Status</td>
                     <td>@order.Currency</td>
-                    <td>
-                        <button class="btn btn-warning btn-sm me-2" @onclick="() => EditOrder(order.Id)">Edit</button>
-                        <button class="btn btn-danger btn-sm" @onclick="() => DeleteOrder(order.Id)">Delete</button>
-                    </td>
+		    @if (order.Status!.ToUpper() == "OPEN")
+                    {
+                        <td>
+                            <button class="btn btn-warning btn-sm me-2" @onclick="() => EditOrder(order.Id)">Edit</button>
+                            <button class="btn btn-danger btn-sm" @onclick="() => DeleteOrder(order.Id)">Delete</button>
+                        </td>
+                    }
+                    else
+                    {
+                        <td></td>
+                    }
                 </tr>
             }
         </tbody>
