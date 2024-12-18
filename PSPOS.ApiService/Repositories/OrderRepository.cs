@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PSPOS.ApiService.Data;
-using PSPOS.ApiService.Services.Interfaces;
 using PSPOS.ApiService.Repositories.Interfaces;
+using PSPOS.ApiService.Services.Interfaces;
 using PSPOS.ServiceDefaults.Models;
 using PSPOS.ServiceDefaults.Schemas;
 

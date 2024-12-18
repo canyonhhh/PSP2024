@@ -1,5 +1,6 @@
 ﻿@page "/Checkout/{OrderId:guid}"
 @using PSPOS.ServiceDefaults.Schemas
+@using PSPOS.ServiceDefaults.Models
 @inject IHttpClientFactory ClientFactory
 @inject NavigationManager Navigation
 @rendermode InteractiveServer
@@ -59,7 +60,7 @@ else
                         <tr>
                             <td>@item.ItemName</td>
                             <td>@item.ItemDescription</td>
-                            <td>@(item.Type == OrderItemType.Product ? "Product" : "Service")</td>
+                            <td>@item.type</td>
                             <td>@item.price.ToString("C", GetCultureInfo(OrderDetails?.currency))</td>
                             <td>@item.quantity</td>
                             <td>
@@ -138,8 +139,8 @@ else
         {
             OrderItems = await Http.GetFromJsonAsync<List<OrderItemSchema>>($"orders/{OrderId}/items") ?? new List<OrderItemSchema>();
 
-            var productIds = OrderItems.Where(i => i.Type.ToString() == "Product").Select(i => i.productId).Distinct();
-            var serviceIds = OrderItems.Where(i => i.Type.ToString() == "Service").Select(i => i.serviceId).Distinct();
+            var productIds = OrderItems.Where(i => i.type.ToString() == "Product").Select(i => i.productId).Distinct();
+            var serviceIds = OrderItems.Where(i => i.type.ToString() == "Service").Select(i => i.serviceId).Distinct();
 
             // Fetch products and services
             var products = await Http.GetFromJsonAsync<List<ProductSchema>>("api/products") ?? new List<ProductSchema>();
@@ -151,12 +152,12 @@ else
             // Map product and service details
             foreach (var item in OrderItems)
             {
-                if (item.Type == OrderItemType.Product && productDict.TryGetValue(item.productId, out var product))
+                if (item.type == OrderItemType.Product.ToString() && productDict.TryGetValue(item.productId, out var product))
                 {
                     item.ItemName = product.name;
                     item.ItemDescription = product.description;
                 }
-                else if (item.Type == OrderItemType.Service && serviceDict.TryGetValue(item.serviceId, out var service))
+                else if (item.type == OrderItemType.Service.ToString() && serviceDict.TryGetValue(item.serviceId, out var service))
                 {
                     item.ItemName = service.name;
                     item.ItemDescription = service.description;
@@ -192,7 +193,7 @@ else
 
     private void GoBack()
     {
-        Navigation.NavigateTo("/Orders");
+        Navigation.NavigateTo("/employee/orders");
     }
 
     // Schema Definitions
@@ -209,7 +210,7 @@ else
         public Guid Id { get; set; }
         public Guid productId { get; set; }
         public Guid serviceId { get; set; }
-        public OrderItemType Type { get; set; }
+        public string? type { get; set; }
         public string? ItemName { get; set; }
         public string? ItemDescription { get; set; }
         public decimal price { get; set; }
@@ -243,9 +244,4 @@ else
         public string? description { get; set; }
     }
 
-    public enum OrderItemType
-    {
-        Product,
-        Service
-    }
 }
