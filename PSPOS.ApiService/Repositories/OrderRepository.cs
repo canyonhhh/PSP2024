@@ -260,8 +260,10 @@ public class OrderRepository : IOrderRepository
         await _context.OrderItems.AddAsync(orderItem);
         await _context.SaveChangesAsync();
 
-        // Step 3: Fetch product group (categories) mapping
+        // Step 3: Fetch product groups and service groups
         var productGroups = await _context.ProductGroups.ToListAsync();
+        var serviceGroups = await _context.ServiceGroups.ToListAsync();
+
         var productGroupDict = new Dictionary<Guid, Guid>();
 
         foreach (var group in productGroups)
@@ -278,16 +280,15 @@ public class OrderRepository : IOrderRepository
 
         // Step 4: Determine applicable category for the product or service
         if (!productGroupDict.TryGetValue(orderItem.ProductId, out var productGroupId) &&
-            !productGroupDict.TryGetValue(orderItem.ServiceId, out productGroupId)) // Match on ServiceId
+            !productGroupDict.TryGetValue(orderItem.ServiceId, out productGroupId))
         {
-            // No category found; return early
             return;
         }
 
         // Step 5: Fetch and apply discounts
         var discount = await _context.Discounts
             .Where(d => d.Active && d.EndDate > DateTime.UtcNow && d.ProductOrServiceGroupId == productGroupId)
-            .OrderByDescending(d => d.Amount) // Prioritize the largest discount
+            .OrderByDescending(d => d.Amount)
             .FirstOrDefaultAsync();
 
         if (discount != null)
@@ -306,18 +307,18 @@ public class OrderRepository : IOrderRepository
 
             // Create an AppliedDiscount record
             var appliedDiscount = new AppliedDiscount(
-                    method: discount.Method == "FIXED" ? DiscountMethod.Fixed : DiscountMethod.PercentageFromTotal,
-                    amount: discountAmount,
-                    percentage: discount.Percentage,
-                    discountId: discount.Id,
-                    orderItemId: orderItem.Id,
-                    orderId: orderItem.OrderId
-                    );
+                method: discount.Method == "FIXED" ? DiscountMethod.Fixed : DiscountMethod.PercentageFromTotal,
+                amount: discountAmount,
+                percentage: discount.Percentage,
+                discountId: discount.Id,
+                orderItemId: orderItem.Id,
+                orderId: orderItem.OrderId
+            );
 
             await _context.AppliedDiscounts.AddAsync(appliedDiscount);
         }
 
-        // Step 6: Fetch and apply taxes
+        // Step 8: Fetch and apply taxes
         var tax = await _context.Taxes
             .Where(t => t.ProductOrServiceGroupId == productGroupId)
             .FirstOrDefaultAsync();
@@ -328,11 +329,11 @@ public class OrderRepository : IOrderRepository
 
             // Create an AppliedTax record
             var appliedTax = new AppliedTax(
-                    percentage: (decimal)tax.Percentage,
-                    taxId: tax.Id,
-                    orderItemId: orderItem.Id,
-                    orderId: orderItem.OrderId
-                    );
+                percentage: (decimal)tax.Percentage,
+                taxId: tax.Id,
+                orderItemId: orderItem.Id,
+                orderId: orderItem.OrderId
+            );
 
             await _context.AppliedTax.AddAsync(appliedTax);
         }
@@ -340,8 +341,6 @@ public class OrderRepository : IOrderRepository
         // Step 7: Save all changes (OrderItem, AppliedDiscount, AppliedTax)
         await _context.SaveChangesAsync();
     }
-
-
 
     public async Task<OrderItem?> GetOrderItemByIdAsync(Guid orderItemId)
     {
