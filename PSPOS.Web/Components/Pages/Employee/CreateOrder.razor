@@ -13,26 +13,6 @@
 
 <div class="card p-4 mb-4">
     <form @onsubmit="OnCreateOrder" @onsubmit:preventDefault="true">
-        <div class="form-group mb-3"></div>
-        <div class="form-group mb-3">
-            <label for="currency">Currency</label>
-            <select id="currency" @bind="newOrder.currency" class="form-select" required>
-                <option value="">-- Select Currency --</option>
-                <option value="EUR">EUR</option>
-                <option value="LITAS">LITAS</option>
-                <option value="USD">USD</option>
-            </select>
-        </div>
-        <div class="form-group mb-3">
-            <label for="status">Order Status</label>
-            <select id="status" @bind="newOrder.status" class="form-select" required>
-                <option value="">-- Select Status --</option>
-                <option value="OPEN">Open</option>
-                <option value="CLOSED">Closed</option>
-                <option value="CANCELED">Canceled</option>
-                <option value="REFUNDED">Refunded</option>
-            </select>
-        </div>
         <button type="submit" class="btn btn-primary">Create Order</button>
     </form>
     @if (!string.IsNullOrEmpty(ErrorMessage))
@@ -147,11 +127,10 @@
     private NewOrderItemDTO newOrderItem = new NewOrderItemDTO();
     private bool IsOrderItemAdded = false;
     private string OrderItemErrorMessage = string.Empty;
-    private string orderCurrency = string.Empty;
+    private string orderCurrency = "EUR";
     private bool ShouldLoadOrderItems = false;
     private Guid CurrentBusinessId;
     private Guid CurrentEmployeeId;
-
 
     protected override async Task OnInitializedAsync()
     {
@@ -176,10 +155,10 @@
 
             TopLevelStockItems = StockItems.Where(s => s.BaseProductId == null).ToList();
         }
-        catch (Exception ex)
+        catch
         {
             StockItems = new List<StockItem>();
-            OrderItemErrorMessage = $"Error loading stock items: {ex.Message}";
+            OrderItemErrorMessage = "Error loading stock items.";
         }
     }
 
@@ -193,17 +172,14 @@
         if (Guid.TryParse(businessIdClaim, out var businessId))
         {
             CurrentBusinessId = businessId;
-            
-            Console.WriteLine($"Business ID: {CurrentBusinessId}");
         }
-        if ( Guid.TryParse(employeeIdClaim, out var employeeId))
+        if (Guid.TryParse(employeeIdClaim, out var employeeId))
         {
             CurrentEmployeeId = employeeId;
-            Console.WriteLine($" Employee ID: {CurrentEmployeeId}");
         }
         else
         {
-            ErrorMessage = "Could not determine Business ID and employeeID.";
+            ErrorMessage = "Could not determine Business ID and Employee ID.";
         }
     }
 
@@ -211,21 +187,13 @@
     {
         IsSuccess = false;
         ErrorMessage = string.Empty;
-        if (string.IsNullOrWhiteSpace(newOrder.currency))
-        {
-            ErrorMessage = "Please select a currency.";
-            return;
-        }
-        if (string.IsNullOrWhiteSpace(newOrder.status))
-        {
-            ErrorMessage = "Please select a status.";
-            return;
-        }
         try
         {
             newOrder.businessId = CurrentBusinessId;
             newOrder.createdBy = CurrentEmployeeId;
-                           
+            newOrder.status = "OPEN";
+            newOrder.currency = "EUR";
+
             var response = await Http.PostAsJsonAsync("orders", newOrder);
             if (response.IsSuccessStatusCode)
             {
@@ -241,7 +209,7 @@
                         var createdOrderResponse = await Http.GetFromJsonAsync<OrderSchema>($"orders/{CreatedOrderId}");
                         if (createdOrderResponse != null)
                         {
-                            orderCurrency = createdOrderResponse.currency ?? "USD";
+                            orderCurrency = createdOrderResponse.currency ?? "EUR";
                         }
                         ShouldLoadOrderItems = true;
                     }
@@ -261,9 +229,9 @@
                 ErrorMessage = $"Error creating order: {response.ReasonPhrase} - {errorContent}";
             }
         }
-        catch (Exception ex)
+        catch
         {
-            ErrorMessage = $"An error occurred: {ex.Message}";
+            ErrorMessage = "An error occurred while creating the order.";
         }
     }
 
@@ -275,9 +243,9 @@
         {
             OrderItems = await Http.GetFromJsonAsync<List<OrderItemSchema>>($"orders/{CreatedOrderId}/items") ?? new List<OrderItemSchema>();
         }
-        catch (Exception ex)
+        catch
         {
-            OrderItemErrorMessage = $"Error loading order items: {ex.Message}";
+            OrderItemErrorMessage = "Error loading order items.";
             OrderItems = new List<OrderItemSchema>();
         }
     }
@@ -336,7 +304,6 @@
         }
         else
         {
-            // No sub-products, directly use the top-level product
             selectedItem = StockItems.FirstOrDefault(s => s.Id == selectedTopProductId);
         }
 
@@ -378,9 +345,9 @@
                 OrderItemErrorMessage = $"Error adding order item: {response.ReasonPhrase} - {errorContent}";
             }
         }
-        catch (Exception ex)
+        catch
         {
-            OrderItemErrorMessage = $"An error occurred: {ex.Message}";
+            OrderItemErrorMessage = "An error occurred while adding the order item.";
         }
     }
 
@@ -388,6 +355,7 @@
     {
         public int Quantity { get; set; } = 1;
     }
+
     public class OrderDTO
     {
         public Guid businessId { get; set; }

@@ -2,14 +2,15 @@
 @inject IHttpClientFactory ClientFactory
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JS
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
+@using PSPOS.ServiceDefaults.DTOs
 
 <h2>Order Management</h2>
 
-<!-- Orders Table -->
 @if (orders == null)
 {
     <p>Loading orders...</p>
@@ -36,22 +37,21 @@ else
                     <td>@order.Id</td>
                     <td>@order.Status</td>
                     <td>@order.Currency</td>
-		    @if (order.Status!.ToUpper() == "OPEN")
-                    {
-                        <td>
+                    <td>
+                        @if (order.Status?.ToUpper() == "OPEN")
+                        {
                             <button class="btn btn-warning btn-sm me-2" @onclick="() => EditOrder(order.Id)">Edit</button>
                             <button class="btn btn-danger btn-sm" @onclick="() => DeleteOrder(order.Id)">Delete</button>
-                        </td>
-                    }
-                    else
-                    {
-                        <td></td>
-                    }
+                        }
+                        else if (order.Status?.ToUpper() == "CLOSED")
+                        {
+                            <button class="btn btn-secondary btn-sm" @onclick="() => RefundOrder(order.Id)">Refund</button>
+                        }
+                    </td>
                 </tr>
             }
         </tbody>
     </table>
-
     <div class="text-center mt-3">
         @if (SelectedOrderId != Guid.Empty && SelectedOrder?.Status?.ToUpper() == "OPEN")
         {
@@ -64,7 +64,6 @@ else
     </div>
 }
 
-<!-- Success/Error Messages -->
 @if (!string.IsNullOrEmpty(Message))
 {
     <div class="alert alert-info">@Message</div>
@@ -72,19 +71,19 @@ else
 
 @code {
     private HttpClient Http => ClientFactory.CreateClient("ApiClient");
-    private List<OrderSchema>? orders;
+    private List<OrderSchema> orders = new List<OrderSchema>();
     private string? Message;
     private Guid SelectedOrderId = Guid.Empty;
     private Guid CurrentBusinessId;
 
     private OrderSchema? SelectedOrder { get; set; }
 
-    // Fetch orders when the page is loaded
     protected override async Task OnInitializedAsync()
     {
         await SetCurrentBusinessId();
         await LoadOrders();
     }
+
     private async Task SetCurrentBusinessId()
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
@@ -115,14 +114,58 @@ else
         }
     }
 
+    private async Task RefundOrder(Guid orderId)
+    {
+        bool confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to refund Order {orderId}?");
+        if (!confirmed)
+        {
+            return;
+        }
+
+        try
+        {
+            var fullOrder = orders.FirstOrDefault(o => o.Id == orderId);
+            if (fullOrder == null)
+            {
+                Message = $"Order {orderId} not found.";
+                return;
+            }
+
+            var refundOrderDTO = new OrderDTO
+                {
+                    createdBy = fullOrder.CreatedBy,   
+                    businessId = fullOrder.BusinessId,      
+                    status = "Refunded",
+                    currency = fullOrder.Currency,
+                    tip = fullOrder.Tip
+                };
+
+            var response = await Http.PutAsJsonAsync($"orders/{orderId}", refundOrderDTO);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Message = $"Order {orderId} has been refunded successfully.";
+
+                await LoadOrders();
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                Message = $"Failed to refund order: {response.ReasonPhrase}. Details: {errorContent}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error refunding order: {ex.Message}";
+        }
+    }
+
     private async Task LoadOrders()
     {
         try
         {
-            // Fetch all orders from the API
             var allOrders = await Http.GetFromJsonAsync<List<OrderSchema>>("orders");
 
-            // Filter orders for the current BusinessId
             if (allOrders != null)
             {
                 orders = allOrders.Where(o => o.BusinessId == CurrentBusinessId).ToList();
@@ -138,9 +181,6 @@ else
         }
     }
 
-
-    
-    // Delete order logic
     private async Task DeleteOrder(Guid orderId)
     {
         try
@@ -148,7 +188,7 @@ else
             var response = await Http.DeleteAsync($"orders/{orderId}");
             if (response.IsSuccessStatusCode && orders != null)
             {
-                orders.RemoveAll(o => o.Id == orderId); 
+                orders.RemoveAll(o => o.Id == orderId);
                 Message = "Order deleted successfully.";
             }
             else
@@ -162,25 +202,27 @@ else
         }
     }
 
-    // Edit an order 
     private void EditOrder(Guid id)
     {
         Navigation.NavigateTo($"/EditOrder/{id}");
     }
 
-    // Order DTOs and Schemas
     public class OrderSchema
     {
         public Guid Id { get; set; }
         public string? Status { get; set; }
         public string? Currency { get; set; }
         public Guid BusinessId { get; set; }
+        public Guid CreatedBy { get; set; }  
+        public decimal? Tip { get; set; }  
     }
 
     public class OrderDTO
     {
-        public string? BusinessId { get; set; }
-        public string? Status { get; set; }
-        public string? Currency { get; set; }
+        public Guid createdBy { get; set; } 
+        public Guid businessId { get; set; } 
+        public string? status { get; set; }
+        public string? currency { get; set; }
+        public decimal? tip { get; set; }
     }
 }
