@@ -32,12 +32,13 @@
         </div>
         <div class="mb-3">
             <label class="form-label">Product Group</label>
-            <select class="form-select" @bind="newTax.ProductOrServiceGroupId">
+            <select class="form-select" @onchange="OnProductGroupSelected">
                 @foreach (var group in productGroups)
                 {
-                <option value="@group.Id">@group.Name</option>
+                    <option value="@group.Id">@group.Name</option>
                 }
             </select>
+
         </div>
         <button class="btn btn-success" @onclick="CreateTax">Add Tax</button>
     </div>
@@ -152,113 +153,153 @@ private List<Tax>? taxes;
         await LoadProductGroups();
         await LoadTaxes();
         }
-
-        private async Task LoadProductGroups()
+    private void OnProductGroupSelected(ChangeEventArgs e)
+    {
+        if (Guid.TryParse(e.Value?.ToString(), out var selectedGroupId))
         {
+            newTax.ProductOrServiceGroupId = selectedGroupId;
+            Console.WriteLine($"Selected Group ID: {newTax.ProductOrServiceGroupId}");
+        }
+    }
+
+    private async Task LoadProductGroups()
+    {
         try
         {
-        productGroups = await Http.GetFromJsonAsync<List<ProductGroup>>("api/categories") ?? new List<ProductGroup>();
-                }
-                catch (Exception ex)
-                {
-                Message = $"Error loading product groups: {ex.Message}";
-                }
-                }
+            var response = await Http.GetFromJsonAsync<ProductGroupResponse>("api/categories");
+            productGroups = response?.Categories ?? new List<ProductGroup>();
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error loading product groups: {ex.Message}";
+            productGroups = new List<ProductGroup>(); // Initialize to avoid null reference issues
+        }
+    }
 
-                private async Task LoadTaxes()
-                {
-                try
-                {
-                taxes = await Http.GetFromJsonAsync<List<Tax>>("tax");
-                    }
-                    catch (Exception ex)
-                    {
-                    Message = $"Error loading taxes: {ex.Message}";
-                    }
-                    }
 
-                    private async Task CreateTax()
-                    {
-                    try
-                    {
-                    var response = await Http.PostAsJsonAsync("tax", newTax);
-                    if (response.IsSuccessStatusCode)
-                    {
-                    Message = "Tax created successfully.";
-                    newTax = new();
-                    await LoadTaxes();
-                    }
-                    }
-                    catch (Exception ex)
-                    {
-                    Message = $"Error creating tax: {ex.Message}";
-                    }
-                    }
+    private async Task LoadTaxes()
+    {
+        try
+        {
+            var response = await Http.GetAsync("tax");
+            if (response.IsSuccessStatusCode)
+            {
+                taxes = await response.Content.ReadFromJsonAsync<List<Tax>>() ?? new List<Tax>();
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                taxes = new List<Tax>(); // Initialize empty list if no taxes exist
+                Message = "No taxes found. You can add new ones.";
+            }
+            else
+            {
+                Message = $"Error loading taxes: {response.ReasonPhrase}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error loading taxes: {ex.Message}";
+            taxes = new List<Tax>(); // Initialize empty list to avoid null reference errors
+        }
+    }
 
-                    private void OpenEditPopup(Tax tax)
-                    {
-                    editTax = new Tax
-                    {
-                    Id = tax.Id,
-                    Name = tax.Name,
-                    Description = tax.Description,
-                    Percentage = tax.Percentage,
-                    Active = tax.Active,
-                    ProductOrServiceGroupId = tax.ProductOrServiceGroupId
-                    };
-                    isEditPopupVisible = true;
-                    }
+    private async Task CreateTax()
+    {
+        try
+        {
+            // Debugging: Check the value being sent
+            Console.WriteLine($"Creating Tax - Name: {newTax.Name}, GroupId: {newTax.ProductOrServiceGroupId}");
 
-                    private async Task SaveEditTax()
-                    {
-                    try
-                    {
-                    var response = await Http.PutAsJsonAsync($"tax/{editTax.Id}", editTax);
-                    if (response.IsSuccessStatusCode)
-                    {
-                    Message = "Tax updated successfully.";
-                    await LoadTaxes();
-                    CloseEditPopup();
-                    }
-                    }
-                    catch (Exception ex)
-                    {
-                    Message = $"Error updating tax: {ex.Message}";
-                    }
-                    }
+            var response = await Http.PostAsJsonAsync("tax", newTax);
+            if (response.IsSuccessStatusCode)
+            {
+                Message = "Tax created successfully.";
+                newTax = new(); // Reset form
+                await LoadTaxes(); // Refresh the tax list
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                Message = $"Error creating tax: {response.ReasonPhrase} - {errorContent}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error creating tax: {ex.Message}";
+        }
+    }
 
-                    private async Task DeleteTax(Guid taxId)
-                    {
-                    try
-                    {
-                    var response = await Http.DeleteAsync($"tax/{taxId}");
-                    if (response.IsSuccessStatusCode)
-                    {
-                    Message = "Tax deleted successfully.";
-                    taxes?.RemoveAll(t => t.Id == taxId);
-                    }
-                    }
-                    catch (Exception ex)
-                    {
-                    Message = $"Error deleting tax: {ex.Message}";
-                    }
-                    }
 
-                    private void CloseEditPopup() => isEditPopupVisible = false;
+private void OpenEditPopup(Tax tax)
+{
+    editTax = new Tax
+    {
+        Id = tax.Id,
+        Name = tax.Name,
+        Description = tax.Description,
+        Percentage = tax.Percentage,
+        Active = tax.Active,
+        ProductOrServiceGroupId = tax.ProductOrServiceGroupId
+    };
+    isEditPopupVisible = true;
+}
 
-                    public class Tax
-                    {
-                    public Guid Id { get; set; }
-                    public string? Name { get; set; }
-                    public string? Description { get; set; }
-                    public float Percentage { get; set; }
-                    public bool Active { get; set; }
-                    public Guid? ProductOrServiceGroupId { get; set; }
-                    }
+private async Task SaveEditTax()
+{
+    try
+    {
+        var response = await Http.PutAsJsonAsync($"tax/{editTax.Id}", editTax);
+        if (response.IsSuccessStatusCode)
+        {
+            Message = "Tax updated successfully.";
+            await LoadTaxes();
+            CloseEditPopup();
+        }
+    }
+    catch (Exception ex)
+    {
+        Message = $"Error updating tax: {ex.Message}";
+    }
+}
 
-                    public class ProductGroup
-                    {
-                    public Guid Id { get; set; }
-                    public string Name { get; set; } = string.Empty;
-                    }
-                    }
+private async Task DeleteTax(Guid taxId)
+{
+    try
+    {
+        var response = await Http.DeleteAsync($"tax/{taxId}");
+        if (response.IsSuccessStatusCode)
+        {
+            Message = "Tax deleted successfully.";
+            taxes?.RemoveAll(t => t.Id == taxId);
+        }
+    }
+    catch (Exception ex)
+    {
+         Message = $"Error deleting tax: {ex.Message}";
+    }
+}
+
+private void CloseEditPopup() => isEditPopupVisible = false;
+
+    public class Tax
+    {
+        public Guid Id { get; set; }
+        public string? Name { get; set; }
+        public string? Description { get; set; }
+        public float Percentage { get; set; }
+        public bool Active { get; set; }
+        public Guid? ProductOrServiceGroupId { get; set; }
+    }
+
+    public class ProductGroupResponse
+    {
+        public List<ProductGroup> Categories { get; set; } = new();
+        public int TotalCount { get; set; }
+    }
+
+    public class ProductGroup
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+    }
+}

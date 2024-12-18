@@ -51,6 +51,7 @@ namespace PSPOS.ApiService.Services
             existingDiscount.Percentage = updatedDiscount.Percentage;
             existingDiscount.EndDate = updatedDiscount.EndDate;
             existingDiscount.BusinessId = updatedDiscount.BusinessId;
+            existingDiscount.ProductOrServiceGroupId = updatedDiscount.ProductOrServiceGroupId;
 
             await _discountRepository.UpdateDiscountAsync(existingDiscount);
         }

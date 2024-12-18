@@ -2,12 +2,13 @@ namespace PSPOS.ServiceDefaults.Models;
 
 public class Order : BaseClass
 {
-    public Order(Guid businessId, Currency orderCurrency, decimal tip, OrderStatus status = OrderStatus.Open)
+    public Order(Guid businessId, Guid createdBy, Currency orderCurrency, decimal tip, OrderStatus status = OrderStatus.Open)
     {
         BusinessId = businessId;
         OrderCurrency = orderCurrency;
         Tip = tip;
         Status = status;
+        CreatedBy = createdBy;
     }
 
     public Guid BusinessId { get; set; }
