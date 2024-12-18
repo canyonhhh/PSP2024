@@ -20,7 +20,7 @@
 {
     <p>Loading order details and total amount...</p>
 }
-else
+else if (OrderItems.Any())
 {
     <div class="mb-4 p-4 card">
         <h4>Order Payment</h4>
@@ -56,14 +56,15 @@ else
                     <th>Product</th>
                     <th>Final Price (after discounts & tax)</th>
                 </tr>
-
             </thead>
             <tbody>
                 @foreach (var item in OrderItems)
                 {
                     var lineTotal = CalculateLineTotal(item);
                     <tr>
-                        <td><input type="checkbox" @bind="item.SelectedForPayment" /></td>
+                        <td>
+                            <input type="checkbox" @onchange="e => ToggleSelection(item.Id, e.Value)" checked="@SelectedItemIds.Contains(item.Id)" />
+                        </td>
                         <td>@item.ProductName</td>
                         <td>@lineTotal.ToString("C", GetCultureInfo(OrderDetails?.currency))</td>
                     </tr>
@@ -89,7 +90,7 @@ else
         <div class="row">
             <div class="col-md-6 d-flex align-items-center mb-3">
                 <label class="fw-bold me-2">Tip: <small>(optional)</small></label>
-                <input type="number" step="0.01" @bind="TipAmount" class="form-control me-2" style="max-width: 150px;" />
+                <input type="number" step="0.01" @bind="CurrentTipAmount" class="form-control me-2" style="max-width: 150px;" />
                 <button type="button" class="btn btn-primary" @onclick="UpdateTip">Save Tip</button>
             </div>
 
@@ -111,8 +112,7 @@ else
         </div>
     </div>
 
-
-    if (SelectedPaymentMethod == "GiftCard")
+    @if (SelectedPaymentMethod == "GiftCard")
     {
         <div class="mb-3">
             <label>Gift Card Code:</label>
@@ -129,12 +129,10 @@ else
     else if (SelectedPaymentMethod == "Card")
     {
         <script>
-            // import stripe handler module
             import('./stripeHandler.js').then((module) => {
-            // initialize stripe with the public key
-            module.initializeStripe("pk_test_51QUWBYGUMof1EohPLwH4KQZj1wbLTJf8o8kzruKACLFgDeiH7SLxAAGN8dYUxP0Ku85bqSow0hEHGthPuPATzfCP00sDDvnD8L");
+                module.initializeStripe("pk_test_51QUWBYGUMof1EohPLwH4KQZj1wbLTJf8o8kzruKACLFgDeiH7SLxAAGN8dYUxP0Ku85bqSow0hEHGthPuPATzfCP00sDDvnD8L");
             }).catch((error) => {
-            console.error('Error loading Stripe handler:', error);
+                console.error('Error loading Stripe handler:', error);
             });
         </script>
 
@@ -144,6 +142,11 @@ else
 
     <button class="btn btn-primary" @onclick="ProcessPayment">Process Payment</button>
     <button class="btn btn-secondary ms-2" @onclick="GoBack">Back to orders</button>
+}
+else
+{
+    <div class="alert alert-info">All items in this order have been paid.</div>
+    <button class="btn btn-secondary" @onclick="GoBack">Back to orders</button>
 }
 
 @code {
@@ -171,7 +174,9 @@ else
     private IJSObjectReference? stripeJs;
     private string? _clientSecret;
 
-    private decimal? TipAmount { get; set; }
+    private decimal CurrentTipAmount { get; set; } = 0;
+
+    private List<Guid> SelectedItemIds = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -180,7 +185,6 @@ else
         await LoadOrderItems();
         await LoadAvailableDiscounts();
 
-        TipAmount = OrderDetails?.tip;
         CalculateTotalAmount();
         IsLoading = false;
     }
@@ -226,18 +230,15 @@ else
     {
         if (Guid.TryParse(SelectedDiscountId, out Guid discountId))
         {
-            // Find the selected discount
             SelectedOrderDiscount = AvailableDiscounts.FirstOrDefault(d => d.Id == discountId);
             if (SelectedOrderDiscount != null)
             {
                 if (SelectedOrderDiscount.Method?.ToUpper() == "FIXED")
                 {
-                    // Apply a fixed discount directly
                     OrderLevelDiscount = Math.Min(SelectedOrderDiscount.Amount, TotalAmount);
                 }
                 else if (SelectedOrderDiscount.Method?.ToUpper() == "PERCENTAGE")
                 {
-                    // Apply a percentage discount based on the total amount
                     OrderLevelDiscount = TotalAmount * (SelectedOrderDiscount.Percentage / 100);
                 }
 
@@ -247,7 +248,7 @@ else
                         Amount = OrderLevelDiscount,
                         Percentage = SelectedOrderDiscount.Percentage,
                         DiscountId = SelectedOrderDiscount.Id,
-                        OrderItemId = Guid.Empty, 
+                        OrderItemId = Guid.Empty,
                         OrderId = OrderId
                     };
 
@@ -263,6 +264,8 @@ else
                     else
                     {
                         var errorMessage = await response.Content.ReadAsStringAsync();
+                        ErrorMessage = $"Error applying discount: {errorMessage}";
+                        SuccessMessage = string.Empty;
                     }
                 }
                 catch (Exception ex)
@@ -283,19 +286,18 @@ else
 
     private void CalculateTotalAmount()
     {
-        decimal subtotal = OrderItems.Sum(i =>
-        {
-            decimal baseAfterDiscount = (i.Price * i.Quantity) - (i.AppliedDiscounts?.Sum(d => d.Amount) ?? 0);
-            if (baseAfterDiscount < 0) baseAfterDiscount = 0;
+        decimal subtotal = OrderItems
+            .Where(i => SelectedItemIds.Contains(i.Id))
+            .Sum(i =>
+            {
+                decimal baseAfterDiscount = (i.Price * i.Quantity) - (i.AppliedDiscounts?.Sum(d => d.Amount) ?? 0);
+                if (baseAfterDiscount < 0) baseAfterDiscount = 0;
 
-            var tax = i.AppliedTaxes?.Sum(t => baseAfterDiscount * (t.Percentage / 100)) ?? 0;
-            return baseAfterDiscount + tax;
-        });
+                var tax = i.AppliedTaxes?.Sum(t => baseAfterDiscount * (t.Percentage / 100)) ?? 0;
+                return baseAfterDiscount + tax;
+            });
 
-        if (TipAmount.HasValue)
-        {
-            subtotal += TipAmount.Value;
-        }
+        subtotal += CurrentTipAmount;
 
         subtotal -= OrderLevelDiscount;
 
@@ -303,7 +305,6 @@ else
 
         TotalAmount = subtotal;
     }
-
 
     private async Task LoadOrderDetails()
     {
@@ -318,82 +319,40 @@ else
             ErrorMessage = $"Error loading order details: {ex.Message}";
         }
     }
+
     private async Task LoadOrderItems()
     {
         try
         {
-            OrderItems = await Http.GetFromJsonAsync<List<OrderItemSchema>>($"orders/{OrderId}/items") ?? new List<OrderItemSchema>();
-
-            var productIds = OrderItems
-                .Where(item => item.ProductId != Guid.Empty)
-                .Select(item => item.ProductId)
-                .Distinct()
-                .ToList();
-
-            if (productIds.Any())
-            {
-                var products = await Http.GetFromJsonAsync<List<ProductSchema>>("api/products");
-                var productDict = products?
-                    .Where(p => productIds.Contains(p.Id))
-                    .ToDictionary(p => p.Id, p => p) ?? new Dictionary<Guid, ProductSchema>();
-
-                foreach (var item in OrderItems)
-                {
-                    if (productDict.TryGetValue(item.ProductId, out var product))
-                    {
-                        item.ProductName = product.name;
-                        item.ProductDescription = product.description;
-                    }
-                }
-            }
+            var allItems = await Http.GetFromJsonAsync<List<OrderItemSchema>>($"orders/{OrderId}/items") ?? new List<OrderItemSchema>();
+            OrderItems = allItems.Where(item => item.TransactionId == Guid.Empty).ToList();
         }
         catch (Exception ex)
         {
             ErrorMessage = $"Error loading order items: {ex.Message}";
         }
     }
-    
 
-    private async Task UpdateTip()
+    private void UpdateTip()
     {
-        if (TipAmount.HasValue && TipAmount.Value < 0)
+        if (CurrentTipAmount < 0)
         {
             ErrorMessage = "Tip negali būti neigiamas.";
             SuccessMessage = string.Empty;
             return;
         }
 
-        try
-        {
-            var updateDto = new OrderDTO
-                {
-                    Tip = TipAmount
-                };
-
-            var response = await Http.PutAsJsonAsync($"/orders/{OrderId}", updateDto);
-
-            if (response.IsSuccessStatusCode)
-            {
-                OrderDetails = await Http.GetFromJsonAsync<OrderSchema>($"/orders/{OrderId}");
-                CalculateTotalAmount();
-                SuccessMessage = "Tip successfully added.";
-                ErrorMessage = string.Empty;
-            }
-            else
-            {
-                var error = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>();
-                ErrorMessage = error != null && error.ContainsKey("message") ? error["message"] : "Nepavyko atnaujinti tip.";
-                SuccessMessage = string.Empty;
-            }
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"Klaida atnaujinant tipą: {ex.Message}";
-            SuccessMessage = string.Empty;
-        }
+        CalculateTotalAmount();
+        SuccessMessage = "Tip successfully updated.";
+        ErrorMessage = string.Empty;
     }
 
-    private async Task SendTransactionToServer(List<OrderItemSchema> selectedItems, decimal paidByCash = 0, decimal paidByGiftcard = 0, decimal paidByBankcard = 0, string externalTransactionId = "")
+    private async Task SendTransactionToServer(
+        List<OrderItemSchema> selectedItems,
+        decimal paidByCash = 0,
+        decimal paidByGiftcard = 0,
+        decimal paidByBankcard = 0,
+        string externalTransactionId = "")
     {
         try
         {
@@ -405,7 +364,7 @@ else
                     PaidByBankcard = paidByBankcard,
                     ExternalTransactionId = externalTransactionId,
                     GiftcardCode = GiftCardCode,
-                    Tip = TipAmount 
+                    Tip = CurrentTipAmount
                 };
 
             var response = await Http.PostAsJsonAsync($"/orders/{OrderId}/transactions", transactionDTO);
@@ -419,6 +378,7 @@ else
             }
 
             await LoadOrderDetails();
+            await LoadOrderItems();
 
             if (OrderDetails?.status?.ToUpper() == "CLOSED")
             {
@@ -427,9 +387,13 @@ else
             }
             else
             {
-                SuccessMessage = "Payment successful, but order status was not updated to CLOSED.";
+                SuccessMessage = "Payment successful.";
                 ErrorMessage = string.Empty;
             }
+
+            SelectedItemIds.Clear();
+            CurrentTipAmount = 0;
+            CalculateTotalAmount();
         }
         catch (Exception ex)
         {
@@ -450,12 +414,11 @@ else
         return discountedBase + taxTotal;
     }
 
-
     private async Task ProcessPayment()
     {
         try
         {
-            var selectedItems = OrderItems.Where(i => i.SelectedForPayment).ToList();
+            var selectedItems = OrderItems.Where(i => SelectedItemIds.Contains(i.Id)).ToList();
             if (!selectedItems.Any())
             {
                 ErrorMessage = "No items selected for payment.";
@@ -463,9 +426,12 @@ else
                 return;
             }
 
-            decimal sumOfSelected = OrderItems.Where(i => i.SelectedForPayment).Sum(i => CalculateLineTotal(i));
+            decimal sumOfSelected = selectedItems.Sum(i => CalculateLineTotal(i));
+            sumOfSelected += CurrentTipAmount;
             sumOfSelected -= OrderLevelDiscount;
-            sumOfSelected += TipAmount ?? 0; 
+
+            if (sumOfSelected < 0)
+                sumOfSelected = 0;
 
             switch (SelectedPaymentMethod)
             {
@@ -494,7 +460,7 @@ else
                         : "Payment accepted.";
                     break;
                 case "Card":
-                    await SubmitStripePayment(sumOfSelected);
+                    await SubmitStripePayment(sumOfSelected, selectedItems);
                     break;
                 case "GiftCard":
                     await SendTransactionToServer(selectedItems, paidByGiftcard: sumOfSelected);
@@ -512,7 +478,7 @@ else
         }
     }
 
-    private async Task SubmitStripePayment(decimal sumOfSelected)
+    private async Task SubmitStripePayment(decimal sumOfSelected, List<OrderItemSchema> selectedItems)
     {
         var amountInCents = (int)(sumOfSelected * 100);
         try
@@ -526,7 +492,7 @@ else
 
             if (result.Success && result.Id != null)
             {
-                await SendTransactionToServer(OrderItems, paidByBankcard: sumOfSelected, externalTransactionId: result.Id);
+                await SendTransactionToServer(selectedItems, paidByBankcard: sumOfSelected, externalTransactionId: result.Id);
             }
             else
             {
@@ -548,14 +514,14 @@ else
         public string? Message { get; set; }
     }
 
-    private System.Globalization.CultureInfo GetCultureInfo(string? currency)
+    private CultureInfo GetCultureInfo(string? currency)
     {
         return currency?.ToUpper() switch
         {
-            "USD" => System.Globalization.CultureInfo.GetCultureInfo("en-US"),
-            "EUR" => System.Globalization.CultureInfo.GetCultureInfo("fr-FR"),
-            "LITAS" => System.Globalization.CultureInfo.GetCultureInfo("lt-LT"),
-            _ => System.Globalization.CultureInfo.InvariantCulture,
+            "USD" => CultureInfo.GetCultureInfo("en-US"),
+            "EUR" => CultureInfo.GetCultureInfo("fr-FR"),
+            "LITAS" => CultureInfo.GetCultureInfo("lt-LT"),
+            _ => CultureInfo.InvariantCulture,
         };
     }
 
@@ -568,9 +534,9 @@ else
         public int Quantity { get; set; }
         public decimal Tax { get; set; }
         public Guid ProductId { get; set; }
+        public Guid TransactionId { get; set; }
         public List<AppliedDiscountSchema>? AppliedDiscounts { get; set; } = new List<AppliedDiscountSchema>();
         public List<AppliedTaxSchema>? AppliedTaxes { get; set; } = new List<AppliedTaxSchema>();
-        public bool SelectedForPayment { get; set; } = true;
     }
 
     public class AppliedDiscountSchema
@@ -588,7 +554,10 @@ else
         public Guid Id { get; set; }
         public decimal Percentage { get; set; }
         public Guid TaxId { get; set; }
+        public Guid OrderItemId { get; set; }
+        public Guid OrderId { get; set; }
     }
+
     public class Discount
     {
         public Guid Id { get; set; }
@@ -600,12 +569,7 @@ else
         public decimal Percentage { get; set; }
         public DateTime EndDate { get; set; }
         public Guid BusinessId { get; set; }
-        private Guid? _productOrServiceGroupId;
-        public Guid? ProductOrServiceGroupId
-        {
-            get => _productOrServiceGroupId;
-            set => _productOrServiceGroupId = value ?? Guid.Empty;
-        }
+        public Guid? ProductOrServiceGroupId { get; set; }
     }
 
     public class TransactionDTO
@@ -614,18 +578,40 @@ else
         public decimal PaidByCash { get; set; }
         public decimal PaidByGiftcard { get; set; }
         public decimal PaidByBankcard { get; set; }
-        public string? ExternalTransactionId { get; set; } 
+        public string? ExternalTransactionId { get; set; }
         public string? GiftcardCode { get; set; }
-        public decimal? Tip { get; set; } 
+        public decimal? Tip { get; set; }
     }
 
     public class OrderDTO
     {
         public decimal? Tip { get; set; }
+        public Guid businessId { get; set; }
+        public string? status { get; set; }
+        public string? currency { get; set; }
+        public Guid createdBy { get; set; }
     }
 
     private void GoBack()
     {
-        Navigation.NavigateTo($"/Orders");
+        Navigation.NavigateTo("/employee/orders");
+    }
+
+    private void ToggleSelection(Guid itemId, object? isChecked)
+    {
+        if (isChecked is bool checkedValue)
+        {
+            if (checkedValue)
+            {
+                if (!SelectedItemIds.Contains(itemId))
+                    SelectedItemIds.Add(itemId);
+            }
+            else
+            {
+                if (SelectedItemIds.Contains(itemId))
+                    SelectedItemIds.Remove(itemId);
+            }
+            CalculateTotalAmount();
+        }
     }
 }

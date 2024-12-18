@@ -15,6 +15,11 @@ else if (!string.IsNullOrEmpty(ErrorMessage))
 {
     <div class="alert alert-danger">@ErrorMessage</div>
 }
+else if (IsOrderPaid)
+{
+    <div class="alert alert-info">This order has already been paid.</div>
+    <button class="btn btn-secondary" @onclick="GoBack">Back to Orders</button>
+}
 else
 {
     <div class="card mb-4 p-4">
@@ -28,7 +33,7 @@ else
     <h4>Order Items</h4>
     @if (OrderItems == null || !OrderItems.Any())
     {
-        <p>No items in this order.</p>
+        <p>No unpaid items in this order.</p>
     }
     else
     {
@@ -81,7 +86,7 @@ else
                                 {
                                     @foreach (var tax in item.appliedTaxes)
                                     {
-                                        <div>@($"Tax ({tax.percentage}%): {discountedBase * (tax.percentage / 100):C}")</div>
+                                        <div>@($"Tax ({tax.percentage}%): {CalculateTaxAmount((item.price * item.quantity) - (item.appliedDiscounts?.Sum(d => d.amount) ?? 0), tax.percentage):C}")</div>
                                     }
                                 }
                                 else
@@ -113,6 +118,7 @@ else
     private List<OrderItemSchema> OrderItems = new();
     private string ErrorMessage = string.Empty;
     private bool IsLoading = true;
+    private bool IsOrderPaid = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -126,6 +132,10 @@ else
         try
         {
             OrderDetails = await Http.GetFromJsonAsync<OrderSchema>($"/orders/{OrderId}");
+            if (OrderDetails == null)
+            {
+                ErrorMessage = "Order not found.";
+            }
         }
         catch (Exception ex)
         {
@@ -137,35 +147,42 @@ else
     {
         try
         {
-            OrderItems = await Http.GetFromJsonAsync<List<OrderItemSchema>>($"orders/{OrderId}/items") ?? new List<OrderItemSchema>();
+            var allItems = await Http.GetFromJsonAsync<List<OrderItemSchema>>($"orders/{OrderId}/items") ?? new List<OrderItemSchema>();
+            OrderItems = allItems.Where(item => item.TransactionId == Guid.Empty).ToList();
+            IsOrderPaid = !OrderItems.Any();
 
-            var productIds = OrderItems.Where(i => i.type!.ToString() == "Product").Select(i => i.productId).Distinct();
-            var serviceIds = OrderItems.Where(i => i.type!.ToString() == "Service").Select(i => i.serviceId).Distinct();
-
-            // Fetch products and services
-            var products = await Http.GetFromJsonAsync<List<ProductSchema>>("api/products") ?? new List<ProductSchema>();
-            var services = await Http.GetFromJsonAsync<List<ServiceSchema>>("api/services") ?? new List<ServiceSchema>();
-
-            var productDict = products.ToDictionary(p => p.Id, p => p);
-            var serviceDict = services.ToDictionary(s => s.Id, s => s);
-
-            // Map product and service details
-            foreach (var item in OrderItems)
+            if (!IsOrderPaid)
             {
-                if (item.type == OrderItemType.Product.ToString() && productDict.TryGetValue(item.productId, out var product))
+                var productIds = OrderItems.Where(i => i.type!.ToString() == "Product").Select(i => i.productId).Distinct();
+                var serviceIds = OrderItems.Where(i => i.type!.ToString() == "Service").Select(i => i.serviceId).Distinct();
+
+                var productsTask = Http.GetFromJsonAsync<List<ProductSchema>>("api/products");
+                var servicesTask = Http.GetFromJsonAsync<List<ServiceSchema>>("api/services");
+                await Task.WhenAll(productsTask, servicesTask);
+
+                var products = productsTask.Result ?? new List<ProductSchema>();
+                var services = servicesTask.Result ?? new List<ServiceSchema>();
+
+                var productDict = products.ToDictionary(p => p.Id, p => p);
+                var serviceDict = services.ToDictionary(s => s.Id, s => s);
+
+                foreach (var item in OrderItems)
                 {
-                    item.ItemName = product.name;
-                    item.ItemDescription = product.description;
-                }
-                else if (item.type == OrderItemType.Service.ToString() && serviceDict.TryGetValue(item.serviceId, out var service))
-                {
-                    item.ItemName = service.name;
-                    item.ItemDescription = service.description;
-                }
-                else
-                {
-                    item.ItemName = "Unknown";
-                    item.ItemDescription = "No description available";
+                    if (item.type == OrderItemType.Product.ToString() && productDict.TryGetValue(item.productId, out var product))
+                    {
+                        item.ItemName = product.name;
+                        item.ItemDescription = product.description;
+                    }
+                    else if (item.type == OrderItemType.Service.ToString() && serviceDict.TryGetValue(item.serviceId, out var service))
+                    {
+                        item.ItemName = service.name;
+                        item.ItemDescription = service.description;
+                    }
+                    else
+                    {
+                        item.ItemName = "Unknown";
+                        item.ItemDescription = "No description available";
+                    }
                 }
             }
         }
@@ -186,9 +203,21 @@ else
         };
     }
 
+    private decimal CalculateTaxAmount(decimal baseAmount, decimal taxPercentage)
+    {
+        return baseAmount * (taxPercentage / 100);
+    }
+
     private void CompleteCheckout()
     {
-        Navigation.NavigateTo($"/Payment/{OrderId}");
+        if (OrderItems.Any())
+        {
+            Navigation.NavigateTo($"/Payment/{OrderId}");
+        }
+        else
+        {
+            ErrorMessage = "There are no unpaid items to proceed with payment.";
+        }
     }
 
     private void GoBack()
@@ -196,7 +225,6 @@ else
         Navigation.NavigateTo("/employee/orders");
     }
 
-    // Schema Definitions
     public class OrderSchema
     {
         public Guid Id { get; set; }
@@ -217,6 +245,7 @@ else
         public int quantity { get; set; }
         public List<AppliedDiscountSchema>? appliedDiscounts { get; set; }
         public List<AppliedTaxSchema>? appliedTaxes { get; set; }
+        public Guid TransactionId { get; set; }
     }
 
     public class AppliedDiscountSchema
@@ -243,5 +272,4 @@ else
         public string? name { get; set; }
         public string? description { get; set; }
     }
-
 }
