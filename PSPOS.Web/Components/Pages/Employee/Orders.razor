@@ -7,10 +7,10 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
+@using PSPOS.ServiceDefaults.DTOs
 
 <h2>Order Management</h2>
 
-<!-- Orders Table -->
 @if (orders == null)
 {
     <p>Loading orders...</p>
@@ -63,7 +63,6 @@ else
     </div>
 }
 
-<!-- Success/Error Messages -->
 @if (!string.IsNullOrEmpty(Message))
 {
     <div class="alert alert-info">@Message</div>
@@ -71,14 +70,13 @@ else
 
 @code {
     private HttpClient Http => ClientFactory.CreateClient("ApiClient");
-    private List<OrderSchema>? orders;
+    private List<OrderSchema> orders = new List<OrderSchema>();
     private string? Message;
     private Guid SelectedOrderId = Guid.Empty;
     private Guid CurrentBusinessId;
 
     private OrderSchema? SelectedOrder { get; set; }
 
-    // Fetch orders when the page is loaded
     protected override async Task OnInitializedAsync()
     {
         await SetCurrentBusinessId();
@@ -117,7 +115,6 @@ else
 
     private async Task RefundOrder(Guid orderId)
     {
-        // Optional: Confirm the refund action with the user
         bool confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to refund Order {orderId}?");
         if (!confirmed)
         {
@@ -126,7 +123,6 @@ else
 
         try
         {
-            // Retrieve the full details of the selected order
             var fullOrder = orders.FirstOrDefault(o => o.Id == orderId);
             if (fullOrder == null)
             {
@@ -134,29 +130,25 @@ else
                 return;
             }
 
-            // Create an OrderDTO with all required fields
             var refundOrderDTO = new OrderDTO
                 {
-                    createdBy = fullOrder.CreatedBy,        // Ensure this field is populated
-                    businessId = fullOrder.BusinessId,      // Ensure this field is populated
+                    createdBy = fullOrder.CreatedBy,   
+                    businessId = fullOrder.BusinessId,      
                     status = "Refunded",
                     currency = fullOrder.Currency,
                     tip = fullOrder.Tip
                 };
 
-            // Send a PUT request to update the order's status to "Refunded"
             var response = await Http.PutAsJsonAsync($"orders/{orderId}", refundOrderDTO);
 
             if (response.IsSuccessStatusCode)
             {
                 Message = $"Order {orderId} has been refunded successfully.";
 
-                // Reload the orders to reflect the updated status
                 await LoadOrders();
             }
             else
             {
-                // Optionally, read the error message from the response
                 var errorContent = await response.Content.ReadAsStringAsync();
                 Message = $"Failed to refund order: {response.ReasonPhrase}. Details: {errorContent}";
             }
@@ -171,10 +163,8 @@ else
     {
         try
         {
-            // Fetch all orders from the API
             var allOrders = await Http.GetFromJsonAsync<List<OrderSchema>>("orders");
 
-            // Filter orders for the current BusinessId
             if (allOrders != null)
             {
                 orders = allOrders.Where(o => o.BusinessId == CurrentBusinessId).ToList();
@@ -190,7 +180,6 @@ else
         }
     }
 
-    // Delete order logic
     private async Task DeleteOrder(Guid orderId)
     {
         try
@@ -212,27 +201,25 @@ else
         }
     }
 
-    // Edit an order
     private void EditOrder(Guid id)
     {
         Navigation.NavigateTo($"/EditOrder/{id}");
     }
 
-    // Order DTOs and Schemas
     public class OrderSchema
     {
         public Guid Id { get; set; }
         public string? Status { get; set; }
         public string? Currency { get; set; }
         public Guid BusinessId { get; set; }
-        public Guid CreatedBy { get; set; }       // Added to match backend's OrderDTO
-        public decimal? Tip { get; set; }         // Added to match backend's OrderDTO
+        public Guid CreatedBy { get; set; }  
+        public decimal? Tip { get; set; }  
     }
 
     public class OrderDTO
     {
-        public Guid createdBy { get; set; }        // Changed from string to Guid
-        public Guid businessId { get; set; }       // Changed from string to Guid
+        public Guid createdBy { get; set; } 
+        public Guid businessId { get; set; } 
         public string? status { get; set; }
         public string? currency { get; set; }
         public decimal? tip { get; set; }
