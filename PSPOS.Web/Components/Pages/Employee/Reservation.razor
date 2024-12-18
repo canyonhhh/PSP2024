@@ -328,7 +328,7 @@ else
             var orderItem = new OrderItemDTO
             {
                 type = "Service",
-                price = services.FirstOrDefault(s => s.Id == newReservation.ServiceId)?.Price ?? 0,
+                price = services!.First(s => s.Id == newReservation.ServiceId).Price,
                 quantity = 1,
                 orderId = orderId,
                 serviceId = newReservation.ServiceId

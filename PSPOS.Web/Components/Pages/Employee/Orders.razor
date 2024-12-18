@@ -36,7 +36,7 @@ else
                     <td>@order.Id</td>
                     <td>@order.Status</td>
                     <td>@order.Currency</td>
-		    @if (order.Status.ToUpper() == "OPEN")
+		    @if (order.Status!.ToUpper() == "OPEN")
                     {
                         <td>
                             <button class="btn btn-warning btn-sm me-2" @onclick="() => EditOrder(order.Id)">Edit</button>
