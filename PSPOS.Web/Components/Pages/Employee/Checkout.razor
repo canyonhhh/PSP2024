@@ -138,8 +138,8 @@ else
         {
             OrderItems = await Http.GetFromJsonAsync<List<OrderItemSchema>>($"orders/{OrderId}/items") ?? new List<OrderItemSchema>();
 
-            var productIds = OrderItems.Where(i => i.Type == OrderItemType.Product).Select(i => i.productId).Distinct();
-            var serviceIds = OrderItems.Where(i => i.Type == OrderItemType.Service).Select(i => i.serviceId).Distinct();
+            var productIds = OrderItems.Where(i => i.Type.ToString() == "Product").Select(i => i.productId).Distinct();
+            var serviceIds = OrderItems.Where(i => i.Type.ToString() == "Service").Select(i => i.serviceId).Distinct();
 
             // Fetch products and services
             var products = await Http.GetFromJsonAsync<List<ProductSchema>>("api/products") ?? new List<ProductSchema>();

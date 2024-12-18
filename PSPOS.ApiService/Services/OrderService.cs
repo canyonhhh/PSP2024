@@ -275,11 +275,7 @@ public class OrderService : IOrderService
             UpdatedAt = item.UpdatedAt,
             CreatedBy = item.CreatedBy,
             UpdatedBy = item.UpdatedBy,
-<<<<<<< HEAD
-            type = item.type.ToString(),
-=======
             type = item.type?.ToString(),
->>>>>>> origin/main
             price = item.price,
             quantity = item.quantity,
             orderId = item.orderId,

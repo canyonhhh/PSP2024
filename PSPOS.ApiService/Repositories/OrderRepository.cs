@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PSPOS.ApiService.Data;
+using PSPOS.ApiService.Services.Interfaces;
 using PSPOS.ApiService.Repositories.Interfaces;
 using PSPOS.ServiceDefaults.Models;
 using PSPOS.ServiceDefaults.Schemas;
@@ -9,10 +10,12 @@ namespace PSPOS.ApiService.Repositories;
 public class OrderRepository : IOrderRepository
 {
     private readonly AppDbContext _context;
+    private readonly IReservationService _reservationService;
 
-    public OrderRepository(AppDbContext context)
+    public OrderRepository(AppDbContext context, IReservationService reservationService)
     {
         _context = context;
+        _reservationService = reservationService;
     }
 
     public async Task<Order?> GetOrderByIdAsync(Guid id)
@@ -79,6 +82,9 @@ public class OrderRepository : IOrderRepository
             // Remove related OrderItems
             var orderItems = _context.OrderItems.Where(oi => oi.OrderId == orderId);
             _context.OrderItems.RemoveRange(orderItems);
+
+            var reservations = _context.Reservations.Where(r => r.OrderId == orderId);
+            _context.Reservations.RemoveRange(reservations);
 
             // Remove the Order itself
             _context.Orders.Remove(order);

@@ -94,10 +94,17 @@ else
                             ? services.FirstOrDefault(s => s.Id == reservation.ServiceId)?.Name ?? "Unknown" 
                             : "Unknown")</td>
                     <td>@reservation.Status</td>
+                    @if (reservation.Status == ReservationStatus.Open)
+                    {
                     <td>
                         <button class="btn btn-warning btn-sm me-2" @onclick="() => OpenEditPopup(reservation)">Edit</button>
                         <button class="btn btn-danger btn-sm" @onclick="() => DeleteReservation(reservation.Id)">Delete</button>
                     </td>
+                    }
+                    else
+                    {
+                    <td></td>
+                    }
                 </tr>
             }
         </tbody>
@@ -285,7 +292,8 @@ else
             {
                 businessId = currentBusinessId,
                 currency = "Eur",
-                status = OrderStatus.Open.ToString()
+                status = OrderStatus.Open.ToString(),
+		createdBy = currentUserId
             };
 
             var orderResponse = await Http.PostAsJsonAsync("orders", order);
@@ -367,13 +375,13 @@ else
                 CloseEditPopup();
             }
 
-            if (editReservation.Status == ReservationStatus.Closed)
+            if (editReservation.Status != ReservationStatus.Open)
             {
                 var orderResponse = await Http.GetAsync($"orders/{editReservation.OrderId}");
                 if (orderResponse.IsSuccessStatusCode)
                 {
                     var order = await orderResponse.Content.ReadFromJsonAsync<OrderDTO>() ?? new OrderDTO();
-                    order.status = OrderStatus.Closed.ToString();
+                    order.status = (editReservation.Status == ReservationStatus.Closed ? OrderStatus.Closed : OrderStatus.Cancelled).ToString();
                     var updateOrderResponse = await Http.PutAsJsonAsync($"orders/{editReservation.OrderId}", order);
                     if (updateOrderResponse.IsSuccessStatusCode)
                     {
