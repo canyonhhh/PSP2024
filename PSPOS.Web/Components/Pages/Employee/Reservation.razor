@@ -195,7 +195,6 @@ else
 
     private Guid currentUserId;
     private Guid currentBusinessId;
-    private Guid currentServiceId;
 
     protected override async Task OnInitializedAsync()
     {
@@ -281,20 +280,7 @@ else
     {
         try
         {
-            newReservation.Status = ReservationStatus.Open;
-            var response = await Http.PostAsJsonAsync("reservations", newReservation);
-            if (response.IsSuccessStatusCode && response.Headers.Location != null)
-            {
-                Message = "Reservation created successfully.";
-            }
-        }
-        catch (Exception ex)
-        {
-            Message = $"Error creating reservation: {ex.Message}";
-        }
-
-        try
-        {
+            // order
             var order = new OrderDTO
             {
                 businessId = currentBusinessId,
@@ -302,43 +288,62 @@ else
                 status = OrderStatus.Open.ToString()
             };
 
-            var response = await Http.PostAsJsonAsync("orders", order);
+            var orderResponse = await Http.PostAsJsonAsync("orders", order);
 
-            if (response.IsSuccessStatusCode && response.Headers.Location != null)
+            if (!orderResponse.IsSuccessStatusCode)
             {
-                // Extract the Location header
-                var location = response.Headers.Location.ToString();
-                var segments = location.Split('/');
-                var guidString = segments[^1];
-
-                // Create an order item
-                var orderItemDTO = new OrderItemDTO
-                {
-                    type = "Service",
-                    price = services.FirstOrDefault(s => s.Id == newReservation.ServiceId)?.Price ?? 0,
-                    quantity = 1,
-                    orderId = Guid.Parse(guidString),
-                    serviceId = newReservation.ServiceId
-                };
-
-                var respone = await Http.PostAsJsonAsync($"orders/{guidString}/items", orderItemDTO);
-                Console.WriteLine(respone.Content.ReadAsStringAsync());
+                Message = $"Error creating order: {await orderResponse.Content.ReadAsStringAsync()}";
+                return;
             }
 
-            if (!response.IsSuccessStatusCode)
+            var orderLocation = orderResponse.Headers.Location?.ToString();
+            if (string.IsNullOrEmpty(orderLocation))
             {
-                // read the error message
-                Message = await response.Content.ReadAsStringAsync();
+                Message = "Order created, but location header is missing.";
+                return;
             }
 
+            var orderId = Guid.Parse(orderLocation.Split('/').Last());
+
+            // reservation
+            newReservation.Status = ReservationStatus.Open;
+            newReservation.OrderId = orderId;
+            var reservationResponse = await Http.PostAsJsonAsync("reservations", newReservation);
+
+            if (!reservationResponse.IsSuccessStatusCode)
+            {
+                Message = $"Error creating reservation: {await reservationResponse.Content.ReadAsStringAsync()}";
+                return;
+            }
+
+            // order item
+            var orderItem = new OrderItemDTO
+            {
+                type = "Service",
+                price = services.FirstOrDefault(s => s.Id == newReservation.ServiceId)?.Price ?? 0,
+                quantity = 1,
+                orderId = orderId,
+                serviceId = newReservation.ServiceId
+            };
+
+            var orderItemResponse = await Http.PostAsJsonAsync($"orders/{orderId}/items", orderItem);
+
+            if (!orderItemResponse.IsSuccessStatusCode)
+            {
+                Message = $"Error creating order item: {await orderItemResponse.Content.ReadAsStringAsync()}";
+                return;
+            }
+
+            // finalize
+            Message = "Reservation and order created successfully.";
             newReservation = new();
             availableTimes = null;
-            await LoadReservations();
 
+            await LoadReservations();
         }
         catch (Exception ex)
         {
-            Message = $"Error creating order for reservation: {ex.Message}";
+            Message = $"An unexpected error occurred: {ex.Message}";
         }
     }
 
@@ -361,6 +366,24 @@ else
                 await LoadReservations();
                 CloseEditPopup();
             }
+
+            if (editReservation.Status == ReservationStatus.Closed)
+            {
+                var orderResponse = await Http.GetAsync($"orders/{editReservation.OrderId}");
+                if (orderResponse.IsSuccessStatusCode)
+                {
+                    var order = await orderResponse.Content.ReadFromJsonAsync<OrderDTO>() ?? new OrderDTO();
+                    order.status = OrderStatus.Closed.ToString();
+                    var updateOrderResponse = await Http.PutAsJsonAsync($"orders/{editReservation.OrderId}", order);
+                    if (updateOrderResponse.IsSuccessStatusCode)
+                    {
+                        Message = "Reservation updated successfully.";
+                        await LoadReservations();
+                        CloseEditPopup();
+                    }
+                }
+            }
+
         }
         catch (Exception ex)
         {
@@ -372,8 +395,23 @@ else
     {
         try
         {
-            var response = await Http.DeleteAsync($"reservations/{reservationId}");
-            if (response.IsSuccessStatusCode)
+            var reservation = reservations?.FirstOrDefault(r => r.Id == reservationId);
+
+            if (reservation == null)
+            {
+                Message = "Reservation not found.";
+                return;
+            }
+
+            var response = await Http.DeleteAsync($"orders/{reservation.OrderId}");
+            if (!response.IsSuccessStatusCode)
+            {
+                Message = $"Error deleting reservation: {await response.Content.ReadAsStringAsync()}";
+                return;
+            }
+
+            var deleteResponse = await Http.DeleteAsync($"reservations/{reservationId}");
+            if (deleteResponse.IsSuccessStatusCode)
             {
                 Message = "Reservation deleted successfully.";
                 reservations?.RemoveAll(r => r.Id == reservationId);

@@ -10,5 +10,6 @@ namespace PSPOS.ServiceDefaults.DTOs
         public DateTime AppointmentTime { get; set; }
         public Guid ServiceId { get; set; }
         public ReservationStatus Status { get; set; }
+        public Guid OrderId { get; set; }
     }
 }
