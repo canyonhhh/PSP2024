@@ -1,4 +1,4 @@
-using PSPOS.ApiService.Repositories.Interfaces;
+﻿using PSPOS.ApiService.Repositories.Interfaces;
 using PSPOS.ApiService.Services.Interfaces;
 using PSPOS.ServiceDefaults.DTOs;
 using PSPOS.ServiceDefaults.Models;
@@ -21,6 +21,23 @@ public class OrderService : IOrderService
     {
         return await _orderRepository.GetOrderByIdAsync(id);
     }
+    public async Task<Order?> UpdateOrderAsync(Guid orderId, OrderDTO orderDTO)
+    {
+        var order = await _orderRepository.GetOrderByIdAsync(orderId);
+        if (order == null)
+            return null;
+
+        if (orderDTO.tip.HasValue)
+            order.Tip = orderDTO.tip.Value;
+
+        if (!string.IsNullOrEmpty(orderDTO.status))
+            order.Status = Enum.Parse<OrderStatus>(orderDTO.status, true);
+
+        await _orderRepository.UpdateOrder(order);
+
+        return order;
+    }
+
 
     public async Task<OrderSchema?> GetOrderSchemaByIdAsync(Guid id)
     {
@@ -54,13 +71,14 @@ public class OrderService : IOrderService
             UpdatedBy = item.UpdatedBy,
             businessId = item.BusinessId,
             status = item.Status.ToString(),
-            currency = item.OrderCurrency.ToString()
+            currency = item.OrderCurrency.ToString(),
+            tip = item.Tip
         });
     }
 
-    public async Task<Order> AddOrderAsync(Guid businessId, string? status, string? currency)
+    public async Task<Order> AddOrderAsync(Guid businessId, string? status, string? currency, Guid createdBy)
     {
-        return await _orderRepository.AddOrderAsync(businessId, status, currency);
+        return await _orderRepository.AddOrderAsync(businessId, status, currency, createdBy);
     }
 
     public async Task DeleteOrderAsync(Guid id)
@@ -257,7 +275,7 @@ public class OrderService : IOrderService
             UpdatedAt = item.UpdatedAt,
             CreatedBy = item.CreatedBy,
             UpdatedBy = item.UpdatedBy,
-            type = item.type?.ToString() ?? "Unknown",
+            type = item.type?.ToString(),
             price = item.price,
             quantity = item.quantity,
             orderId = item.orderId,

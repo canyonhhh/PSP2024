@@ -10,9 +10,9 @@ public interface IOrderService
     Task<Order?> GetOrderByIdAsync(Guid id);
     Task<OrderSchema?> GetOrderSchemaByIdAsync(Guid id);
     Task<IEnumerable<OrderSchema>> GetAllOrdersAsync(string? status, int? limit, int? skip);
-    Task<Order> AddOrderAsync(Guid businessId, string? status, string? currency);
+    Task<Order> AddOrderAsync(Guid businessId, string? status, string? currency, Guid createdBy);
     Task DeleteOrderAsync(Guid id);
-
+    Task<Order?> UpdateOrderAsync(Guid orderId, OrderDTO orderDTO);
     // '/orders/transactions'
     Task<IEnumerable<TransactionSchema>> GetAllTransactionsOfOrderAsync(Guid id);
     Task ProcessTransactionForOrderAsync(Guid id, TransactionDTO transactionDTO);
