@@ -266,17 +266,19 @@ public class OrderRepository : IOrderRepository
 
         foreach (var group in productGroups)
         {
-            foreach (var productId in group.productOrServiceIds ?? Array.Empty<Guid>())
+            foreach (var productOrServiceId in group.productOrServiceIds ?? Array.Empty<Guid>())
             {
-                if (!productGroupDict.ContainsKey(productId))
+                // Add both ProductId and ServiceId mappings
+                if (!productGroupDict.ContainsKey(productOrServiceId))
                 {
-                    productGroupDict[productId] = group.Id;
+                    productGroupDict[productOrServiceId] = group.Id;
                 }
             }
         }
 
-        // Step 4: Determine applicable category for the product
-        if (!productGroupDict.TryGetValue(orderItem.ProductId, out var productGroupId))
+        // Step 4: Determine applicable category for the product or service
+        if (!productGroupDict.TryGetValue(orderItem.ProductId, out var productGroupId) &&
+            !productGroupDict.TryGetValue(orderItem.ServiceId, out productGroupId)) // Match on ServiceId
         {
             // No category found; return early
             return;
@@ -334,9 +336,11 @@ public class OrderRepository : IOrderRepository
 
             await _context.AppliedTax.AddAsync(appliedTax);
         }
+
         // Step 7: Save all changes (OrderItem, AppliedDiscount, AppliedTax)
         await _context.SaveChangesAsync();
     }
+
 
 
     public async Task<OrderItem?> GetOrderItemByIdAsync(Guid orderItemId)

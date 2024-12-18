@@ -33,6 +33,7 @@
         <div class="mb-3">
             <label class="form-label">Product Group</label>
             <select class="form-select" @onchange="OnProductGroupSelected">
+                <option value="">-- Select Product/Service Group--</option>
                 @foreach (var group in productGroups)
                 {
                     <option value="@group.Id">@group.Name</option>
