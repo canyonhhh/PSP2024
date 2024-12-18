@@ -1,4 +1,4 @@
-﻿@page "/orders"
+﻿@page "/employee/orders"
 @inject IHttpClientFactory ClientFactory
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -47,6 +47,9 @@ else
                         {
                             <button class="btn btn-secondary btn-sm" @onclick="() => RefundOrder(order.Id)">Refund</button>
                         }
+                        else
+                        {
+                            <td></td>
                     </td>
                 </tr>
             }

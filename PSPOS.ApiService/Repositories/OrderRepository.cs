@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PSPOS.ApiService.Data;
 using PSPOS.ApiService.Repositories.Interfaces;
+using PSPOS.ApiService.Services.Interfaces;
 using PSPOS.ServiceDefaults.Models;
 using PSPOS.ServiceDefaults.Schemas;
 
@@ -9,10 +10,12 @@ namespace PSPOS.ApiService.Repositories;
 public class OrderRepository : IOrderRepository
 {
     private readonly AppDbContext _context;
+    private readonly IReservationService _reservationService;
 
-    public OrderRepository(AppDbContext context)
+    public OrderRepository(AppDbContext context, IReservationService reservationService)
     {
         _context = context;
+        _reservationService = reservationService;
     }
 
     public async Task<Order?> GetOrderByIdAsync(Guid id)
@@ -79,6 +82,9 @@ public class OrderRepository : IOrderRepository
             // Remove related OrderItems
             var orderItems = _context.OrderItems.Where(oi => oi.OrderId == orderId);
             _context.OrderItems.RemoveRange(orderItems);
+
+            var reservations = _context.Reservations.Where(r => r.OrderId == orderId);
+            _context.Reservations.RemoveRange(reservations);
 
             // Remove the Order itself
             _context.Orders.Remove(order);
@@ -198,47 +204,47 @@ public class OrderRepository : IOrderRepository
 
         // Step 4: Map OrderItems to OrderItemSchema with null handling
         var orderItemSchemas = orderItems.Select(item =>
-{
-    var discounts = appliedDiscounts
-        ?.Where(ad => ad.OrderItemId == item.Id)
-        .Select(ad => new AppliedDiscountSchema
-        {
-            Id = ad.Id,
-            amount = ad.Amount,
-            percentage = ad.Percentage,
-            discountId = ad.DiscountId,
-            orderItemId = ad.OrderItemId,
-            orderId = ad.OrderId
-        })
-        .ToList() ?? new List<AppliedDiscountSchema>();
+                {
+                    var discounts = appliedDiscounts
+                    ?.Where(ad => ad.OrderItemId == item.Id)
+                    .Select(ad => new AppliedDiscountSchema
+                    {
+                        Id = ad.Id,
+                        amount = ad.Amount,
+                        percentage = ad.Percentage,
+                        discountId = ad.DiscountId,
+                        orderItemId = ad.OrderItemId,
+                        orderId = ad.OrderId
+                    })
+                    .ToList() ?? new List<AppliedDiscountSchema>();
 
-    var taxes = appliedTaxes
-        ?.Where(at => at.OrderItemId == item.Id)
-        .Select(at => new AppliedTaxSchema
-        {
-            Id = at.Id,
-            percentage = at.Percentage,
-            taxId = at.TaxId,
-            orderItemId = at.OrderItemId,
-            orderId = at.OrderId
-        })
-        .ToList() ?? new List<AppliedTaxSchema>();
+                    var taxes = appliedTaxes
+                    ?.Where(at => at.OrderItemId == item.Id)
+                    .Select(at => new AppliedTaxSchema
+                    {
+                        Id = at.Id,
+                        percentage = at.Percentage,
+                        taxId = at.TaxId,
+                        orderItemId = at.OrderItemId,
+                        orderId = at.OrderId
+                    })
+                    .ToList() ?? new List<AppliedTaxSchema>();
 
-    // Return the mapped schema
-    return new OrderItemSchema
-    {
-        Id = item.Id,
-        price = item.Price,
-        quantity = item.Quantity,
-        type = item.Type.ToString(),
-        orderId = item.OrderId,
-        serviceId = item.ServiceId,
-        productId = item.ProductId,
-        transactionId = item.TransactionId,
-        appliedDiscounts = discounts, // Default empty list if null
-        appliedTaxes = taxes           // Default empty list if null
-    };
-}).ToList();
+                    // Return the mapped schema
+                    return new OrderItemSchema
+                    {
+                        Id = item.Id,
+                        price = item.Price,
+                        type = item.Type.ToString(),
+                        quantity = item.Quantity,
+                        orderId = item.OrderId,
+                        serviceId = item.ServiceId,
+                        productId = item.ProductId,
+                        transactionId = item.TransactionId,
+                        appliedDiscounts = discounts, // Default empty list if null
+                        appliedTaxes = taxes           // Default empty list if null
+                    };
+                }).ToList();
 
         return orderItemSchemas;
     }
@@ -298,13 +304,13 @@ public class OrderRepository : IOrderRepository
 
             // Create an AppliedDiscount record
             var appliedDiscount = new AppliedDiscount(
-                method: discount.Method == "FIXED" ? DiscountMethod.Fixed : DiscountMethod.PercentageFromTotal,
-                amount: discountAmount,
-                percentage: discount.Percentage,
-                discountId: discount.Id,
-                orderItemId: orderItem.Id,
-                orderId: orderItem.OrderId
-            );
+                    method: discount.Method == "FIXED" ? DiscountMethod.Fixed : DiscountMethod.PercentageFromTotal,
+                    amount: discountAmount,
+                    percentage: discount.Percentage,
+                    discountId: discount.Id,
+                    orderItemId: orderItem.Id,
+                    orderId: orderItem.OrderId
+                    );
 
             await _context.AppliedDiscounts.AddAsync(appliedDiscount);
         }
@@ -320,11 +326,11 @@ public class OrderRepository : IOrderRepository
 
             // Create an AppliedTax record
             var appliedTax = new AppliedTax(
-                percentage: (decimal)tax.Percentage,
-                taxId: tax.Id,
-                orderItemId: orderItem.Id,
-                orderId: orderItem.OrderId
-            );
+                    percentage: (decimal)tax.Percentage,
+                    taxId: tax.Id,
+                    orderItemId: orderItem.Id,
+                    orderId: orderItem.OrderId
+                    );
 
             await _context.AppliedTax.AddAsync(appliedTax);
         }

@@ -1,5 +1,6 @@
 ﻿@page "/Checkout/{OrderId:guid}"
 @using PSPOS.ServiceDefaults.Schemas
+@using PSPOS.ServiceDefaults.Models
 @inject IHttpClientFactory ClientFactory
 @inject NavigationManager Navigation
 @rendermode InteractiveServer
@@ -35,8 +36,9 @@ else
             <table class="table table-striped table-hover">
                 <thead class="table-dark">
                     <tr>
-                        <th>Product Name</th>
+                        <th>Item Name</th>
                         <th>Description</th>
+                        <th>Type</th>
                         <th>Price</th>
                         <th>Quantity</th>
                         <th>Discount</th>
@@ -56,8 +58,9 @@ else
                         var lineTotal = discountedBase + taxTotal;
 
                         <tr>
-                            <td>@item.ProductName</td>
-                            <td>@item.ProductDescription</td>
+                            <td>@item.ItemName</td>
+                            <td>@item.ItemDescription</td>
+                            <td>@item.type</td>
                             <td>@item.price.ToString("C", GetCultureInfo(OrderDetails?.currency))</td>
                             <td>@item.quantity</td>
                             <td>
@@ -134,38 +137,35 @@ else
     {
         try
         {
-            // Fetch order items
             OrderItems = await Http.GetFromJsonAsync<List<OrderItemSchema>>($"orders/{OrderId}/items") ?? new List<OrderItemSchema>();
 
-            // Extract product IDs to fetch product details
-            var productIds = OrderItems
-                .Where(item => item.productId != Guid.Empty)
-                .Select(item => item.productId)
-                .Distinct()
-                .ToList();
+            var productIds = OrderItems.Where(i => i.type!.ToString() == "Product").Select(i => i.productId).Distinct();
+            var serviceIds = OrderItems.Where(i => i.type!.ToString() == "Service").Select(i => i.serviceId).Distinct();
 
-            if (productIds.Any())
+            // Fetch products and services
+            var products = await Http.GetFromJsonAsync<List<ProductSchema>>("api/products") ?? new List<ProductSchema>();
+            var services = await Http.GetFromJsonAsync<List<ServiceSchema>>("api/services") ?? new List<ServiceSchema>();
+
+            var productDict = products.ToDictionary(p => p.Id, p => p);
+            var serviceDict = services.ToDictionary(s => s.Id, s => s);
+
+            // Map product and service details
+            foreach (var item in OrderItems)
             {
-                // Fetch product details
-                var products = await Http.GetFromJsonAsync<List<ProductSchema>>("api/products");
-
-                var productDict = products?
-                    .Where(p => productIds.Contains(p.Id))
-                    .ToDictionary(p => p.Id, p => p) ?? new Dictionary<Guid, ProductSchema>();
-
-                // Map product details to order items
-                foreach (var item in OrderItems)
+                if (item.type == OrderItemType.Product.ToString() && productDict.TryGetValue(item.productId, out var product))
                 {
-                    if (productDict.TryGetValue(item.productId, out var product))
-                    {
-                        item.ProductName = product.name;
-                        item.ProductDescription = product.description;
-                    }
-                    else
-                    {
-                        item.ProductName = "Unknown Product";
-                        item.ProductDescription = "No description available";
-                    }
+                    item.ItemName = product.name;
+                    item.ItemDescription = product.description;
+                }
+                else if (item.type == OrderItemType.Service.ToString() && serviceDict.TryGetValue(item.serviceId, out var service))
+                {
+                    item.ItemName = service.name;
+                    item.ItemDescription = service.description;
+                }
+                else
+                {
+                    item.ItemName = "Unknown";
+                    item.ItemDescription = "No description available";
                 }
             }
         }
@@ -173,12 +173,7 @@ else
         {
             ErrorMessage = $"Error loading order items: {ex.Message}";
         }
-        finally
-        {
-            IsLoading = false;
-        }
     }
-
 
     private System.Globalization.CultureInfo GetCultureInfo(string? currency)
     {
@@ -198,7 +193,7 @@ else
 
     private void GoBack()
     {
-        Navigation.NavigateTo("/Orders");
+        Navigation.NavigateTo("/employee/orders");
     }
 
     // Schema Definitions
@@ -213,27 +208,40 @@ else
     public class OrderItemSchema
     {
         public Guid Id { get; set; }
-        public string? ProductName { get; set; }
-        public string? ProductDescription { get; set; }
         public Guid productId { get; set; }
+        public Guid serviceId { get; set; }
+        public string? type { get; set; }
+        public string? ItemName { get; set; }
+        public string? ItemDescription { get; set; }
         public decimal price { get; set; }
         public int quantity { get; set; }
-        public List<AppliedDiscountSchema>? appliedDiscounts { get; set; } = new List<AppliedDiscountSchema>();
-        public List<AppliedTaxSchema>? appliedTaxes { get; set; } = new List<AppliedTaxSchema>();
+        public List<AppliedDiscountSchema>? appliedDiscounts { get; set; }
+        public List<AppliedTaxSchema>? appliedTaxes { get; set; }
     }
 
     public class AppliedDiscountSchema
     {
-        public Guid Id { get; set; }
         public decimal amount { get; set; }
         public decimal percentage { get; set; }
-        public Guid discountId { get; set; }
     }
 
     public class AppliedTaxSchema
     {
-        public Guid Id { get; set; }
         public decimal percentage { get; set; }
-        public Guid taxId { get; set; }
     }
+
+    public class ProductSchema
+    {
+        public Guid Id { get; set; }
+        public string? name { get; set; }
+        public string? description { get; set; }
+    }
+
+    public class ServiceSchema
+    {
+        public Guid Id { get; set; }
+        public string? name { get; set; }
+        public string? description { get; set; }
+    }
+
 }

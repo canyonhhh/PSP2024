@@ -7,7 +7,7 @@ public class Reservation : BaseClass
     public string? CustomerEmail { get; set; }
     public string? CustomerPhone { get; set; }
     public DateTime AppointmentTime { get; set; }
-    public string? Duration { get; set; }
     public ReservationStatus Status { get; set; }
     public Guid ServiceId { get; set; }
+    public Guid OrderId { get; set; }
 }

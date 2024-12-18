@@ -122,9 +122,7 @@ namespace PSPOS.ApiService.Repositories
                 while (currentTime.Add(duration) <= endTime)
                 {
                     var conflicts = existingReservations.Any(r =>
-                        !string.IsNullOrEmpty(r.Duration) &&
-                        TimeSpan.TryParse(r.Duration, out var reservationDuration) &&
-                        currentTime < r.AppointmentTime.Add(reservationDuration) &&
+                        currentTime < r.AppointmentTime.Add(duration) &&
                         currentTime.Add(duration) > r.AppointmentTime
                     );
 

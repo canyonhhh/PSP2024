@@ -1,22 +1,18 @@
-﻿using Microsoft.VisualBasic;
-using System.Xml.Linq;
-
-namespace PSPOS.ServiceDefaults.Models;
+﻿namespace PSPOS.ServiceDefaults.Models;
 
 public class Service : BaseClass
 {
-    public Service(string name, string? description, decimal price, DateInterval interval, Guid employeeId)
+    public Service(string name, string? description, decimal price, TimeSpan duration, Guid employeeId)
     {
         Name = name;
         Description = description;
         Price = price;
-        Interval = interval;
+        Duration = duration;
         EmployeeId = employeeId;
     }
     public string? Name { get; set; }
     public string? Description { get; set; }
     public decimal Price { get; set; }
-    public DateInterval Interval { get; set; }
     public Guid EmployeeId { get; set; }
     public TimeSpan Duration { get; set; }
 }
