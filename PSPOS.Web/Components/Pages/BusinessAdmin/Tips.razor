@@ -121,7 +121,7 @@ else
             employeeTips = orders
                 .Where(o => o.tip.HasValue && o.CreatedBy != Guid.Empty && o.BusinessId == CurrentBusinessId)
                 .GroupBy(o => o.CreatedBy)
-                .ToDictionary(g => g.Key, g => g.Sum(o => o.tip.Value));
+                .ToDictionary(g => g.Key, g => g.Sum(o => o.tip.GetValueOrDefault()));
         }
         catch (HttpRequestException httpEx)
         {
