@@ -208,13 +208,23 @@ private List<Tax>? taxes;
     {
         try
         {
-            // Debugging: Check the value being sent
-            Console.WriteLine($"Creating Tax - Name: {newTax.Name}, GroupId: {newTax.ProductOrServiceGroupId}");
 
+            // Step 2: Check if tax with the same ProductOrServiceGroupId already exists
+            var existingTax = taxes?.FirstOrDefault(t =>
+                t.ProductOrServiceGroupId == newTax.ProductOrServiceGroupId);
+
+            if (existingTax != null)
+            {
+                Message = "Error: A tax with the same Product Group already exists.";
+                return;
+            }
+
+            // Step 3: Create the new tax
             var response = await Http.PostAsJsonAsync("tax", newTax);
             if (response.IsSuccessStatusCode)
             {
                 Message = "Tax created successfully.";
+
                 newTax = new(); // Reset form
                 await LoadTaxes(); // Refresh the tax list
             }
@@ -249,6 +259,15 @@ private async Task SaveEditTax()
 {
     try
     {
+            var existingTax = taxes?.FirstOrDefault(t =>
+            t.ProductOrServiceGroupId == editTax.ProductOrServiceGroupId);
+
+            if (existingTax != null)
+            {
+                Message = "Error: A tax with the same Product Group already exists.";
+                return;
+            }
+
         var response = await Http.PutAsJsonAsync($"tax/{editTax.Id}", editTax);
         if (response.IsSuccessStatusCode)
         {
