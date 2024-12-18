@@ -26,16 +26,6 @@ else
         <h4>Order Payment</h4>
         <p><strong>Order ID:</strong> @OrderDetails?.Id</p>
         <p><strong>Total Amount (including discounts & tax):</strong> @TotalAmount.ToString("C", GetCultureInfo(OrderDetails?.currency))</p>
-
-        @if (!string.IsNullOrEmpty(SuccessMessage))
-        {
-            <div class="alert alert-success mt-2">@SuccessMessage</div>
-        }
-
-        @if (!string.IsNullOrEmpty(ErrorMessage))
-        {
-            <div class="alert alert-danger mt-2">@ErrorMessage</div>
-        }
     </div>
 
     <h4>Select Payment Method</h4>
@@ -56,7 +46,6 @@ else
                     <th>Product</th>
                     <th>Final Price (after discounts & tax)</th>
                 </tr>
-
             </thead>
             <tbody>
                 @foreach (var item in OrderItems)
@@ -111,8 +100,7 @@ else
         </div>
     </div>
 
-
-    if (SelectedPaymentMethod == "GiftCard")
+    @if (SelectedPaymentMethod == "GiftCard")
     {
         <div class="mb-3">
             <label>Gift Card Code:</label>
@@ -128,16 +116,6 @@ else
     }
     else if (SelectedPaymentMethod == "Card")
     {
-        <script>
-            // import stripe handler module
-            import('./stripeHandler.js').then((module) => {
-            // initialize stripe with the public key
-            module.initializeStripe("pk_test_51QUWBYGUMof1EohPLwH4KQZj1wbLTJf8o8kzruKACLFgDeiH7SLxAAGN8dYUxP0Ku85bqSow0hEHGthPuPATzfCP00sDDvnD8L");
-            }).catch((error) => {
-            console.error('Error loading Stripe handler:', error);
-            });
-        </script>
-
         <div id="card-element" style="border: 1px solid #ccc; padding: 10px; border-radius: 4px;"></div>
         <p id="card-errors" style="color: red; margin-top: 10px;"></p>
     }
@@ -145,6 +123,37 @@ else
     <button class="btn btn-primary" @onclick="ProcessPayment">Process Payment</button>
     <button class="btn btn-secondary ms-2" @onclick="GoBack">Back to orders</button>
 }
+
+<div class="modal fade" id="paymentResultModal" tabindex="-1" aria-labelledby="paymentResultModalLabel" aria-hidden="true" @ref="modalRef">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Payment Result</h5>
+            </div>
+            <div class="modal-body">
+                @if (PaymentSuccess)
+                {
+                    <div class="alert alert-success">
+                        @SuccessMessage
+                        @if (ChangeAmount > 0)
+                        {
+                            <p>Change: @ChangeAmount.ToString("C", GetCultureInfo(OrderDetails?.currency))</p>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-danger">
+                        @ErrorMessage
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" @onclick="BackToOrders">Back to Orders</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 @code {
     [Parameter] public Guid OrderId { get; set; }
@@ -172,6 +181,11 @@ else
     private string? _clientSecret;
 
     private decimal? TipAmount { get; set; }
+
+    private bool PaymentSuccess { get; set; }
+    private decimal ChangeAmount { get; set; }
+
+    private ElementReference modalRef;
 
     protected override async Task OnInitializedAsync()
     {
@@ -209,16 +223,20 @@ else
             if (response.IsSuccessStatusCode)
             {
                 var allDiscounts = await response.Content.ReadFromJsonAsync<List<Discount>>() ?? new List<Discount>();
-
-                AvailableDiscounts = allDiscounts
-                    .Where(d => d.BusinessId == CurrentBusinessId && d.Active)
-                    .ToList();
+                AvailableDiscounts = allDiscounts.Where(d => d.BusinessId == CurrentBusinessId && d.Active).ToList();
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                AvailableDiscounts = new List<Discount>();
+            }
+            else
+            {
+                AvailableDiscounts = new List<Discount>();
             }
         }
-        catch (Exception ex)
+        catch
         {
-            Console.WriteLine($"Exception occurred while reading discounts: {ex.Message}");
-            ErrorMessage = $"Error reading discounts: {ex.Message}";
+            AvailableDiscounts = new List<Discount>();
         }
     }
 
@@ -226,18 +244,15 @@ else
     {
         if (Guid.TryParse(SelectedDiscountId, out Guid discountId))
         {
-            // Find the selected discount
             SelectedOrderDiscount = AvailableDiscounts.FirstOrDefault(d => d.Id == discountId);
             if (SelectedOrderDiscount != null)
             {
                 if (SelectedOrderDiscount.Method?.ToUpper() == "FIXED")
                 {
-                    // Apply a fixed discount directly
                     OrderLevelDiscount = Math.Min(SelectedOrderDiscount.Amount, TotalAmount);
                 }
                 else if (SelectedOrderDiscount.Method?.ToUpper() == "PERCENTAGE")
                 {
-                    // Apply a percentage discount based on the total amount
                     OrderLevelDiscount = TotalAmount * (SelectedOrderDiscount.Percentage / 100);
                 }
 
@@ -247,14 +262,13 @@ else
                         Amount = OrderLevelDiscount,
                         Percentage = SelectedOrderDiscount.Percentage,
                         DiscountId = SelectedOrderDiscount.Id,
-                        OrderItemId = Guid.Empty, 
+                        OrderItemId = Guid.Empty,
                         OrderId = OrderId
                     };
 
                 try
                 {
                     var response = await Http.PostAsJsonAsync("api/discounts/applied", appliedDiscount);
-
                     if (response.IsSuccessStatusCode)
                     {
                         SuccessMessage = "Discount applied successfully.";
@@ -263,6 +277,8 @@ else
                     else
                     {
                         var errorMessage = await response.Content.ReadAsStringAsync();
+                        ErrorMessage = $"Error applying discount: {errorMessage}";
+                        SuccessMessage = string.Empty;
                     }
                 }
                 catch (Exception ex)
@@ -304,7 +320,6 @@ else
         TotalAmount = subtotal;
     }
 
-
     private async Task LoadOrderDetails()
     {
         try
@@ -318,24 +333,19 @@ else
             ErrorMessage = $"Error loading order details: {ex.Message}";
         }
     }
+
     private async Task LoadOrderItems()
     {
         try
         {
             OrderItems = await Http.GetFromJsonAsync<List<OrderItemSchema>>($"orders/{OrderId}/items") ?? new List<OrderItemSchema>();
 
-            var productIds = OrderItems
-                .Where(item => item.ProductId != Guid.Empty)
-                .Select(item => item.ProductId)
-                .Distinct()
-                .ToList();
+            var productIds = OrderItems.Where(item => item.ProductId != Guid.Empty).Select(item => item.ProductId).Distinct().ToList();
 
             if (productIds.Any())
             {
                 var products = await Http.GetFromJsonAsync<List<ProductSchema>>("api/products");
-                var productDict = products?
-                    .Where(p => productIds.Contains(p.Id))
-                    .ToDictionary(p => p.Id, p => p) ?? new Dictionary<Guid, ProductSchema>();
+                var productDict = products?.Where(p => productIds.Contains(p.Id)).ToDictionary(p => p.Id, p => p) ?? new Dictionary<Guid, ProductSchema>();
 
                 foreach (var item in OrderItems)
                 {
@@ -352,13 +362,12 @@ else
             ErrorMessage = $"Error loading order items: {ex.Message}";
         }
     }
-    
 
     private async Task UpdateTip()
     {
         if (TipAmount.HasValue && TipAmount.Value < 0)
         {
-            ErrorMessage = "Tip negali būti neigiamas.";
+            ErrorMessage = "Tip cannot be negative.";
             SuccessMessage = string.Empty;
             return;
         }
@@ -382,13 +391,13 @@ else
             else
             {
                 var error = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>();
-                ErrorMessage = error != null && error.ContainsKey("message") ? error["message"] : "Nepavyko atnaujinti tip.";
+                ErrorMessage = error != null && error.ContainsKey("message") ? error["message"] : "Failed to update tip.";
                 SuccessMessage = string.Empty;
             }
         }
         catch (Exception ex)
         {
-            ErrorMessage = $"Klaida atnaujinant tipą: {ex.Message}";
+            ErrorMessage = $"Error updating tip: {ex.Message}";
             SuccessMessage = string.Empty;
         }
     }
@@ -405,7 +414,7 @@ else
                     PaidByBankcard = paidByBankcard,
                     ExternalTransactionId = externalTransactionId,
                     GiftcardCode = GiftCardCode,
-                    Tip = TipAmount 
+                    Tip = TipAmount
                 };
 
             var response = await Http.PostAsJsonAsync($"/orders/{OrderId}/transactions", transactionDTO);
@@ -415,6 +424,7 @@ else
                 var err = await response.Content.ReadAsStringAsync();
                 ErrorMessage = $"Error processing payment: {err}";
                 SuccessMessage = string.Empty;
+                PaymentSuccess = false;
                 return;
             }
 
@@ -424,17 +434,20 @@ else
             {
                 SuccessMessage = "Payment successful! Order is now CLOSED.";
                 ErrorMessage = string.Empty;
+                PaymentSuccess = true;
             }
             else
             {
                 SuccessMessage = "Payment successful, but order status was not updated to CLOSED.";
                 ErrorMessage = string.Empty;
+                PaymentSuccess = true;
             }
         }
         catch (Exception ex)
         {
             ErrorMessage = $"Error processing payment: {ex.Message}";
             SuccessMessage = string.Empty;
+            PaymentSuccess = false;
         }
     }
 
@@ -450,7 +463,6 @@ else
         return discountedBase + taxTotal;
     }
 
-
     private async Task ProcessPayment()
     {
         try
@@ -460,12 +472,14 @@ else
             {
                 ErrorMessage = "No items selected for payment.";
                 SuccessMessage = string.Empty;
+                PaymentSuccess = false;
+                await ShowPaymentResultModal();
                 return;
             }
 
-            decimal sumOfSelected = OrderItems.Where(i => i.SelectedForPayment).Sum(i => CalculateLineTotal(i));
+            decimal sumOfSelected = selectedItems.Sum(i => CalculateLineTotal(i));
             sumOfSelected -= OrderLevelDiscount;
-            sumOfSelected += TipAmount ?? 0; 
+            sumOfSelected += TipAmount ?? 0;
 
             switch (SelectedPaymentMethod)
             {
@@ -474,6 +488,8 @@ else
                     {
                         ErrorMessage = "Payment amount must be greater than 0.";
                         SuccessMessage = string.Empty;
+                        PaymentSuccess = false;
+                        await ShowPaymentResultModal();
                         return;
                     }
 
@@ -481,38 +497,60 @@ else
                     {
                         ErrorMessage = $"Not enough money, need at least {sumOfSelected.ToString("C", GetCultureInfo(OrderDetails?.currency))}.";
                         SuccessMessage = string.Empty;
+                        PaymentSuccess = false;
+                        await ShowPaymentResultModal();
                         return;
                     }
 
                     decimal change = PaymentAmount - sumOfSelected;
-
                     await SendTransactionToServer(selectedItems, paidByCash: sumOfSelected);
-
                     ErrorMessage = string.Empty;
-                    SuccessMessage = change > 0
-                        ? $"Payment accepted. Give back change: {change.ToString("C", GetCultureInfo(OrderDetails?.currency))}."
-                        : "Payment accepted.";
+                    SuccessMessage = "Payment accepted.";
+                    ChangeAmount = change > 0 ? change : 0;
+                    PaymentSuccess = true;
                     break;
+
                 case "Card":
-                    await SubmitStripePayment(sumOfSelected);
+                    var result = await SubmitStripePayment(sumOfSelected);
+                    PaymentSuccess = result.Success;
+                    if (result.Success && result.Id != null)
+                    {
+                        SuccessMessage = "Payment successful!";
+                        ChangeAmount = 0;
+                    }
+                    else
+                    {
+                        ErrorMessage = $"Payment error: {result.Message}";
+                    }
                     break;
+
                 case "GiftCard":
                     await SendTransactionToServer(selectedItems, paidByGiftcard: sumOfSelected);
+                    SuccessMessage = "Payment with Gift Card successful.";
+                    ErrorMessage = string.Empty;
+                    ChangeAmount = 0;
+                    PaymentSuccess = true;
                     break;
+
                 default:
                     ErrorMessage = "Invalid payment method selected.";
                     SuccessMessage = string.Empty;
+                    PaymentSuccess = false;
                     break;
             }
+
+            await ShowPaymentResultModal();
         }
         catch (Exception ex)
         {
             ErrorMessage = $"Error processing payment: {ex.Message}";
             SuccessMessage = string.Empty;
+            PaymentSuccess = false;
+            await ShowPaymentResultModal();
         }
     }
 
-    private async Task SubmitStripePayment(decimal sumOfSelected)
+    private async Task<StripeResult> SubmitStripePayment(decimal sumOfSelected)
     {
         var amountInCents = (int)(sumOfSelected * 100);
         try
@@ -528,24 +566,14 @@ else
             {
                 await SendTransactionToServer(OrderItems, paidByBankcard: sumOfSelected, externalTransactionId: result.Id);
             }
-            else
-            {
-                ErrorMessage = $"Error processing payment: {result.Message}";
-                SuccessMessage = string.Empty;
-            }
+
+            return result;
         }
         catch (Exception ex)
         {
-            ErrorMessage = $"Error processing payment: {ex.Message}";
-            SuccessMessage = string.Empty;
+            ErrorMessage = $"Error processing card payment: {ex.Message}";
+            return new StripeResult { Success = false, Message = ex.Message };
         }
-    }
-
-    private class StripeResult
-    {
-        public bool Success { get; set; }
-        public string? Id { get; set; }
-        public string? Message { get; set; }
     }
 
     private System.Globalization.CultureInfo GetCultureInfo(string? currency)
@@ -557,6 +585,35 @@ else
             "LITAS" => System.Globalization.CultureInfo.GetCultureInfo("lt-LT"),
             _ => System.Globalization.CultureInfo.InvariantCulture,
         };
+    }
+
+    private async Task ShowPaymentResultModal()
+    {
+        await JSRuntime.InvokeVoidAsync("eval", $@"
+            var modalElement = document.getElementById('paymentResultModal');
+            var modal = new bootstrap.Modal(modalElement, {{
+                backdrop: 'static',
+                keyboard: false
+            }});
+            modal.show();
+        ");
+    }
+
+    private async Task BackToOrders()
+    {
+        await JSRuntime.InvokeVoidAsync("eval", $@"
+            var modalElement = document.getElementById('paymentResultModal');
+            var modal = bootstrap.Modal.getInstance(modalElement);
+            if (modal) {{
+                modal.hide();
+            }}
+        ");
+        Navigation.NavigateTo("/employee/orders");
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/employee/orders");
     }
 
     public class OrderItemSchema
@@ -589,6 +646,7 @@ else
         public decimal Percentage { get; set; }
         public Guid TaxId { get; set; }
     }
+
     public class Discount
     {
         public Guid Id { get; set; }
@@ -614,9 +672,9 @@ else
         public decimal PaidByCash { get; set; }
         public decimal PaidByGiftcard { get; set; }
         public decimal PaidByBankcard { get; set; }
-        public string? ExternalTransactionId { get; set; } 
+        public string? ExternalTransactionId { get; set; }
         public string? GiftcardCode { get; set; }
-        public decimal? Tip { get; set; } 
+        public decimal? Tip { get; set; }
     }
 
     public class OrderDTO
@@ -624,8 +682,10 @@ else
         public decimal? Tip { get; set; }
     }
 
-    private void GoBack()
+    private class StripeResult
     {
-        Navigation.NavigateTo($"/Orders");
+        public bool Success { get; set; }
+        public string? Id { get; set; }
+        public string? Message { get; set; }
     }
 }
