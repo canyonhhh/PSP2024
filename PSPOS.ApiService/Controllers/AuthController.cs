@@ -5,7 +5,7 @@ using PSPOS.ServiceDefaults.DTOs;
 namespace PSPOS.ApiService.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
+    [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
         private readonly IAuthenticationService _authenticationService;

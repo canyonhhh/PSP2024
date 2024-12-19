@@ -158,7 +158,7 @@ else
     {
         try
         {
-            OrderItems = await Http.GetFromJsonAsync<List<OrderItemSchema>>($"orders/{OrderId}/items") ?? new List<OrderItemSchema>();
+            OrderItems = await Http.GetFromJsonAsync<List<OrderItemSchema>>($"api/orders/{OrderId}/items") ?? new List<OrderItemSchema>();
             var productIds = OrderItems.Where(item => item.productId.HasValue).Select(item => item.productId!.Value).Distinct().ToList();
             if (productIds.Any())
             {
@@ -192,7 +192,7 @@ else
         try
         {
             item.orderId = OrderId;
-            var response = await Http.PutAsJsonAsync($"orders/{OrderId}/items/{item.Id}", item);
+            var response = await Http.PutAsJsonAsync($"api/orders/{OrderId}/items/{item.Id}", item);
             if (response.IsSuccessStatusCode)
             {
                 IsSuccess = true;
@@ -279,7 +279,7 @@ else
             existingItem.quantity += newOrderItem.Quantity;
             try
             {
-                var response = await Http.PutAsJsonAsync($"orders/{OrderId}/items/{existingItem.Id}", existingItem);
+                var response = await Http.PutAsJsonAsync($"api/orders/{OrderId}/items/{existingItem.Id}", existingItem);
                 if (!response.IsSuccessStatusCode)
                 {
                     var errorContent = await response.Content.ReadAsStringAsync();
@@ -305,7 +305,7 @@ else
                 };
             try
             {
-                var response = await Http.PostAsJsonAsync($"orders/{OrderId}/items", orderItemDTO);
+                var response = await Http.PostAsJsonAsync($"api/orders/{OrderId}/items", orderItemDTO);
                 if (!response.IsSuccessStatusCode)
                 {
                     var errorContent = await response.Content.ReadAsStringAsync();

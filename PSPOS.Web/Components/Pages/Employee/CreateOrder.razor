@@ -201,7 +201,7 @@
             newOrder.status = "OPEN";
             newOrder.currency = "EUR";
 
-            var response = await Http.PostAsJsonAsync("orders", newOrder);
+            var response = await Http.PostAsJsonAsync("api/orders", newOrder);
             if (response.IsSuccessStatusCode)
             {
                 if (response.Headers.Location != null)
@@ -213,7 +213,7 @@
                         CreatedOrderId = orderId;
                         IsOrderCreated = true;
                         IsSuccess = true;
-                        var createdOrderResponse = await Http.GetFromJsonAsync<OrderSchema>($"orders/{CreatedOrderId}");
+                        var createdOrderResponse = await Http.GetFromJsonAsync<OrderSchema>($"api/orders/{CreatedOrderId}");
                         if (createdOrderResponse != null)
                         {
                             orderCurrency = createdOrderResponse.currency ?? "EUR";
@@ -248,7 +248,7 @@
             return;
         try
         {
-            OrderItems = await Http.GetFromJsonAsync<List<OrderItemSchema>>($"orders/{CreatedOrderId}/items") ?? new List<OrderItemSchema>();
+            OrderItems = await Http.GetFromJsonAsync<List<OrderItemSchema>>($"api/orders/{CreatedOrderId}/items") ?? new List<OrderItemSchema>();
         }
         catch
         {
@@ -332,7 +332,7 @@
             // If the item already exists, update its quantity
             existingItem.quantity += newOrderItem.Quantity;
 
-            var updateResponse = await Http.PutAsJsonAsync($"orders/{CreatedOrderId}/items/{existingItem.Id}", existingItem);
+            var updateResponse = await Http.PutAsJsonAsync($"api/orders/{CreatedOrderId}/items/{existingItem.Id}", existingItem);
             if (updateResponse.IsSuccessStatusCode)
             {
                 IsOrderItemAdded = true;
@@ -365,7 +365,7 @@
 
         try
         {
-            var response = await Http.PostAsJsonAsync($"orders/{CreatedOrderId}/items", orderItemDTO);
+            var response = await Http.PostAsJsonAsync($"api/orders/{CreatedOrderId}/items", orderItemDTO);
             if (response.IsSuccessStatusCode)
             {
                 IsOrderItemAdded = true;

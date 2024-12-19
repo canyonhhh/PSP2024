@@ -128,17 +128,6 @@ public class OrderService : IOrderService
             if (orderItem.TransactionId != Guid.Empty)
                 throw new ArgumentException($"Item '{orderItem.Id}' is already paid for.");
 
-
-        // Check if enough money is paid for all the items
-        // TODO Use Stripe too
-        //decimal price = 0;
-        //foreach (OrderItem orderItem in orderItemsToLinkToTransaction)
-        //    price += orderItem.Price;
-        //if (price < transactionDTO.paidByCash + transactionDTO.paidByGiftcard)
-        //    throw new ArgumentException($"Paid too much, expected {price}{order.OrderCurrency}.");
-        //else if (price > transactionDTO.paidByCash + transactionDTO.paidByGiftcard)
-        //    throw new ArgumentException($"Paid too little, expected {price}{order.OrderCurrency}.");
-
         // Add transaction data to database
         Transaction transaction = new(TransactionType.Purchase);
 
@@ -232,7 +221,8 @@ public class OrderService : IOrderService
                 transactionSchema.paidByCash += payment.Amount;
             else if (payment.Method == PaymentMethod.Giftcard)
                 transactionSchema.paidByGiftcard += payment.Amount;
-            // TODO Stripe payment amount
+            else if (payment.Method == PaymentMethod.Bankcard)
+                transactionSchema.paidByBankcard += payment.Amount;
         }
 
         return transactionSchema;

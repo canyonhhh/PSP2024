@@ -5,7 +5,7 @@ using PSPOS.ServiceDefaults.Models;
 namespace PSPOS.ApiService.Controllers
 {
     [ApiController]
-    [Route("tax")]
+    [Route("api/tax")]
     [Produces("application/json")]
     public class TaxController : ControllerBase
     {

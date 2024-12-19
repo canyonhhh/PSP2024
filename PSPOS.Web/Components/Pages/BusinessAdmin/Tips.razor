@@ -110,8 +110,8 @@ else
 
         try
         {
-            var employeesTask = Http.GetFromJsonAsync<List<Employee>>($"users?role=2&businessId={CurrentBusinessId}");
-            var ordersTask = Http.GetFromJsonAsync<List<OrderSchema>>("orders");
+            var employeesTask = Http.GetFromJsonAsync<List<Employee>>($"api/users?role=2&businessId={CurrentBusinessId}");
+            var ordersTask = Http.GetFromJsonAsync<List<OrderSchema>>("api/orders");
 
             await Task.WhenAll(employeesTask, ordersTask);
 

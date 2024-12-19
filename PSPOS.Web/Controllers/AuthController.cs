@@ -7,7 +7,7 @@ using System.Security.Claims;
 namespace PSPOS.BlazorApp.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("/[controller]")]
     public class AuthController : ControllerBase
     {
         private readonly IHttpClientFactory _clientFactory;
@@ -22,7 +22,7 @@ namespace PSPOS.BlazorApp.Controllers
         {
             var client = _clientFactory.CreateClient("ApiClient");
 
-            var response = await client.PostAsJsonAsync("Auth/login", request);
+            var response = await client.PostAsJsonAsync("api/Auth/login", request);
             if (!response.IsSuccessStatusCode)
                 return Unauthorized("Invalid credentials");
 

@@ -168,7 +168,7 @@ else
         try
         {
             // Fetch users with the 'Employee' role and matching BusinessId
-            employees = await Http.GetFromJsonAsync<List<Employee>>($"users?role=2&businessId={CurrentBusinessId}");
+            employees = await Http.GetFromJsonAsync<List<Employee>>($"api/users?role=2&businessId={CurrentBusinessId}");
         }
         catch (Exception ex)
         {
@@ -197,7 +197,7 @@ else
                 BusinessId = CurrentBusinessId.Value
             };
 
-            var response = await Http.PostAsJsonAsync("users", newUser);
+            var response = await Http.PostAsJsonAsync("api/users", newUser);
             if (response.IsSuccessStatusCode)
             {
                 Message = "Employee added successfully.";
@@ -254,7 +254,7 @@ private async Task SaveEditEmployee()
             BusinessId = CurrentBusinessId.Value
         };
 
-        var response = await Http.PutAsJsonAsync($"users/{editEmployee.Id}", updatedUser);
+        var response = await Http.PutAsJsonAsync($"api/users/{editEmployee.Id}", updatedUser);
         if (response.IsSuccessStatusCode)
         {
             Message = "Employee updated successfully.";
@@ -276,7 +276,7 @@ private async Task SaveEditEmployee()
     {
         try
         {
-            var response = await Http.DeleteAsync($"users/{employeeId}");
+            var response = await Http.DeleteAsync($"api/users/{employeeId}");
             if (response.IsSuccessStatusCode)
             {
                 Message = "Employee deleted successfully.";
