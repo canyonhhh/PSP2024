@@ -245,7 +245,7 @@ public class OrderRepository : IOrderRepository
             }
         }
         foreach (var group in serviceGroups)
-        { 
+        {
             foreach (var productOrServiceId in group.productOrServiceIds ?? Array.Empty<Guid>())
             {
                 if (!productGroupDict.ContainsKey(productOrServiceId))

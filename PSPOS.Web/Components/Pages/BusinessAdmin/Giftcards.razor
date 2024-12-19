@@ -115,6 +115,12 @@ else
         {
             giftcards = await Http.GetFromJsonAsync<List<Giftcard>>("api/giftcards");
 
+	    if (giftcards == null)
+            {
+                giftcards = new List<Giftcard>();
+                return;
+            }
+
             var businessIdClaim = (await AuthenticationStateProvider.GetAuthenticationStateAsync())
                 .User?.FindFirst("businessId")?.Value;
 
