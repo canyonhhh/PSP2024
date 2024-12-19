@@ -439,6 +439,7 @@ else
                         Message = "Reservation updated successfully.";
                         await LoadReservations();
                         CloseEditPopup();
+                        StateHasChanged();
                     }
                 }
             }
@@ -474,12 +475,16 @@ else
                 Message = $"Error deleting reservation: {await response.Content.ReadAsStringAsync()}";
                 return;
             }
+            await LoadReservations();
+            StateHasChanged();
 
             var deleteResponse = await Http.DeleteAsync($"reservations/{reservationId}");
             if (deleteResponse.IsSuccessStatusCode)
             {
                 Message = "Reservation deleted successfully.";
                 reservations?.RemoveAll(r => r.Id == reservationId);
+                await LoadReservations();
+                StateHasChanged();
             }
         }
         catch (Exception ex)
