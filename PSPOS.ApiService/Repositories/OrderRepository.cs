@@ -130,38 +130,6 @@ public class OrderRepository : IOrderRepository
         return await _context.Transactions.FindAsync(transactionId);
     }
 
-    public async Task<Giftcard?> GetGiftCardByCode(string giftcardCode)
-    {
-        if (string.IsNullOrWhiteSpace(giftcardCode))
-            throw new ArgumentException("Gift card code cannot be null or empty.", nameof(giftcardCode));
-
-        // Query to find the gift card object with the matching code
-        var giftCard = await _context.GiftCards
-            .FirstOrDefaultAsync(gc => gc.Code == giftcardCode);
-
-        return giftCard; // Returns null if no matching gift card is found
-    }
-
-    public async Task UpdateGiftCardAmountAsync(Giftcard giftcard)
-    {
-        if (giftcard == null)
-            throw new ArgumentNullException(nameof(giftcard), "Gift card object cannot be null.");
-
-        // Find the existing gift card in the database by its ID or Code
-        var existingGiftCard = await _context.GiftCards
-            .FirstOrDefaultAsync(gc => gc.Code == giftcard.Code);
-
-        if (existingGiftCard == null)
-            throw new InvalidOperationException("Gift card not found.");
-
-        // Update the gift card's amount
-        existingGiftCard.Amount = giftcard.Amount;
-
-        // Save the changes to the database
-        _context.GiftCards.Update(existingGiftCard);
-        await _context.SaveChangesAsync();
-    }
-
     public async Task<IEnumerable<Payment>> GetAllPaymentsOfTransactionAsync(Guid transactionId)
     {
         return await _context.Payments.Where(p => p.TransactionId == transactionId).ToArrayAsync();
@@ -260,32 +228,44 @@ public class OrderRepository : IOrderRepository
         await _context.OrderItems.AddAsync(orderItem);
         await _context.SaveChangesAsync();
 
-        // Step 3: Fetch product group (categories) mapping
+        // Step 3: Fetch product groups and service groups
         var productGroups = await _context.ProductGroups.ToListAsync();
+        var serviceGroups = await _context.ServiceGroups.ToListAsync();
+
         var productGroupDict = new Dictionary<Guid, Guid>();
 
         foreach (var group in productGroups)
         {
-            foreach (var productId in group.productOrServiceIds ?? Array.Empty<Guid>())
+            foreach (var productOrServiceId in group.productOrServiceIds ?? Array.Empty<Guid>())
             {
-                if (!productGroupDict.ContainsKey(productId))
+                if (!productGroupDict.ContainsKey(productOrServiceId))
                 {
-                    productGroupDict[productId] = group.Id;
+                    productGroupDict[productOrServiceId] = group.Id;
+                }
+            }
+        }
+        foreach (var group in serviceGroups)
+        {
+            foreach (var productOrServiceId in group.productOrServiceIds ?? Array.Empty<Guid>())
+            {
+                if (!productGroupDict.ContainsKey(productOrServiceId))
+                {
+                    productGroupDict[productOrServiceId] = group.Id;
                 }
             }
         }
 
-        // Step 4: Determine applicable category for the product
-        if (!productGroupDict.TryGetValue(orderItem.ProductId, out var productGroupId))
+        // Step 4: Determine applicable category for the product or service
+        if (!productGroupDict.TryGetValue(orderItem.ProductId, out var productGroupId) &&
+            !productGroupDict.TryGetValue(orderItem.ServiceId, out productGroupId))
         {
-            // No category found; return early
             return;
         }
 
         // Step 5: Fetch and apply discounts
         var discount = await _context.Discounts
             .Where(d => d.Active && d.EndDate > DateTime.UtcNow && d.ProductOrServiceGroupId == productGroupId)
-            .OrderByDescending(d => d.Amount) // Prioritize the largest discount
+            .OrderByDescending(d => d.Amount)
             .FirstOrDefaultAsync();
 
         if (discount != null)
@@ -304,18 +284,18 @@ public class OrderRepository : IOrderRepository
 
             // Create an AppliedDiscount record
             var appliedDiscount = new AppliedDiscount(
-                    method: discount.Method == "FIXED" ? DiscountMethod.Fixed : DiscountMethod.PercentageFromTotal,
-                    amount: discountAmount,
-                    percentage: discount.Percentage,
-                    discountId: discount.Id,
-                    orderItemId: orderItem.Id,
-                    orderId: orderItem.OrderId
-                    );
+                method: discount.Method == "FIXED" ? DiscountMethod.Fixed : DiscountMethod.PercentageFromTotal,
+                amount: discountAmount,
+                percentage: discount.Percentage,
+                discountId: discount.Id,
+                orderItemId: orderItem.Id,
+                orderId: orderItem.OrderId
+            );
 
             await _context.AppliedDiscounts.AddAsync(appliedDiscount);
         }
 
-        // Step 6: Fetch and apply taxes
+        // Step 8: Fetch and apply taxes
         var tax = await _context.Taxes
             .Where(t => t.ProductOrServiceGroupId == productGroupId)
             .FirstOrDefaultAsync();
@@ -326,18 +306,18 @@ public class OrderRepository : IOrderRepository
 
             // Create an AppliedTax record
             var appliedTax = new AppliedTax(
-                    percentage: (decimal)tax.Percentage,
-                    taxId: tax.Id,
-                    orderItemId: orderItem.Id,
-                    orderId: orderItem.OrderId
-                    );
+                percentage: (decimal)tax.Percentage,
+                taxId: tax.Id,
+                orderItemId: orderItem.Id,
+                orderId: orderItem.OrderId
+            );
 
             await _context.AppliedTax.AddAsync(appliedTax);
         }
+
         // Step 7: Save all changes (OrderItem, AppliedDiscount, AppliedTax)
         await _context.SaveChangesAsync();
     }
-
 
     public async Task<OrderItem?> GetOrderItemByIdAsync(Guid orderItemId)
     {

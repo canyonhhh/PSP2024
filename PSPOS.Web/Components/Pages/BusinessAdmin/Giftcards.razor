@@ -1,0 +1,250 @@
+﻿@page "/business-admin/giftcards"
+@inject IHttpClientFactory ClientFactory
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@rendermode InteractiveServer
+
+<h2>Giftcard Management</h2>
+
+<!-- Create New Giftcard Form -->
+<div class="card mb-3">
+    <div class="card-header bg-primary text-white">Add New Giftcard</div>
+    <div class="card-body">
+        <div class="mb-3">
+            <label class="form-label">Amount</label>
+            <input type="number" step="0.01" class="form-control" @bind="newGiftcard.Amount" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Code</label>
+            <input class="form-control" @bind="newGiftcard.Code" />
+        </div>
+        <button class="btn btn-success" @onclick="CreateGiftcard">Add Giftcard</button>
+    </div>
+</div>
+
+<!-- Giftcards Table -->
+@if (giftcards == null)
+{
+    <p>Loading giftcards...</p>
+}
+else if (!giftcards.Any())
+{
+    <p>No giftcards found for your business.</p>
+}
+else
+{
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Code</th>
+                <th>Amount</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var giftcard in giftcards)
+            {
+                <tr>
+                    <td>@giftcard.Code</td>
+                    <td>@giftcard.Amount.ToString("C")</td>
+                    <td>
+                        <button class="btn btn-warning btn-sm me-2" @onclick="() => OpenEditPopup(giftcard)">Edit</button>
+                        <button class="btn btn-danger btn-sm" @onclick="() => DeleteGiftcard(giftcard.Id)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<!-- Success/Error Messages -->
+@if (!string.IsNullOrEmpty(Message))
+{
+    <div class="alert alert-info">@Message</div>
+}
+
+<!-- Edit Giftcard Popup -->
+@if (isEditPopupVisible)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Giftcard</h5>
+                    <button type="button" class="btn-close" @onclick="CloseEditPopup"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Amount</label>
+                        <input type="number" step="0.01" class="form-control" @bind="editGiftcard.Amount" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Code</label>
+                        <input class="form-control" @bind="editGiftcard.Code" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseEditPopup">Close</button>
+                    <button type="button" class="btn btn-primary" @onclick="SaveEditGiftcard">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private HttpClient Http => ClientFactory.CreateClient("ApiClient");
+
+    private List<Giftcard>? giftcards;
+    private Giftcard editGiftcard = new();
+    private string? Message;
+    private Giftcard newGiftcard = new();
+    private bool isEditPopupVisible = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadGiftcards();
+    }
+
+    private async Task LoadGiftcards()
+    {
+        try
+        {
+            giftcards = await Http.GetFromJsonAsync<List<Giftcard>>("api/giftcards");
+
+	    if (giftcards == null)
+            {
+                giftcards = new List<Giftcard>();
+                return;
+            }
+
+            var businessIdClaim = (await AuthenticationStateProvider.GetAuthenticationStateAsync())
+                .User?.FindFirst("businessId")?.Value;
+
+            if (Guid.TryParse(businessIdClaim, out Guid businessId))
+            {
+                giftcards = giftcards.Where(g => g.BusinessId == businessId).ToList();
+            }
+            else
+            {
+                Message = "Error: Could not determine BusinessId from user claims.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error loading giftcards: {ex.Message}";
+        }
+    }
+
+    private async Task CreateGiftcard()
+    {
+        try
+        {
+            var businessIdClaim = (await AuthenticationStateProvider.GetAuthenticationStateAsync())
+                .User?.FindFirst("businessId")?.Value;
+
+            if (Guid.TryParse(businessIdClaim, out Guid businessId))
+            {
+                newGiftcard.BusinessId = businessId;
+
+                var response = await Http.PostAsJsonAsync("api/giftcards", newGiftcard);
+                if (response.IsSuccessStatusCode)
+                {
+                    Message = "Giftcard created successfully.";
+                    newGiftcard = new Giftcard(0, string.Empty, businessId); 
+                    await LoadGiftcards();
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    Message = $"Error: {errorContent}";
+                }
+            }
+            else
+            {
+                Message = "Error: Could not determine BusinessId from user claims.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error creating giftcard: {ex.Message}";
+        }
+    }
+
+    private void OpenEditPopup(Giftcard giftcard)
+    {
+        editGiftcard = new Giftcard(giftcard.Amount, giftcard.Code, giftcard.BusinessId); 
+        editGiftcard.Id = giftcard.Id; 
+        isEditPopupVisible = true;
+    }
+
+    private async Task SaveEditGiftcard()
+    {
+        try
+        {
+            var response = await Http.PutAsJsonAsync($"api/giftcards/{editGiftcard.Id}", editGiftcard);
+            if (response.IsSuccessStatusCode)
+            {
+                Message = "Giftcard updated successfully.";
+                await LoadGiftcards();
+                CloseEditPopup();
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                Message = $"Error: {errorContent}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error updating giftcard: {ex.Message}";
+        }
+    }
+
+    private async Task DeleteGiftcard(Guid giftcardId)
+    {
+        try
+        {
+            var response = await Http.DeleteAsync($"api/giftcards/{giftcardId}");
+            if (response.IsSuccessStatusCode)
+            {
+                Message = "Giftcard deleted successfully.";
+                await LoadGiftcards();
+            }
+            else
+            {
+                Message = $"Failed to delete giftcard: {response.ReasonPhrase}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error deleting giftcard: {ex.Message}";
+        }
+    }
+
+    private void CloseEditPopup()
+    {
+        isEditPopupVisible = false;
+        editGiftcard = new Giftcard(0, string.Empty, Guid.Empty); 
+    }
+
+    public class Giftcard
+    {
+        public Guid Id { get; set; }
+        public decimal Amount { get; set; }
+        public string Code { get; set; } = string.Empty;
+        public Guid BusinessId { get; set; }
+
+        public Giftcard() { }
+
+        public Giftcard(decimal amount, string code, Guid businessId)
+        {
+            Amount = amount;
+            Code = code;
+            BusinessId = businessId;
+        }
+    }
+}

@@ -18,8 +18,6 @@ public interface IOrderRepository
     Task AddTransactionAsync(Transaction transaction);
     Task<Transaction?> GetTransactionByIdAsync(Guid id);
     Task<IEnumerable<Payment>> GetAllPaymentsOfTransactionAsync(Guid transactionId);
-    Task<Giftcard?> GetGiftCardByCode(string giftcardCode);
-    Task UpdateGiftCardAmountAsync(Giftcard giftcard);
 
     // '/orders/items'
     Task<IEnumerable<OrderItemSchema>> GetAllItemsOfOrderAsync(Guid id);
