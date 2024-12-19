@@ -11,11 +11,11 @@ namespace PSPOS.ApiService.Services
         private readonly string _authToken;
         private readonly string _fromPhoneNumber;
 
-        public TwilioSmsService(string accountSid, string authToken, string fromPhoneNumber)
+        public TwilioSmsService(IConfiguration configuration)
         {
-            _accountSid = accountSid;
-            _authToken = authToken;
-            _fromPhoneNumber = fromPhoneNumber;
+            _accountSid = configuration["Twilio:SID"] ?? throw new InvalidOperationException("Twilio:AccountSid is missing");
+            _authToken = configuration["Twilio:Token"] ?? throw new InvalidOperationException("Twilio:AuthToken is missing");
+            _fromPhoneNumber = configuration["Twilio:PhoneNumber"] ?? throw new InvalidOperationException("Twilio:FromPhoneNumber is missing");
 
             TwilioClient.Init(_accountSid, _authToken);
         }
@@ -36,8 +36,7 @@ namespace PSPOS.ApiService.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Failed to send SMS: {ex.Message}");
-                return false;
+                throw new Exception("Failed to send SMS via Twilio", ex);
             }
         }
     }
