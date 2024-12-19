@@ -91,9 +91,9 @@
                                 </ul>
                             </div>
                             <div class="form-group mb-3">
-                                <label for="editProductSelect">Select Products to Add</label>
+                                <label for="editProductSelect">Select Products/Services to Add</label>
                                 <select id="editProductSelect" class="form-select" @onchange="OnProductSelected">
-                                    <option value="">-- Select a Product --</option>
+                                    <option value="">-- Select a Product/Service --</option>
                                     @foreach (var product in products)
                                     {
                                         if (!selectedProductIds.Contains(product.Id))
@@ -126,9 +126,9 @@
         </div>
 
         <div class="form-group mb-3">
-            <label for="productSelect">Select Products</label>
+            <label for="productSelect">Select Products or Services</label>
             <select id="productSelect" class="form-select" @onchange="OnProductSelected">
-                <option value="">-- Select a Product --</option>
+                <option value="">-- Select a Product/Service --</option>
                 @foreach (var product in products)
                 {
                     <option value="@product.Id">@product.Name</option>
@@ -198,11 +198,18 @@
     {
         try
         {
-            products = await Http.GetFromJsonAsync<List<Product>>("/api/products") ?? new List<Product>();
+            var productResponse = await Http.GetFromJsonAsync<List<Product>>("/api/products");
+            var productList = productResponse ?? new List<Product>();
+
+            var serviceResponse = await Http.GetFromJsonAsync<List<Product>>("/api/services");
+            var serviceList = serviceResponse ?? new List<Product>();
+
+            // Combine products and services
+            products = productList.Concat(serviceList).ToList();
         }
         catch (Exception ex)
         {
-            ErrorMessage = $"Failed to load products: {ex.Message}";
+            ErrorMessage = $"Failed to load products and services: {ex.Message}";
         }
     }
 

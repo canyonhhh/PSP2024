@@ -10,11 +10,13 @@ public class OrderService : IOrderService
 {
     private readonly IOrderRepository _orderRepository;
     private readonly IProdAndServRepository _prodAndServRepository;
+    private readonly IGiftcardRepository _giftcardRepository;
 
-    public OrderService(IOrderRepository orderRepository, IProdAndServRepository prodAndServRepository)
+    public OrderService(IOrderRepository orderRepository, IProdAndServRepository prodAndServRepository, IGiftcardRepository giftcardRepository)
     {
         _orderRepository = orderRepository;
         _prodAndServRepository = prodAndServRepository;
+        _giftcardRepository = giftcardRepository;
     }
 
     public async Task<Order?> GetOrderByIdAsync(Guid id)
@@ -143,7 +145,7 @@ public class OrderService : IOrderService
         if (transactionDTO.paidByGiftcard > 0 && transactionDTO.giftcardCode != null)
         {
             // Retrieve the gift card by its code
-            Giftcard? giftcard = await _orderRepository.GetGiftCardByCode(transactionDTO.giftcardCode);
+            Giftcard? giftcard = await _giftcardRepository.GetGiftCardByCode(transactionDTO.giftcardCode);
 
             if (giftcard == null)
             {
@@ -170,7 +172,7 @@ public class OrderService : IOrderService
 
             // Add the payment and update the gift card amount
             await _orderRepository.AddPaymentAsync(giftcardPayment);
-            await _orderRepository.UpdateGiftCardAmountAsync(giftcard);
+            await _giftcardRepository.UpdateGiftcardAsync(giftcard);
         }
 
 

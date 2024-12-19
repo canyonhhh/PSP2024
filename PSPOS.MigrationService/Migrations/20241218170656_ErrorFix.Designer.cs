@@ -12,8 +12,8 @@ using PSPOS.ApiService.Data;
 namespace PSPOS.MigrationService.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20241216180218_NewM")]
-    partial class NewM
+    [Migration("20241218170656_ErrorFix")]
+    partial class ErrorFix
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -474,9 +474,6 @@ namespace PSPOS.MigrationService.Migrations
                     b.Property<Guid>("EmployeeId")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("Interval")
-                        .HasColumnType("integer");
-
                     b.Property<string>("Name")
                         .HasColumnType("text");
 
@@ -677,8 +674,8 @@ namespace PSPOS.MigrationService.Migrations
                     b.Property<string>("CustomerPhone")
                         .HasColumnType("text");
 
-                    b.Property<string>("Duration")
-                        .HasColumnType("text");
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid");
 
                     b.Property<Guid>("ServiceId")
                         .HasColumnType("uuid");

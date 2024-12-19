@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace PSPOS.MigrationService.Migrations
 {
     /// <inheritdoc />
-    public partial class NewM : Migration
+    public partial class ErrorFix : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -242,9 +242,9 @@ namespace PSPOS.MigrationService.Migrations
                     CustomerEmail = table.Column<string>(type: "text", nullable: true),
                     CustomerPhone = table.Column<string>(type: "text", nullable: true),
                     AppointmentTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    Duration = table.Column<string>(type: "text", nullable: true),
                     Status = table.Column<int>(type: "integer", nullable: false),
                     ServiceId = table.Column<Guid>(type: "uuid", nullable: false),
+                    OrderId = table.Column<Guid>(type: "uuid", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedBy = table.Column<Guid>(type: "uuid", nullable: false),
@@ -281,7 +281,6 @@ namespace PSPOS.MigrationService.Migrations
                     Name = table.Column<string>(type: "text", nullable: true),
                     Description = table.Column<string>(type: "text", nullable: true),
                     Price = table.Column<decimal>(type: "numeric", nullable: false),
-                    Interval = table.Column<int>(type: "integer", nullable: false),
                     EmployeeId = table.Column<Guid>(type: "uuid", nullable: false),
                     Duration = table.Column<TimeSpan>(type: "interval", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),

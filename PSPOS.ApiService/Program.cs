@@ -37,6 +37,9 @@ builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IProdAndServRepository, ProdAndServRepository>();
 builder.Services.AddScoped<IProdAndServService, ProdAndServService>();
 
+builder.Services.AddScoped<IGiftcardRepository, GiftcardRepository>();
+builder.Services.AddScoped<IGiftcardService, GiftcardService>();
+
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 
 builder.Services.AddAutoMapper(typeof(MappingProfile));

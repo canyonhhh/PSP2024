@@ -202,7 +202,14 @@ else
     {
         try
         {
+            var existingDiscount = discounts?.FirstOrDefault(t =>
+            t.ProductOrServiceGroupId == newDiscount.ProductOrServiceGroupId);
 
+            if (existingDiscount != null)
+            {
+                Message = "Error: A discount with the same Product Group already exists.";
+                return;
+            }
             var businessIdClaim = (await AuthenticationStateProvider.GetAuthenticationStateAsync())
                 .User?.FindFirst("businessId")?.Value;
 
@@ -243,6 +250,15 @@ else
     {
         try
         {
+            var existingDiscount = discounts?.FirstOrDefault(t =>
+                t.ProductOrServiceGroupId == editDiscount.ProductOrServiceGroupId &&
+            t.Id != editDiscount.Id);
+
+            if (existingDiscount != null)
+            {
+                Message = "Error: A discount with the same Product Group already exists.";
+                return;
+            }
             var response = await Http.PutAsJsonAsync($"api/discounts/{editDiscount.Id}", editDiscount);
             if (response.IsSuccessStatusCode)
             {
