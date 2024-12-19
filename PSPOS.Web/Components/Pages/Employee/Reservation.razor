@@ -90,21 +90,39 @@ else
                     <td>@reservation.CustomerEmail</td>
                     <td>@reservation.CustomerPhone</td>
                     <td>@reservation.AppointmentTime.ToString("g")</td>
-                    <td>@((services != null && services.Any()) 
-                            ? services.FirstOrDefault(s => s.Id == reservation.ServiceId)?.Name ?? "Unknown" 
-                            : "Unknown")</td>
-                    <td>@reservation.Status</td>
-                    @if (reservation.Status == ReservationStatus.Open)
-                    {
                     <td>
-                        <button class="btn btn-warning btn-sm me-2" @onclick="() => OpenEditPopup(reservation)">Edit</button>
-                        <button class="btn btn-danger btn-sm" @onclick="() => DeleteReservation(reservation.Id)">Delete</button>
+                        @((services != null && services.Any())
+                            ? services.FirstOrDefault(s => s.Id == reservation.ServiceId)?.Name ?? "Unknown"
+                            : "Unknown")
                     </td>
-                    }
-                    else
-                    {
-                    <td></td>
-                    }
+                    <td>
+                        @switch (reservation.Status)
+                        {
+                            case ReservationStatus.Open:
+                                <span class="badge bg-success">@reservation.Status</span>
+                                break;
+                            case ReservationStatus.Closed:
+                                <span class="badge bg-secondary">@reservation.Status</span>
+                                break;
+                            case ReservationStatus.Cancelled:
+                                <span class="badge bg-danger">@reservation.Status</span>
+                                break;
+                            default:
+                                <span>@reservation.Status</span>
+                                break;
+                        }
+                    </td>
+                    <td>
+                        @if (reservation.Status == ReservationStatus.Open)
+                        {
+                            <button class="btn btn-warning btn-sm me-2" @onclick="() => OpenEditPopup(reservation)">Edit</button>
+                            <button class="btn btn-danger btn-sm" @onclick="() => DeleteReservation(reservation.Id)">Delete</button>
+                        }
+                        else
+                        {
+                            <span class="text-muted"></span>
+                        }
+                    </td>
                 </tr>
             }
         </tbody>
@@ -124,36 +142,36 @@ else
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Customer First Name</label>
-                        <input class="form-control" @bind="editReservation.CustomerFirstName" />
+                        <input class="form-control" @bind="editReservation.CustomerFirstName" disabled="@IsEditDisabled" />
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Customer Last Name</label>
-                        <input class="form-control" @bind="editReservation.CustomerLastName" />
+                        <input class="form-control" @bind="editReservation.CustomerLastName" disabled="@IsEditDisabled" />
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Customer Email</label>
-                        <input type="email" class="form-control" @bind="editReservation.CustomerEmail" />
+                        <input type="email" class="form-control" @bind="editReservation.CustomerEmail" disabled="@IsEditDisabled" />
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Customer Phone</label>
-                        <input class="form-control" @bind="editReservation.CustomerPhone" />
+                        <input class="form-control" @bind="editReservation.CustomerPhone" disabled="@IsEditDisabled" />
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Service</label>
-                        <select class="form-select" @onchange="OnServiceSelected">
+                        <select class="form-select" @onchange="OnServiceSelected" disabled="@IsEditDisabled">
                             <option value="@Guid.Empty">Select a Service</option>
                             @if (services != null)
                             {
                                 @foreach (var service in services)
                                 {
-                                    <option value="@service.Id">@service.Name</option>
+                                    <option value="@service.Id" selected="@service.Id == editReservation.ServiceId">@service.Name</option>
                                 }
                             }
                         </select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Appointment Time</label>
-                        <select class="form-select" @bind="editReservation.AppointmentTime">
+                        <select class="form-select" @bind="editReservation.AppointmentTime" disabled="@IsEditDisabled">
                             <option value="">Select a Time Slot</option>
                             @foreach (var time in availableTimes ?? new List<AvailableTimeDto>())
                             {
@@ -163,7 +181,7 @@ else
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Status</label>
-                        <select class="form-select" @bind="editReservation.Status">
+                        <select class="form-select" @bind="editReservation.Status" disabled="@IsEditDisabled">
                             @foreach (var status in Enum.GetValues<ReservationStatus>())
                             {
                                 <option value="@status">@status</option>
@@ -173,7 +191,10 @@ else
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" @onclick="CloseEditPopup">Close</button>
-                    <button type="button" class="btn btn-primary" @onclick="SaveEditReservation">Save Changes</button>
+                    @if (!IsEditDisabled)
+                    {
+                        <button type="button" class="btn btn-primary" @onclick="SaveEditReservation">Save Changes</button>
+                    }
                 </div>
             </div>
         </div>
@@ -202,6 +223,8 @@ else
 
     private Guid currentUserId;
     private Guid currentBusinessId;
+
+    private bool IsEditDisabled => editReservation.Status != ReservationStatus.Open;
 
     protected override async Task OnInitializedAsync()
     {
@@ -238,7 +261,14 @@ else
         if (Guid.TryParse(e.Value?.ToString(), out var selectedId))
         {
             selectedServiceId = selectedId;
-            newReservation.ServiceId = selectedId;
+            if (isEditPopupVisible)
+            {
+                editReservation.ServiceId = selectedId;
+            }
+            else
+            {
+                newReservation.ServiceId = selectedId;
+            }
             await LoadAvailableTimes();
         }
     }
@@ -287,14 +317,25 @@ else
     {
         try
         {
-            // order
-            var order = new OrderDTO
+            if (selectedServiceId == Guid.Empty)
             {
-                businessId = currentBusinessId,
-                currency = "Eur",
-                status = OrderStatus.Open.ToString(),
-		createdBy = currentUserId
-            };
+                Message = "Please select a service.";
+                return;
+            }
+
+            if (newReservation.AppointmentTime == default)
+            {
+                Message = "Please select an appointment time.";
+                return;
+            }
+
+            var order = new OrderDTO
+                {
+                    businessId = currentBusinessId,
+                    currency = "EUR",
+                    status = ReservationStatus.Open.ToString(),
+                    createdBy = currentUserId
+                };
 
             var orderResponse = await Http.PostAsJsonAsync("orders", order);
 
@@ -313,7 +354,6 @@ else
 
             var orderId = Guid.Parse(orderLocation.Split('/').Last());
 
-            // reservation
             newReservation.Status = ReservationStatus.Open;
             newReservation.OrderId = orderId;
             var reservationResponse = await Http.PostAsJsonAsync("reservations", newReservation);
@@ -324,15 +364,14 @@ else
                 return;
             }
 
-            // order item
             var orderItem = new OrderItemDTO
-            {
-                type = "Service",
-                price = services!.First(s => s.Id == newReservation.ServiceId).Price,
-                quantity = 1,
-                orderId = orderId,
-                serviceId = newReservation.ServiceId
-            };
+                {
+                    type = "Service",
+                    price = services!.First(s => s.Id == newReservation.ServiceId).Price,
+                    quantity = 1,
+                    orderId = orderId,
+                    serviceId = newReservation.ServiceId
+                };
 
             var orderItemResponse = await Http.PostAsJsonAsync($"orders/{orderId}/items", orderItem);
 
@@ -357,6 +396,12 @@ else
 
     private async Task OpenEditPopup(ReservationDTO reservation)
     {
+        if (reservation.Status != ReservationStatus.Open)
+        {
+            Message = "Only open reservations can be edited.";
+            return;
+        }
+
         editReservation = reservation;
         selectedServiceId = reservation.ServiceId;
         isEditPopupVisible = true;
@@ -367,6 +412,12 @@ else
     {
         try
         {
+            if (editReservation.Status != ReservationStatus.Open)
+            {
+                Message = "Only open reservations can be edited.";
+                return;
+            }
+
             var response = await Http.PutAsJsonAsync($"reservations/{editReservation.Id}", editReservation);
             if (response.IsSuccessStatusCode)
             {
@@ -411,6 +462,12 @@ else
                 return;
             }
 
+            if (reservation.Status != ReservationStatus.Open)
+            {
+                Message = "Only open reservations can be deleted.";
+                return;
+            }
+
             var response = await Http.DeleteAsync($"orders/{reservation.OrderId}");
             if (!response.IsSuccessStatusCode)
             {
@@ -441,5 +498,7 @@ else
     {
         public List<T>? Items { get; set; }
         public int TotalCount { get; set; }
+        public int TotalPages { get; set; }
+        public int CurrentPage { get; set; }
     }
 }
