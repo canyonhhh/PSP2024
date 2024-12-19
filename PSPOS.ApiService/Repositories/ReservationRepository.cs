@@ -93,21 +93,37 @@ namespace PSPOS.ApiService.Repositories
         }
 
         public async Task<PaginatedResult<AvailableTimeDto>> GetAvailableTimesAsync(
-            Guid serviceId,
-            DateTime? from,
-            DateTime? to,
-            int page,
-            int pageSize)
+     Guid serviceId,
+     DateTime? from,
+     DateTime? to,
+     int page,
+     int pageSize)
         {
-            var service = await _context.Services.FindAsync(serviceId);
-            if (service == null)
+            var primaryService = await _context.Services
+                .Where(s => s.Id == serviceId)
+                .Select(s => new { s.Id, s.EmployeeId, s.Duration })
+                .FirstOrDefaultAsync();
+
+            if (primaryService == null)
                 throw new ArgumentException($"Service with ID {serviceId} not found.");
 
-            var duration = service.Duration;
+
+            var duration = primaryService.Duration;
+            var employeeId = primaryService.EmployeeId;
+
+            var servicesForEmployee = await _context.Services
+                .Where(s => s.EmployeeId == employeeId)
+                .Select(s => s.Id)
+                .ToListAsync();
+
+
             var startDate = from ?? DateTime.Today;
             var endDate = to ?? startDate.AddDays(7);
+
             var existingReservations = await _context.Reservations
-                .Where(r => r.ServiceId == serviceId && r.AppointmentTime >= startDate && r.AppointmentTime <= endDate)
+                .Where(r => servicesForEmployee.Contains(r.ServiceId)
+                    && r.AppointmentTime >= startDate
+                    && r.AppointmentTime <= endDate)
                 .ToListAsync();
 
             var availableTimes = new List<AvailableTimeDto>();

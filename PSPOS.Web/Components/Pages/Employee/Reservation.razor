@@ -249,7 +249,7 @@ else
 
         try
         {
-            var url = $"reservations/free?serviceId={selectedServiceId}&page=1&pageSize=10";
+            var url = $"reservations/free?serviceId={selectedServiceId}&page=1&pageSize=200";
             var result = await Http.GetFromJsonAsync<PaginatedResult<AvailableTimeDto>>(url);
             availableTimes = result?.Items ?? new List<AvailableTimeDto>();
         }
