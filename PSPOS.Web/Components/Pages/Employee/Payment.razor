@@ -296,6 +296,12 @@ else
         }
     }
 
+    private decimal RoundUp(decimal value, int decimals)
+    {
+        decimal multiplier = (decimal)Math.Pow(10, decimals);
+        return Math.Ceiling(value * multiplier) / multiplier;
+    }
+
     private void CalculateTotalAmount()
     {
         decimal subtotal = OrderItems
@@ -315,7 +321,7 @@ else
 
         if (subtotal < 0) subtotal = 0;
 
-        TotalAmount = subtotal;
+        TotalAmount = RoundUp(subtotal, 2);
     }
 
     private async Task LoadOrderDetails()
@@ -445,6 +451,8 @@ else
             if (sumOfSelected < 0)
                 sumOfSelected = 0;
 
+            sumOfSelected = RoundUp(sumOfSelected, 2);
+
             switch (SelectedPaymentMethod)
             {
                 case "Cash":
@@ -464,12 +472,12 @@ else
 
                     decimal change = PaymentAmount - sumOfSelected;
 
-                    ChangeAmount = change > 0 ? change : 0;
+                    ChangeAmount = change > 0 ? RoundUp(change, 2) : 0;
 
                     await SendTransactionToServer(selectedItems, paidByCash: sumOfSelected);
 
-                    SuccessMessage = change > 0
-                        ? $"Payment accepted. Give back change: {change.ToString("C", GetCultureInfo(OrderDetails?.currency))}."
+                    SuccessMessage = ChangeAmount > 0
+                        ? $"Payment accepted. Give back change: {ChangeAmount.ToString("C", GetCultureInfo(OrderDetails?.currency))}."
                         : "Payment accepted.";
 
                     await UpdateReservationStatusAsync();
