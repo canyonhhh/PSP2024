@@ -1,6 +1,8 @@
+using MediatR;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using PSPOS.ApiService.Data;
+using PSPOS.ApiService.Events.Handlers;
 using PSPOS.ApiService.Repositories;
 using PSPOS.ApiService.Repositories.Interfaces;
 using PSPOS.ApiService.Services;
@@ -42,10 +44,15 @@ builder.Services.AddScoped<IGiftcardService, GiftcardService>();
 
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 
+builder.Services.AddScoped<ISmsService, TwilioSmsService>();
+
 builder.Services.AddAutoMapper(typeof(MappingProfile));
 
 builder.Services.AddControllers();
 builder.Services.AddProblemDetails();
+
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(SendSmsOnReservationCreatedHandler).Assembly));
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(SendSmsOnReservationModificationHandler).Assembly));
 
 var jwtKey = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? throw new Exception("Jwt:Key is missing"));
 
