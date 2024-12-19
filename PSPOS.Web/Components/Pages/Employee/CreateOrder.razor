@@ -56,6 +56,13 @@
                         </select>
                     </div>
                 }
+                else
+                {
+                    <div class="form-group mb-3">
+                        <label>Available Stock:</label>
+                        <p>@GetSelectedTopProductStock()</p>
+                    </div>
+                }
 
                 <div class="form-group mb-3">
                     <label for="quantity">Quantity</label>
@@ -340,6 +347,12 @@
             }
         }
 
+        if (newOrderItem.Quantity > selectedItem.StockQuantity)
+        {
+            OrderItemErrorMessage = $"Cannot add {newOrderItem.Quantity} items. Only {selectedItem.StockQuantity} available in stock.";
+            return;
+        }
+
         var orderItemDTO = new OrderItemDTO
             {
                 orderId = CreatedOrderId,
@@ -359,6 +372,7 @@
                 newOrderItem = new NewOrderItemDTO();
                 selectedSubProductId = Guid.Empty;
                 await LoadOrderItems();
+                await LoadStockItems();
             }
             else
             {
@@ -370,6 +384,18 @@
         {
             OrderItemErrorMessage = "An error occurred while adding the order item.";
         }
+    }
+
+    private string GetSelectedTopProductStock()
+    {
+        var selectedProduct = StockItems.FirstOrDefault(s => s.Id == selectedTopProductId);
+        if (selectedProduct != null)
+        {
+            return selectedProduct.StockQuantity > 0
+                ? $"{selectedProduct.StockQuantity} in stock"
+                : "Out of stock";
+        }
+        return "Stock information not available";
     }
 
     public class NewOrderItemDTO
