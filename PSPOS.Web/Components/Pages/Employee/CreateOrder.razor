@@ -318,6 +318,27 @@
             OrderItemErrorMessage = "Quantity must be at least 1.";
             return;
         }
+        var existingItem = OrderItems.FirstOrDefault(item => item.productId == selectedItem.Id);
+
+        if (existingItem != null)
+        {
+            // If the item already exists, update its quantity
+            existingItem.quantity += newOrderItem.Quantity;
+
+            var updateResponse = await Http.PutAsJsonAsync($"orders/{CreatedOrderId}/items/{existingItem.Id}", existingItem);
+            if (updateResponse.IsSuccessStatusCode)
+            {
+                IsOrderItemAdded = true;
+                await LoadOrderItems(); // Refresh order items list
+                return;
+            }
+            else
+            {
+                var errorContent = await updateResponse.Content.ReadAsStringAsync();
+                OrderItemErrorMessage = $"Error updating item quantity: {updateResponse.ReasonPhrase} - {errorContent}";
+                return;
+            }
+        }
 
         var orderItemDTO = new OrderItemDTO
             {
