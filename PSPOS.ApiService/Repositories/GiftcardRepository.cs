@@ -29,6 +29,17 @@ namespace PSPOS.ApiService.Repositories
                 .Take(pageSize)
                 .ToListAsync();
         }
+        public async Task<Giftcard?> GetGiftCardByCode(string giftcardCode)
+        {
+            if (string.IsNullOrWhiteSpace(giftcardCode))
+                throw new ArgumentException("Gift card code cannot be null or empty.", nameof(giftcardCode));
+
+            // Query to find the gift card object with the matching code
+            var giftCard = await _context.GiftCards
+                .FirstOrDefaultAsync(gc => gc.Code == giftcardCode);
+
+            return giftCard; // Returns null if no matching gift card is found
+        }
 
         public async Task<Giftcard?> GetGiftcardByIdAsync(Guid giftcardId)
         {

@@ -1,4 +1,5 @@
 ﻿using PSPOS.ServiceDefaults.Models;
+using System.Threading.Tasks;
 
 namespace PSPOS.ApiService.Repositories.Interfaces
 {
@@ -9,5 +10,6 @@ namespace PSPOS.ApiService.Repositories.Interfaces
         Task AddGiftcardAsync(Giftcard giftcard);
         Task UpdateGiftcardAsync(Giftcard giftcard);
         Task DeleteGiftcardAsync(Guid giftcardId);
+        Task<Giftcard?> GetGiftCardByCode(string giftcardCode);
     }
 }
