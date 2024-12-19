@@ -7,7 +7,7 @@ using PSPOS.ServiceDefaults.Models;
 namespace PSPOS.ApiService.Controllers
 {
     [ApiController]
-    [Route("users")]
+    [Route("api/users")]
     public class UserController : ControllerBase
     {
         private readonly IUserService _userService;

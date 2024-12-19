@@ -129,7 +129,7 @@ else
     {
         try
         {
-            employees = await Http.GetFromJsonAsync<List<Employee>>($"users?role=2&businessId={CurrentBusinessId}") ?? [];
+            employees = await Http.GetFromJsonAsync<List<Employee>>($"api/users?role=2&businessId={CurrentBusinessId}") ?? [];
         }
         catch (Exception ex)
         {

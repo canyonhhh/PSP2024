@@ -182,7 +182,7 @@ private List<Tax>? taxes;
     {
         try
         {
-            var response = await Http.GetAsync("tax");
+            var response = await Http.GetAsync("api/tax");
             if (response.IsSuccessStatusCode)
             {
                 taxes = await response.Content.ReadFromJsonAsync<List<Tax>>() ?? new List<Tax>();
@@ -220,7 +220,7 @@ private List<Tax>? taxes;
             }
 
             // Step 3: Create the new tax
-            var response = await Http.PostAsJsonAsync("tax", newTax);
+            var response = await Http.PostAsJsonAsync("api/tax", newTax);
             if (response.IsSuccessStatusCode)
             {
                 Message = "Tax created successfully.";
@@ -269,7 +269,7 @@ private async Task SaveEditTax()
                 return;
             }
 
-        var response = await Http.PutAsJsonAsync($"tax/{editTax.Id}", editTax);
+        var response = await Http.PutAsJsonAsync($"api/tax/{editTax.Id}", editTax);
         if (response.IsSuccessStatusCode)
         {
             Message = "Tax updated successfully.";
@@ -287,7 +287,7 @@ private async Task DeleteTax(Guid taxId)
 {
     try
     {
-        var response = await Http.DeleteAsync($"tax/{taxId}");
+        var response = await Http.DeleteAsync($"api/tax/{taxId}");
         if (response.IsSuccessStatusCode)
         {
             Message = "Tax deleted successfully.";

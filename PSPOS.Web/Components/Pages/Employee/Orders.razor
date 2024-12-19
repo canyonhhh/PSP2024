@@ -140,7 +140,7 @@ else
                     tip = fullOrder.Tip
                 };
 
-            var response = await Http.PutAsJsonAsync($"orders/{orderId}", refundOrderDTO);
+            var response = await Http.PutAsJsonAsync($"api/orders/{orderId}", refundOrderDTO);
 
             if (response.IsSuccessStatusCode)
             {
@@ -164,7 +164,7 @@ else
     {
         try
         {
-            var allOrders = await Http.GetFromJsonAsync<List<OrderSchema>>("orders");
+            var allOrders = await Http.GetFromJsonAsync<List<OrderSchema>>("api/orders");
 
             if (allOrders != null)
             {
@@ -185,7 +185,7 @@ else
     {
         try
         {
-            var response = await Http.DeleteAsync($"orders/{orderId}");
+            var response = await Http.DeleteAsync($"api/orders/{orderId}");
             if (response.IsSuccessStatusCode && orders != null)
             {
                 orders.RemoveAll(o => o.Id == orderId);

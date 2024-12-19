@@ -131,7 +131,7 @@ else
     {
         try
         {
-            OrderDetails = await Http.GetFromJsonAsync<OrderSchema>($"/orders/{OrderId}");
+            OrderDetails = await Http.GetFromJsonAsync<OrderSchema>($"api/orders/{OrderId}");
             if (OrderDetails == null)
             {
                 ErrorMessage = "Order not found.";
@@ -147,7 +147,7 @@ else
     {
         try
         {
-            var allItems = await Http.GetFromJsonAsync<List<OrderItemSchema>>($"orders/{OrderId}/items") ?? new List<OrderItemSchema>();
+            var allItems = await Http.GetFromJsonAsync<List<OrderItemSchema>>($"api/orders/{OrderId}/items") ?? new List<OrderItemSchema>();
             OrderItems = allItems.Where(item => item.TransactionId == Guid.Empty).ToList();
             IsOrderPaid = !OrderItems.Any();
 

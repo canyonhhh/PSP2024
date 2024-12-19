@@ -324,7 +324,7 @@ else
                 Password = newAdmin.Password
             };
 
-            var response = await Http.PostAsJsonAsync("users", userDto);
+            var response = await Http.PostAsJsonAsync("api/users", userDto);
             if (response.IsSuccessStatusCode)
             {
                 Message = "Business admin added successfully.";
