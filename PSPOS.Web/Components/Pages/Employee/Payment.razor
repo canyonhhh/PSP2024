@@ -78,9 +78,7 @@ else if (OrderItems.Any())
         <label class="ms-2">No Discount</label>
     </div>
 
-    <!-- Arrange Discount Selection and Tip Input Side by Side -->
     <div class="row mb-4">
-        <!-- Discount Selection Column -->
         @if (!NoDiscountSelected)
         {
             <div class="col-md-6 mb-3">
@@ -102,7 +100,6 @@ else if (OrderItems.Any())
             </div>
         }
 
-        <!-- Tip Input Column -->
         <div class="col-md-6 mb-3">
             <label class="fw-bold">Tip: <small>(optional)</small></label>
             <div class="d-flex align-items-center">
@@ -145,7 +142,18 @@ else if (OrderItems.Any())
 }
 else
 {
-    <div class="alert alert-info">All items in this order have been paid.</div>
+    <div class="alert alert-info">
+        <h4>Payment Complete</h4>
+        <p>All items in this order have been paid.</p>
+        @if (ChangeAmount > 0)
+        {
+            <p><strong>Change to give back:</strong> @ChangeAmount.ToString("C", GetCultureInfo(OrderDetails?.currency))</p>
+        }
+        else
+        {
+            <p>No change to give back.</p>
+        }
+    </div>
     <button class="btn btn-secondary" @onclick="GoBack">Back to orders</button>
 }
 
@@ -179,6 +187,8 @@ else
     private List<Guid> SelectedItemIds = new();
     private bool NoDiscountSelected = false;
     private bool TipsDisabled => !NoDiscountSelected && SelectedOrderDiscount == null;
+
+    private decimal ChangeAmount { get; set; } = 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -454,14 +464,14 @@ else
 
                     decimal change = PaymentAmount - sumOfSelected;
 
+                    ChangeAmount = change > 0 ? change : 0;
+
                     await SendTransactionToServer(selectedItems, paidByCash: sumOfSelected);
 
-                    ErrorMessage = string.Empty;
                     SuccessMessage = change > 0
                         ? $"Payment accepted. Give back change: {change.ToString("C", GetCultureInfo(OrderDetails?.currency))}."
                         : "Payment accepted.";
 
-                    // Update Reservation Status to Closed
                     await UpdateReservationStatusAsync();
 
                     break;
@@ -470,7 +480,8 @@ else
                     break;
                 case "GiftCard":
                     await SendTransactionToServer(selectedItems, paidByGiftcard: sumOfSelected);
-                    // Update Reservation Status to Closed
+                    ChangeAmount = 0;
+                    SuccessMessage = "Payment accepted.";
                     await UpdateReservationStatusAsync();
                     break;
                 default:
@@ -501,7 +512,8 @@ else
             if (result.Success && result.Id != null)
             {
                 await SendTransactionToServer(selectedItems, paidByBankcard: sumOfSelected, externalTransactionId: result.Id);
-                // Update Reservation Status to Closed
+                ChangeAmount = 0;
+                SuccessMessage = "Payment accepted.";
                 await UpdateReservationStatusAsync();
             }
             else
@@ -521,38 +533,26 @@ else
     {
         try
         {
-            // Fetch all reservations to find the one associated with the current OrderId
-            var allReservations = await Http.GetFromJsonAsync<List<ReservationDTO>>("reservations");
-
-            var reservation = allReservations?.FirstOrDefault(r => r.OrderId == OrderId);
-
-            if (reservation == null)
+            var client = ClientFactory.CreateClient("ApiClient");
+            var response = await client.GetFromJsonAsync<ReservationDTO>($"reservations/order/{OrderId}");
+            if (response != null)
             {
-                ErrorMessage = "Associated reservation not found.";
-                return;
-            }
-
-            // Update the reservation status to Closed (1)
-            reservation.Status = ReservationStatus.Closed;
-
-            var updateResponse = await Http.PutAsJsonAsync($"reservations/{reservation.Id}", reservation);
-
-            if (updateResponse.IsSuccessStatusCode)
-            {
-                SuccessMessage += " Reservation status updated to Closed.";
-                // Optionally, refresh reservations or notify the user
-            }
-            else
-            {
-                var errorMessage = await updateResponse.Content.ReadAsStringAsync();
-                ErrorMessage = $"Payment succeeded, but failed to update reservation status: {errorMessage}";
-                SuccessMessage = string.Empty;
+                response.Status = ReservationStatus.Closed;
+                var updateResponse = await client.PutAsJsonAsync($"reservations/{response.Id}", response);
+                if (updateResponse.IsSuccessStatusCode)
+                {
+                    SuccessMessage += " Reservation status updated to Closed.";
+                }
+                else
+                {
+                    var errorMessage = await updateResponse.Content.ReadAsStringAsync();
+                    ErrorMessage = $"Payment succeeded, but failed to update reservation status: {errorMessage}";
+                    SuccessMessage = string.Empty;
+                }
             }
         }
-        catch (Exception ex)
+        catch
         {
-            ErrorMessage = $"Payment succeeded, but error updating reservation status: {ex.Message}";
-            SuccessMessage = string.Empty;
         }
     }
 
@@ -639,6 +639,19 @@ else
         public string? status { get; set; }
         public string? currency { get; set; }
         public Guid createdBy { get; set; }
+    }
+
+    public class ReservationDTO
+    {
+        public Guid Id { get; set; }
+        public Guid OrderId { get; set; }
+        public ReservationStatus Status { get; set; }
+    }
+
+    public enum ReservationStatus
+    {
+        Open,
+        Closed
     }
 
     private void GoBack()
