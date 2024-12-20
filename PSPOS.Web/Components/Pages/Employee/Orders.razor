@@ -149,9 +149,9 @@ else
                 foreach (var transaction in transactions)
                 {
 
-                    var transactionResponse = Http.GetFromJsonAsync<ExternalTransactionResponse>($"api/orders/{orderId}/transactions/{transaction.Id}/external");
+                    var transactionResponse = await Http.GetFromJsonAsync<ExternalTransactionResponse>($"api/orders/{orderId}/transactions/{transaction.Id}/external");
 
-                    var externalId = transactionResponse.Result.ExternalTransactionId;
+                    var externalId = transactionResponse?.ExternalTransactionId;
 
                     if (!string.IsNullOrEmpty(externalId))
                     {
