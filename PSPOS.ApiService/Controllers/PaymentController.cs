@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Serilog;
 using Stripe;
 
 namespace PSPOS.ApiService.Controllers;
@@ -11,6 +12,7 @@ public class PaymentController : ControllerBase
     [HttpPost("create-intent")]
     public IActionResult CreatePaymentIntent([FromBody] CreatePaymentIntentRequest request)
     {
+        Log.Information("Creating payment intent for amount: {Amount}, currency: {Currency}", request.Amount, request.Currency);
         try
         {
             var paymentIntentService = new PaymentIntentService();
@@ -22,10 +24,12 @@ public class PaymentController : ControllerBase
             };
 
             var paymentIntent = paymentIntentService.Create(options);
+            Log.Information("Payment intent created successfully with client secret: {ClientSecret}", paymentIntent.ClientSecret);
             return Ok(new { clientSecret = paymentIntent.ClientSecret });
         }
         catch (StripeException ex)
         {
+            Log.Error("StripeException occurred while creating payment intent. Error: {Message}", ex.Message);
             return BadRequest(new { success = false, message = ex.Message });
         }
     }
@@ -33,6 +37,7 @@ public class PaymentController : ControllerBase
     [HttpPost("process")]
     public IActionResult ProcessPayment([FromBody] ProcessPaymentRequest request)
     {
+        Log.Information("Processing payment for PaymentIntentId: {PaymentIntentId}", request.PaymentIntentId);
         try
         {
             var paymentIntentService = new PaymentIntentService();
@@ -43,12 +48,15 @@ public class PaymentController : ControllerBase
 
             if (paymentIntent.Status == "succeeded")
             {
+                Log.Information("Payment succeeded for PaymentIntentId: {PaymentIntentId}", request.PaymentIntentId);
                 return Ok(new { success = true, message = "Payment successful!" });
             }
+            Log.Warning("Payment failed for PaymentIntentId: {PaymentIntentId}", request.PaymentIntentId);
             return BadRequest(new { success = false, message = "Payment failed." });
         }
         catch (StripeException ex)
         {
+            Log.Error("StripeException occurred while processing payment. Error: {Message}", ex.Message);
             return BadRequest(new { success = false, message = ex.Message });
         }
     }
