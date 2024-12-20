@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using PSPOS.ApiService.Services.Interfaces;
 using PSPOS.ServiceDefaults.DTOs;
 using PSPOS.ServiceDefaults.Models;
+using Serilog;
 
 namespace PSPOS.ApiService.Controllers
 {
@@ -27,12 +28,15 @@ namespace PSPOS.ApiService.Controllers
             [FromQuery] int limit = 10,
             [FromQuery] int skip = 0)
         {
+            Log.Information("Fetching users with role: {Role}, name: {Name}, surname: {Surname}, businessId: {BusinessId}, limit: {Limit}, skip: {Skip}", role, name, surname, businessId, limit, skip);
             if (limit <= 0 || skip < 0)
             {
+                Log.Warning("Invalid pagination parameters: limit={Limit}, skip={Skip}", limit, skip);
                 return BadRequest("Invalid pagination parameters.");
             }
 
             var users = await _userService.GetAllUsersAsync(role, name, surname, limit, skip, businessId);
+            Log.Information("Fetched {Count} users", users.Count());
 
             return Ok(users);
         }
@@ -41,12 +45,15 @@ namespace PSPOS.ApiService.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<User>> GetUserById(Guid id)
         {
+            Log.Information("Fetching user with ID: {Id}", id);
             var user = await _userService.GetUserByIdAsync(id);
             if (user == null)
             {
+                Log.Warning("User not found with ID: {Id}", id);
                 return NotFound(new { message = "User not found." });
             }
 
+            Log.Information("Fetched user with ID: {Id}", id);
             return Ok(user);
         }
 
@@ -54,12 +61,15 @@ namespace PSPOS.ApiService.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateUser([FromBody] UserDto userDto)
         {
+            Log.Information("Creating user with email: {Email}", userDto.Email);
             if (!ModelState.IsValid)
             {
+                Log.Warning("Invalid user data: {ModelState}", ModelState);
                 return BadRequest(ModelState);
             }
 
             await _userService.AddUserAsync(userDto);
+            Log.Information("User created with email: {Email}", userDto.Email);
 
             return StatusCode(201);
         }
@@ -68,18 +78,22 @@ namespace PSPOS.ApiService.Controllers
         [HttpPut("{id}")]
         public async Task<ActionResult> UpdateUser(Guid id, [FromBody] UserDto userDto)
         {
+            Log.Information("Updating user with ID: {Id}", id);
             if (!ModelState.IsValid)
             {
+                Log.Warning("Invalid user data: {ModelState}", ModelState);
                 return BadRequest(ModelState);
             }
 
             var existingUser = await _userService.GetUserByIdAsync(id);
             if (existingUser == null)
             {
+                Log.Warning("User not found with ID: {Id}", id);
                 return NotFound(new { message = "User not found." });
             }
 
             await _userService.UpdateUserAsync(id, userDto);
+            Log.Information("User updated with ID: {Id}", id);
             return Ok(new { message = "User updated successfully." });
         }
 
@@ -87,13 +101,16 @@ namespace PSPOS.ApiService.Controllers
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteUser(Guid id)
         {
+            Log.Information("Deleting user with ID: {Id}", id);
             var user = await _userService.GetUserByIdAsync(id);
             if (user == null)
             {
+                Log.Warning("User not found with ID: {Id}", id);
                 return NotFound(new { message = "User not found." });
             }
 
             await _userService.DeleteUserAsync(id);
+            Log.Information("User deleted with ID: {Id}", id);
             return NoContent();
         }
     }
