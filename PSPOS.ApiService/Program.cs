@@ -15,8 +15,10 @@ using TaxService = PSPOS.ApiService.Services.TaxService;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Idea - have logging closer to application root
+// \bin\Debug\net8.0
 var baseDir = AppContext.BaseDirectory;
-var logFilePath = Path.Combine(baseDir, $"logs_{DateTime.Now:yyyyMMdd}.txt");
+var logFilePath = Path.Combine(baseDir, "logs.txt");
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
