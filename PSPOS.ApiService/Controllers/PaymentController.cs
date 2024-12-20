@@ -8,6 +8,7 @@ namespace PSPOS.ApiService.Controllers;
 [Route("api/payment")]
 public class PaymentController : ControllerBase
 {
+
     [HttpPost("create-intent")]
     public IActionResult CreatePaymentIntent([FromBody] CreatePaymentIntentRequest request)
     {
@@ -17,7 +18,7 @@ public class PaymentController : ControllerBase
             var paymentIntentService = new PaymentIntentService();
             var options = new PaymentIntentCreateOptions
             {
-                Amount = (long)(request.Amount * 100),
+                Amount = (long)(request.Amount),
                 Currency = request.Currency,
                 PaymentMethodTypes = new List<string> { "card" }
             };
@@ -59,6 +60,28 @@ public class PaymentController : ControllerBase
             return BadRequest(new { success = false, message = ex.Message });
         }
     }
+
+
+
+    [HttpPost("refund")]
+    public IActionResult RefundPayment([FromBody] RefundRequest request)
+    {
+        try
+        {
+            var refundService = new RefundService();
+            var options = new RefundCreateOptions
+            {
+                PaymentIntent = request.ExternalTransactionId,
+            };
+
+            var refund = refundService.Create(options);
+            return Ok(new { success = true, message = "Refund successful!", refundId = refund.Id });
+        }
+        catch (StripeException ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+    }
 }
 
 public class CreatePaymentIntentRequest
@@ -71,4 +94,9 @@ public class ProcessPaymentRequest
 {
     public required string PaymentIntentId { get; set; }
     public required string PaymentMethodId { get; set; }
+}
+
+public class RefundRequest
+{
+    public required string ExternalTransactionId { get; set; }
 }

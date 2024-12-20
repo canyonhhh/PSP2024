@@ -216,6 +216,14 @@ public class OrderController : ControllerBase
         return Ok();
     }
 
+    [HttpGet("{orderId}/transactions/{transactionId}/external")]
+    public async Task<IActionResult> GetExternalPaymentId(Guid orderId, Guid transactionId)
+    {
+        var paymentId = await _orderService.GetExternalPaymentIdAsync(orderId, transactionId);
+
+        return Ok(new { externalTransactionId = paymentId });
+    }
+
     // GET: /orders/{orderId}/items
     [HttpGet("{orderId}/items")]
     [ProducesResponseType(typeof(IEnumerable<OrderItemSchema>), 200)]
@@ -306,6 +314,7 @@ public class OrderController : ControllerBase
         return Ok();
     }
 
+    // PUT: /orders/{orderId}
     [HttpPut("{orderId}")]
     [ProducesResponseType(typeof(OrderSchema), 200)]
     [ProducesResponseType(400)]
