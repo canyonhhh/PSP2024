@@ -47,7 +47,7 @@
                 {
                     <div class="form-group mb-3">
                         <label>Select Sub-Product</label>
-                        <select class="form-select" @bind="selectedSubProductId" required>
+                        <select class="form-select" @bind="selectedSubProductId">
                             <option value="">-- Select Sub-Product --</option>
                             @foreach (var product in FilteredSubProducts)
                             {
@@ -300,13 +300,8 @@
         }
 
         StockItem? selectedItem;
-        if (FilteredSubProducts.Any())
+        if (selectedSubProductId != Guid.Empty)
         {
-            if (selectedSubProductId == Guid.Empty)
-            {
-                OrderItemErrorMessage = "Please select a sub-product.";
-                return;
-            }
             selectedItem = StockItems.FirstOrDefault(s => s.Id == selectedSubProductId);
         }
         else
@@ -316,7 +311,7 @@
 
         if (selectedItem == null)
         {
-            OrderItemErrorMessage = "Selected product not found.";
+            OrderItemErrorMessage = "No product selected or product not found.";
             return;
         }
 
