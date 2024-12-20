@@ -182,7 +182,8 @@ else
         }
         catch (Exception ex)
         {
-            Message = $"Error loading discounts: {ex.Message}";
+            discounts = new List<Discount>();
+	    Console.WriteLine(ex);
         }
     }
     private async Task LoadProductGroups()
