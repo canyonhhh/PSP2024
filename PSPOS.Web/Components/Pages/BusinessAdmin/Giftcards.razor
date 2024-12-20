@@ -113,13 +113,22 @@ else
     {
         try
         {
-            giftcards = await Http.GetFromJsonAsync<List<Giftcard>>("api/giftcards");
+            var response = await Http.GetAsync("api/giftcards");
 
-	    if (giftcards == null)
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
                 giftcards = new List<Giftcard>();
                 return;
             }
+
+            giftcards = await response.Content.ReadFromJsonAsync<List<Giftcard>>();
+
+            if (giftcards == null)
+            {
+                giftcards = new List<Giftcard>();
+                return;
+            }
+
 
             var businessIdClaim = (await AuthenticationStateProvider.GetAuthenticationStateAsync())
                 .User?.FindFirst("businessId")?.Value;
