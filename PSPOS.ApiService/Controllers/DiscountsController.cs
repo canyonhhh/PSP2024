@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using PSPOS.ApiService.Services.Interfaces;
 using PSPOS.ServiceDefaults.Models;
+using Serilog;
 
 [ApiController]
 [Route("api/discounts")]
@@ -23,21 +24,31 @@ public class DiscountsController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10)
     {
-        if (page <= 0 || pageSize <= 0)
-            return BadRequest(new { Message = "Page and pageSize must be positive integers." });
+        try
+        {
+            if (page <= 0 || pageSize <= 0)
+                return BadRequest(new { Message = "Page and pageSize must be positive integers." });
 
-        if (from == null && !string.IsNullOrEmpty(from))
-            return BadRequest(new { Message = "Invalid 'from' date format. Use ISO 8601 (UTC)." });
+            if (from == null && !string.IsNullOrEmpty(from))
+                return BadRequest(new { Message = "Invalid 'from' date format. Use ISO 8601 (UTC)." });
 
-        if (to == null && !string.IsNullOrEmpty(to))
-            return BadRequest(new { Message = "Invalid 'to' date format. Use ISO 8601 (UTC)." });
+            if (to == null && !string.IsNullOrEmpty(to))
+                return BadRequest(new { Message = "Invalid 'to' date format. Use ISO 8601 (UTC)." });
 
-        var discounts = await _discountService.GetAllDiscountsAsync(null, null, page, pageSize);
+            var discounts = await _discountService.GetAllDiscountsAsync(null, null, page, pageSize);
 
-        if (discounts == null || !discounts.Any())
-            return NotFound(new { Message = "No discounts found for the specified criteria." });
+            if (discounts == null || !discounts.Any())
+                return NotFound(new { Message = "No discounts found for the specified criteria." });
 
-        return Ok(discounts);
+            Log.Information("Retrieved {Count} discounts", discounts.Count());
+
+            return Ok(discounts);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "An error occurred while getting discounts.");
+            return StatusCode(500, "Internal server error");
+        }
     }
 
     [HttpGet("{discountId:guid}")]
@@ -45,11 +56,23 @@ public class DiscountsController : ControllerBase
     [ProducesResponseType(404)]
     public async Task<ActionResult<Discount>> GetDiscountById(Guid discountId)
     {
-        var discounts = await _discountService.GetDiscountByIdAsync(discountId);
-        if (discounts == null)
-            return NotFound(new { Message = "Discount not found." });
+        try
+        {
+            var discount = await _discountService.GetDiscountByIdAsync(discountId);
+            if (discount == null)
+            {
+                Log.Information("Discount with ID {DiscountId} not found", discountId);
+                return NotFound(new { Message = "Discount not found." });
+            }
 
-        return Ok(discounts);
+            Log.Information("Retrieved discount with ID {DiscountId}", discountId);
+            return Ok(discount);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "An error occurred while getting discount by ID: {DiscountId}", discountId);
+            return StatusCode(500, "Internal server error");
+        }
     }
 
     [HttpPost]
@@ -60,9 +83,19 @@ public class DiscountsController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        await _discountService.AddDiscountAsync(discount);
-        return CreatedAtAction(nameof(GetDiscountById), new { discountId = discount.Id }, discount);
+        try
+        {
+            await _discountService.AddDiscountAsync(discount);
+            Log.Information("Created discount with ID {DiscountId}", discount.Id);
+            return CreatedAtAction(nameof(GetDiscountById), new { discountId = discount.Id }, discount);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "An error occurred while creating a discount.");
+            return StatusCode(500, "Internal server error");
+        }
     }
+
     [HttpPost("applied")]
     [ProducesResponseType(201)]
     [ProducesResponseType(400)]
@@ -71,8 +104,17 @@ public class DiscountsController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        await _discountService.AddAppliedDiscountAsync(discount);
-        return Ok(new { Message = "AppliedDiscount created successfully." });
+        try
+        {
+            await _discountService.AddAppliedDiscountAsync(discount);
+            Log.Information("Created applied discount with ID {DiscountId}", discount.Id);
+            return Ok(new { Message = "AppliedDiscount created successfully." });
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "An error occurred while creating an applied discount.");
+            return StatusCode(500, "Internal server error");
+        }
     }
 
     [HttpPut("{discountId:guid}")]
@@ -84,12 +126,24 @@ public class DiscountsController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        var existingDiscounts = await _discountService.GetDiscountByIdAsync(discountId);
-        if (existingDiscounts == null)
-            return NotFound(new { Message = "Discount not found." });
+        try
+        {
+            var existingDiscount = await _discountService.GetDiscountByIdAsync(discountId);
+            if (existingDiscount == null)
+            {
+                Log.Information("Discount with ID {DiscountId} not found for update", discountId);
+                return NotFound(new { Message = "Discount not found." });
+            }
 
-        await _discountService.UpdateDiscountAsync(discountId, discount);
-        return Ok(new { Message = "Discount updated successfully." });
+            await _discountService.UpdateDiscountAsync(discountId, discount);
+            Log.Information("Updated discount with ID {DiscountId}", discountId);
+            return Ok(new { Message = "Discount updated successfully." });
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "An error occurred while updating discount with ID: {DiscountId}", discountId);
+            return StatusCode(500, "Internal server error");
+        }
     }
 
     [HttpDelete("{discountId:guid}")]
@@ -97,12 +151,24 @@ public class DiscountsController : ControllerBase
     [ProducesResponseType(404)]
     public async Task<ActionResult> DeleteDiscount(Guid discountId)
     {
-        var existingDiscount = await _discountService.GetDiscountByIdAsync(discountId);
-        if (existingDiscount == null)
-            return NotFound(new { Message = "Discount not found." });
+        try
+        {
+            var existingDiscount = await _discountService.GetDiscountByIdAsync(discountId);
+            if (existingDiscount == null)
+            {
+                Log.Information("Discount with ID {DiscountId} not found for deletion", discountId);
+                return NotFound(new { Message = "Discount not found." });
+            }
 
-        await _discountService.DeleteDiscountAsync(discountId);
-        return NoContent();
+            await _discountService.DeleteDiscountAsync(discountId);
+            Log.Information("Deleted discount with ID {DiscountId}", discountId);
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "An error occurred while deleting discount with ID: {DiscountId}", discountId);
+            return StatusCode(500, "Internal server error");
+        }
     }
 
     [HttpPost("orders/{orderId:guid}/discount/{orderItemId:guid}")]
@@ -110,12 +176,23 @@ public class DiscountsController : ControllerBase
     [ProducesResponseType(404)]
     public async Task<ActionResult> ApplyDiscountToOrderItem(Guid orderId, Guid orderItemId, [FromQuery] Guid discountId)
     {
-        var discount = await _discountService.GetDiscountByIdAsync(discountId);
-        if (discount == null)
-            return NotFound(new { Message = "Discount not found." });
+        try
+        {
+            var discount = await _discountService.GetDiscountByIdAsync(discountId);
+            if (discount == null)
+            {
+                Log.Information("Discount with ID {DiscountId} not found", discountId);
+                return NotFound(new { Message = "Discount not found." });
+            }
 
-        await _discountService.ApplyDiscountToOrderItemAsync(orderId, orderItemId, discountId);
-        return Ok(new { Message = "Discount applied successfully." });
+            await _discountService.ApplyDiscountToOrderItemAsync(orderId, orderItemId, discountId);
+            Log.Information("Applied discount with ID {DiscountId} to order item {OrderItemId} in order {OrderId}", discountId, orderItemId, orderId);
+            return Ok(new { Message = "Discount applied successfully." });
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "An error occurred while applying discount with ID: {DiscountId} to order item {OrderItemId} in order {OrderId}", discountId, orderItemId, orderId);
+            return StatusCode(500, "Internal server error");
+        }
     }
-
 }

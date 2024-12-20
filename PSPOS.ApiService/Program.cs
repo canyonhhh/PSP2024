@@ -7,12 +7,25 @@ using PSPOS.ApiService.Repositories;
 using PSPOS.ApiService.Repositories.Interfaces;
 using PSPOS.ApiService.Services;
 using PSPOS.ApiService.Services.Interfaces;
+using Serilog;
 using Stripe;
 using System.Text;
 using DiscountService = PSPOS.ApiService.Services.DiscountService;
 using TaxService = PSPOS.ApiService.Services.TaxService;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Idea - have logging closer to application root
+// \bin\Debug\net8.0
+var baseDir = AppContext.BaseDirectory;
+var logFilePath = Path.Combine(baseDir, "PSPOS_LOGS.txt");
+
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .WriteTo.File(logFilePath,
+        rollingInterval: RollingInterval.Day,
+        rollOnFileSizeLimit: true)
+    .CreateLogger();
 
 builder.AddNpgsqlDbContext<AppDbContext>(connectionName: "postgresdb");
 
