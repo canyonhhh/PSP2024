@@ -23,6 +23,7 @@ public class OrderService : IOrderService
     {
         return await _orderRepository.GetOrderByIdAsync(id);
     }
+
     public async Task<Order?> UpdateOrderAsync(Guid orderId, OrderDTO orderDTO)
     {
         var order = await _orderRepository.GetOrderByIdAsync(orderId);
@@ -199,6 +200,16 @@ public class OrderService : IOrderService
         return await _orderRepository.GetTransactionByIdAsync(id);
     }
 
+    public async Task<String?> GetExternalPaymentIdAsync(Guid orderId, Guid transactionId)
+    {
+        var payment = (await _orderRepository.GetAllPaymentsOfTransactionAsync(transactionId)).FirstOrDefault();
+
+        if (payment == null)
+            throw new ArgumentException($"Transaction '{transactionId}' does not contain any payments.");
+
+        return payment.ExternalPaymentId;
+    }
+
     public async Task<TransactionSchema?> GetTransactionSchemaByIdAsync(Order order, Guid transactionId)
     {
         var transaction = await _orderRepository.GetTransactionByIdAsync(transactionId);
@@ -244,7 +255,6 @@ public class OrderService : IOrderService
                 Payment cashPayment = new(PaymentMethod.Cash, refundDTO.amount, order.OrderCurrency, String.Empty, refundTransaction.Id, Guid.Empty);
                 await _orderRepository.AddPaymentAsync(cashPayment);
                 break;
-                // TODO Case for Stripe platform refund
         }
 
         await _orderRepository.AddTransactionAsync(refundTransaction);

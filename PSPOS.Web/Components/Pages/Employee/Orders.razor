@@ -5,9 +5,11 @@
 @inject IJSRuntime JS
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Authorization
+@using System.Text;
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
 @using PSPOS.ServiceDefaults.DTOs
+@using PSPOS.ServiceDefaults.Models
 
 <h2>Order Management</h2>
 
@@ -140,6 +142,35 @@ else
                     tip = fullOrder.Tip
                 };
 
+            var transactions = await Http.GetFromJsonAsync<List<Transaction>>($"api/orders/{orderId}/transactions");
+
+            if (transactions != null)
+            {
+                foreach (var transaction in transactions)
+                {
+
+                    var transactionResponse = Http.GetFromJsonAsync<ExternalTransactionResponse>($"api/orders/{orderId}/transactions/{transaction.Id}/external");
+
+                    var externalId = transactionResponse.Result.ExternalTransactionId;
+
+                    if (!string.IsNullOrEmpty(externalId))
+                    {
+                        var payload = new { externalTransactionId = externalId };
+                        var stripeResponse = await Http.PostAsJsonAsync("api/payment/refund", payload);
+
+                        if (!stripeResponse.IsSuccessStatusCode)
+                        {
+                            Message = $"Failed to refund transaction {transaction.Id}: {stripeResponse.ReasonPhrase}";
+                            return;
+                        }
+                        else
+                        {
+                            Message = $"Order {orderId} has been refunded successfully.";
+			}
+                    }
+                }
+            }
+
             var response = await Http.PutAsJsonAsync($"api/orders/{orderId}", refundOrderDTO);
 
             if (response.IsSuccessStatusCode)
@@ -225,4 +256,9 @@ else
         public string? currency { get; set; }
         public decimal? tip { get; set; }
     }
+
+	public class ExternalTransactionResponse
+	{
+	    public string? ExternalTransactionId { get; set; }
+	}
 }
