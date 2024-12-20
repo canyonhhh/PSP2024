@@ -18,7 +18,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Idea - have logging closer to application root
 // \bin\Debug\net8.0
 var baseDir = AppContext.BaseDirectory;
-var logFilePath = Path.Combine(baseDir, "logs.txt");
+var logFilePath = Path.Combine(baseDir, "PSPOS_LOGS.txt");
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
